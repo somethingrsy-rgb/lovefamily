@@ -42,7 +42,7 @@ npm run test:ui   # 브라우저 E2E (Playwright 필요, 스크린샷은 SHOTS_D
 
 **방법 B. Fly.io에 올려 계속 쓰기 (가족용 고정 주소, 소액 과금 가능)**
 1. https://fly.io 가입 후 `flyctl` 설치, `fly auth login`.
-2. `fly.toml` 의 `app = "lovefamily-CHANGE-ME"` 를 원하는 고유한 이름으로 바꿉니다.
+2. `fly.toml` 의 `app = "lovefamily"` 를 원하는 고유한 이름(소문자·숫자·하이픈만)으로 바꿉니다. 이미 누가 쓰는 이름이면 다른 이름을 쓰세요.
 3. `fly launch --no-deploy --copy-config` → `fly volumes create lovefamily_data --size 1 --region nrt`
 4. 푸시를 쓰려면 `npm run vapid` 로 키를 만들고 `fly secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:내메일`
 5. `fly deploy` → 주소는 `https://앱이름.fly.dev`.
