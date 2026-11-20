@@ -1,7 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import webpush from 'web-push';
+import * as wp from 'web-push';
+const webpush = wp.default ?? wp; // web-push 3.x(CommonJS)와 4.x(ESM) 모두 지원
 import { createApp } from './app.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');

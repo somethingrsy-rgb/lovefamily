@@ -4,7 +4,9 @@
   "description": "우리집 가족 대시보드 — 가족용 PWA (거실 iPad + 어른 휴대폰)",
   "type": "module",
   "private": true,
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
