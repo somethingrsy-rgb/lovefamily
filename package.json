@@ -1,0 +1,19 @@
+{
+  "name": "lovefamily",
+  "version": "1.0.0",
+  "description": "우리집 가족 대시보드 — 가족용 PWA (거실 iPad + 어른 휴대폰)",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "seed": "node --disable-warning=ExperimentalWarning scripts/seed.js",
+    "vapid": "node scripts/gen-vapid.js",
+    "icons": "node scripts/make-icons.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 test/*.test.js"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}
