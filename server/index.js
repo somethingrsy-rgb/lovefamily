@@ -20,8 +20,16 @@ fs.mkdirSync(dataDir, { recursive: true });
 const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
 let pushSender = null;
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(VAPID_SUBJECT || 'mailto:admin@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-  pushSender = (sub, payload) => webpush.sendNotification(sub, payload, { TTL: 3600, urgency: 'high' });
+  // 이메일만 적어도 동작하도록 mailto: 를 자동으로 붙인다.
+  let subject = (VAPID_SUBJECT || 'mailto:admin@example.com').trim();
+  if (/^[^\s@:]+@[^\s@]+$/.test(subject)) subject = `mailto:${subject}`;
+  try {
+    webpush.setVapidDetails(subject, VAPID_PUBLIC_KEY.trim(), VAPID_PRIVATE_KEY.trim());
+    pushSender = (sub, payload) => webpush.sendNotification(sub, payload, { TTL: 3600, urgency: 'high' });
+  } catch (e) {
+    // 푸시 설정이 잘못돼도 앱 전체가 꺼지지 않게 한다(앱 안 알림·팝업은 정상 동작).
+    console.error(`[push] VAPID 설정 오류로 푸시를 끕니다: ${e.message}`);
+  }
 } else {
   console.warn('[push] VAPID 키가 없어 휴대폰 푸시가 꺼져 있어요. `npm run vapid` 로 키를 만들어 환경변수에 넣어 주세요. (앱 안 알림·팝업은 정상 동작)');
 }
