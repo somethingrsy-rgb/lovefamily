@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>우리집 가족 대시보드 · 화면 미리보기</title>
+<meta name="description" content="거실 iPad와 어른 휴대폰에서 쓰는 가족용 홈 화면 웹앱(PWA)의 화면 미리보기">
+<style>
+:root{--ink:#3a3252;--muted:#81789c;--card:#fff;--bg:#fbeef6;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--ink:#f1ebff;--muted:#b5a9d8;--card:#2f2750;--bg:#1f1a33;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg),#ece3fb);line-height:1.6}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 60px}h1{font-size:2rem;margin:.2em 0}h2{margin:2em 0 .4em}
+.note{background:var(--card);border-left:6px solid #ff7fb2;border-radius:16px;padding:14px 18px;box-shadow:0 6px 22px rgba(141,111,220,.14)}
+figure{margin:16px 0;background:var(--card);border-radius:22px;padding:12px;box-shadow:0 6px 22px rgba(141,111,220,.14)}
+figure img{width:100%;height:auto;border-radius:14px;display:block}figcaption{padding:8px 6px 2px;color:var(--muted);font-weight:600}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.phones figure{margin:0}
+ul{padding-left:1.2em}a{color:#8d6fdc;font-weight:700}code{background:rgba(141,111,220,.15);padding:1px 6px;border-radius:6px}
+</style></head>
+<body><main>
+<h1>🏠 우리집 가족 대시보드</h1>
+<p>거실 iPad(가로)와 어른 휴대폰에서 쓰는 가족용 홈 화면 웹앱(PWA)입니다. 루틴 체크 → 어른 도장 승인 → 30개 보상 → 돼지 저금통, 활동 타이머, 내일 준비물, 가족 활동, 사진 알림장, 메시지를 한 곳에서 다룹니다.</p>
+<div class="note"><b>이 페이지는 화면 미리보기입니다.</b> 실제 앱은 로그인·기기 간 실시간 동기화·사진 저장·푸시를 위해 서버가 필요해서 GitHub Pages에서는 동작하지 않습니다.
+직접 써 보려면 <a href="https://github.com/somethingrsy-rgb/lovefamily">저장소</a>의 README대로 <code>npm install &amp;&amp; npm start</code> 를 하거나 Dockerfile로 서버에 배포하세요.</div>
+
+<h2>거실 iPad (가로)</h2>
+<figure><img src="img/ipad-home.jpg" alt="거실 보드 홈 화면" loading="lazy"><figcaption>거실 보드: 날짜·시간과 부모 상태, 아이 카드, 오늘 일정·가족 한마디·알림장, 챙길 것, 이번 주 가족 활동</figcaption></figure>
+<figure><img src="img/ipad-timers.jpg" alt="두 아이의 타이머" loading="lazy"><figcaption>유엘·유하의 타이머가 각각 동작하고, 아이 카드에 현재 활동·남은 시간·지금/다음 카드가 보입니다</figcaption></figure>
+<figure><img src="img/ipad-warn.jpg" alt="5분 전 예고 팝업" loading="lazy"><figcaption>5분 전 예고 팝업: 해당 아이 이름과 활동, 지금 → 다음 카드</figcaption></figure>
+<figure><img src="img/ipad-timer.jpg" alt="타이머 화면" loading="lazy"><figcaption>큰 숫자와 줄어드는 원형 표시</figcaption></figure>
+<figure><img src="img/ipad-supplies.jpg" alt="내일 챙길 것" loading="lazy"><figcaption>아이별 내일 챙길 것 (챙겼어요 체크, 원본 알림장 사진 연결)</figcaption></figure>
+<figure><img src="img/ipad-wallet.jpg" alt="돼지 저금통" loading="lazy"><figcaption>돼지 저금통: 내 돈, 지금 쓸 수 있는 돈, 목표에 모아둔 돈, 용돈기입장</figcaption></figure>
+<figure><img src="img/ipad-stamps.jpg" alt="도장판" loading="lazy"><figcaption>아이별 30칸 도장판과 완성판 보관함</figcaption></figure>
+<figure><img src="img/ipad-dark.jpg" alt="야간 테마" loading="lazy"><figcaption>야간 테마</figcaption></figure>
+
+<h2>어른·아이 휴대폰</h2>
+<div class="phones">
+<figure><img src="img/phone-home.jpg" alt="어른 홈" loading="lazy"><figcaption>어른 홈: 내 상태, 도장 확인 대기, 요청</figcaption></figure>
+<figure><img src="img/phone-kid.jpg" alt="아이 허브" loading="lazy"><figcaption>아이 화면: 큰 버튼 4개</figcaption></figure>
+<figure><img src="img/phone-wallet.jpg" alt="저금통" loading="lazy"><figcaption>저금통과 거래 내역</figcaption></figure>
+<figure><img src="img/phone-timer.jpg" alt="타이머" loading="lazy"><figcaption>타이머</figcaption></figure>
+<figure><img src="img/phone-family.jpg" alt="가족 활동" loading="lazy"><figcaption>가족 활동 날짜 확정</figcaption></figure>
+</div>
+<h2>주요 기능</h2>
+<ul><li>어른 3명(엄마·아빠·할머니) 각자 계정, 가족 코드·초대 링크 연결, 거실 공용 기기 모드와 어른 재인증</li>
+<li>반복 루틴(과거 기록 보존), 첫 승인 1건만 확정되는 도장, 30개마다 5,000원 자동 적립</li>
+<li>저금통 장부·출금/구매 요청·목표 저축·미션, 중복 차감 방지</li>
+<li>활동 타이머(5분 전 예고·종료·연장), 다음 활동, 내일 준비물, 이번 주 가족 활동</li>
+<li>사진 알림장, 부모 상태, 개인 메시지, 실시간 팝업과 휴대폰 푸시</li></ul>
+</main></body></html>
