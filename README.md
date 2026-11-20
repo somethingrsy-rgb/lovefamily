@@ -9,6 +9,14 @@
 - 인증: 어른 각자 계정(아이디/비밀번호), 가족 코드·초대 링크로 연결. 거실 기기는 "공용 기기 모드"로 로그인하고, 승인·잔액 정정 등 어른 동작은 어른 선택+비밀번호 재인증(10분). 아이별 4자리 비밀번호(선택)로 서로의 저금통·메시지 보호.
 - 금액은 원 단위 정수, 날짜는 한국시간(KST). 장부는 `idem_key` 유니크 + 트랜잭션으로 중복 적립/차감 방지.
 
+## Windows PC에서 바로 실행하기
+1. **Node.js 22.13 이상(LTS)** 을 https://nodejs.org 에서 설치합니다. (명령 프롬프트에서 `node -v` 로 확인)
+2. ZIP을 원하는 폴더에 풀고 **`start-windows.bat`** 을 더블클릭합니다. 처음 한 번은 패키지 설치와 샘플 데이터 생성이 자동으로 진행됩니다.
+3. 브라우저에서 **http://localhost:3000** 을 엽니다.
+4. 샘플 로그인: `mom@sample.test` / `dad@sample.test` / `grandma@sample.test`, 비밀번호 `sample1234` (개발용 가짜 계정). 새 가족을 만들려면 `data` 폴더를 지우고 다시 실행하세요.
+- 수동 실행: 명령 프롬프트(또는 PowerShell)에서 `npm install` → `npm run seed` → `npm start`.
+- 같은 Wi-Fi의 iPad·휴대폰에서 열려면 PC의 IP(`ipconfig`)로 `http://PC주소:3000` 에 접속하고 Windows 방화벽에서 Node.js 허용이 필요합니다. 다만 **휴대폰 푸시와 홈 화면 앱 설치는 HTTPS 주소에서만** 동작하므로, 이 방식은 화면·기능 확인용입니다.
+
 ## 실행
 ```bash
 npm install
