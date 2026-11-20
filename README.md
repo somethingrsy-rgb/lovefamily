@@ -34,6 +34,21 @@ npm run test:ui   # 브라우저 E2E (Playwright 필요, 스크린샷은 SHOTS_D
 - **내일 준비물** (`supplies.js`): 알림장 글 또는 직접 등록, 여러 개·여러 아이, 아이별 체크, 같은 글의 같은 준비물은 기존 항목 표시, KST 자정이 지나면 오늘로 이동. 루틴·도장 계산과 별개입니다.
 - **이번 주 가족 활동** (`famact.js`): 아이별 선택, 어른이 날짜·시간 확정. (주, 후보)당 일정은 항상 1건이라 버튼을 여러 번 눌러도 중복되지 않고 변경은 같은 일정을 갱신합니다.
 
+## 가족 기기(iPad·휴대폰)가 함께 접속할 주소 만들기
+**방법 A. 집 PC로 잠깐 써 보기 (무료, 계정 불필요)** — PC가 켜져 있는 동안만 동작하고, 주소는 켤 때마다 바뀝니다.
+1. 앱을 실행해 둔 상태(`start-windows.bat`)에서, 다른 명령 프롬프트 창에 `winget install Cloudflare.cloudflared` 로 설치합니다.
+2. `cloudflared tunnel --url http://localhost:3000` 을 실행하면 `https://무작위이름.trycloudflare.com` 주소가 나옵니다.
+3. 이 주소를 iPad·가족 휴대폰 Safari에서 엽니다. (HTTPS라 홈 화면 추가와 푸시도 가능)
+
+**방법 B. Fly.io에 올려 계속 쓰기 (가족용 고정 주소, 소액 과금 가능)**
+1. https://fly.io 가입 후 `flyctl` 설치, `fly auth login`.
+2. `fly.toml` 의 `app = "lovefamily-CHANGE-ME"` 를 원하는 고유한 이름으로 바꿉니다.
+3. `fly launch --no-deploy --copy-config` → `fly volumes create lovefamily_data --size 1 --region nrt`
+4. 푸시를 쓰려면 `npm run vapid` 로 키를 만들고 `fly secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:내메일`
+5. `fly deploy` → 주소는 `https://앱이름.fly.dev`.
+6. 접속 후 **새 가족 만들기**로 시작하고, 어른들은 가족 코드/초대 링크로 참여합니다. 거실 iPad는 로그인 때 "거실 공용 기기"를 체크하세요.
+※ SQLite를 쓰므로 서버는 **한 대만** 유지하세요(`fly scale count 1`). 데이터 백업은 `fly ssh sftp` 등으로 `/data` 를 받아 두세요.
+
 ## 환경변수 (비밀값은 코드에 없음)
 | 이름 | 설명 |
 |---|---|
