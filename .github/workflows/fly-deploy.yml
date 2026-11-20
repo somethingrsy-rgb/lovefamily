@@ -1,0 +1,27 @@
+# GitHub 에 푸시하면 Fly.io 로 자동 배포합니다.
+# 사용 전 1회: 저장소 Settings → Secrets and variables → Actions → New repository secret
+#   이름 FLY_API_TOKEN, 값 = Fly 배포 토큰 (README "자동 배포" 참고). 토큰이 없으면 이 작업은 조용히 건너뜁니다.
+name: Fly Deploy
+on:
+  push:
+    branches: [main, claude/affectionate-fermi-g77zqv]
+    paths-ignore: ['site/**', 'README.md']
+  workflow_dispatch:
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - name: 토큰 확인
+        if: env.FLY_API_TOKEN == ''
+        run: echo "FLY_API_TOKEN 비밀값이 없어 배포를 건너뜁니다. README 의 '자동 배포' 를 참고하세요."
+      - uses: actions/checkout@v4
+        if: env.FLY_API_TOKEN != ''
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: env.FLY_API_TOKEN != ''
+      - run: flyctl deploy --remote-only
+        if: env.FLY_API_TOKEN != ''

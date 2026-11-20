@@ -53,6 +53,13 @@ npm run test:ui   # 브라우저 E2E (Playwright 필요, 스크린샷은 SHOTS_D
 6. 접속 후 **새 가족 만들기**로 시작하고, 어른들은 가족 코드/초대 링크로 참여합니다. 거실 iPad는 로그인 때 "거실 공용 기기"를 체크하세요.
 ※ SQLite를 쓰므로 서버는 **한 대만** 유지하세요(`fly scale count 1`). 데이터 백업은 `fly ssh sftp` 등으로 `/data` 를 받아 두세요.
 
+## Fly.io 자동 배포 (GitHub 푸시 → 배포)
+`.github/workflows/fly-deploy.yml` 이 푸시할 때마다 Fly 로 배포합니다. 처음에 한 번만 아래를 해 주세요.
+1. Fly 토큰 만들기: https://fly.io/dashboard → 왼쪽/위쪽 **Tokens**(또는 Account → Access Tokens)에서 앱 `lovefamily` 용 **Deploy token** 을 만들고 복사합니다. (명령줄이면 `fly tokens create deploy -a lovefamily`)
+2. GitHub 저장소 **Settings → Secrets and variables → Actions → New repository secret** 에 이름 `FLY_API_TOKEN`, 값 = 복사한 토큰.
+3. 저장소 **Actions** 탭 → **Fly Deploy** → **Run workflow** 로 첫 배포를 실행합니다. 이후에는 푸시하면 자동으로 배포돼요.
+토큰은 비밀값입니다. 채팅·코드에 붙여 넣지 마세요.
+
 ## 환경변수 (비밀값은 코드에 없음)
 | 이름 | 설명 |
 |---|---|
