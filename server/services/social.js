@@ -53,14 +53,14 @@ export function savePhoto(core, ctx, buf, { kind, kidId }) {
   if (buf.length > MAX_PHOTO) throw err(413, 'too_big', '사진은 8MB 이하만 올릴 수 있어요.');
   const t = sniff(buf);
   if (!t) throw err(415, 'bad_image', 'JPG, PNG, WebP 사진만 올릴 수 있어요.');
-  kind = oneOf(kind, ['post', 'wish'], '종류');
+  kind = oneOf(kind, ['post', 'wish', 'avatar'], '종류');
   let kid = null; let owner = null;
   if (kind === 'wish') {
     const k = ctx.kidPrivate(vid(kidId, '아이'));
     kid = k.id;
     owner = ctx.adultOrNull()?.id ?? k.id;
   } else {
-    owner = ctx.adult().id; // 알림장 사진은 어른만
+    owner = ctx.adult().id; // 알림장·얼굴 사진은 어른만
   }
   const dir = path.join(core.dataDir, 'photos', String(ctx.familyId));
   fs.mkdirSync(dir, { recursive: true });

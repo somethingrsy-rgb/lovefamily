@@ -3,7 +3,9 @@ import { S, hooks, post, ApiError } from './api.js';
 
 const layer = () => document.getElementById('layer');
 
-export const avatar = (m, cls = '') => `<span class="avatar ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true">${esc(m.avatar)}</span>`;
+export const avatar = (m, cls = '') => (m.avatarUrl
+  ? `<span class="avatar photo ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true"><img src="${esc(m.avatarUrl)}" alt=""></span>`
+  : `<span class="avatar ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true">${esc(m.avatar)}</span>`);
 
 // ---- 토스트 / 팝업 ----
 export function toast(msg, kind = '') {
@@ -161,7 +163,7 @@ export async function needAdult() {
 }
 
 // ---- 사진 선택(촬영/앨범) + 줄여서 업로드 ----
-async function shrink(file, max = 1600) {
+async function shrink(file, max = 1600, png = false) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
@@ -169,10 +171,10 @@ async function shrink(file, max = 1600) {
     const c = document.createElement('canvas');
     c.width = Math.round(img.naturalWidth * r); c.height = Math.round(img.naturalHeight * r);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    return await new Promise((ok) => c.toBlob((b) => ok(b), 'image/jpeg', 0.82));
+    return await new Promise((ok) => (png ? c.toBlob((b) => ok(b), 'image/png') : c.toBlob((b) => ok(b), 'image/jpeg', 0.82)));
   } catch { return file; } finally { URL.revokeObjectURL(url); }
 }
-export function photoPicker({ kind, kidId, label = '사진' }) {
+export function photoPicker({ kind, kidId, label = '사진', alpha = false }) {
   const wrap = document.createElement('div');
   wrap.className = 'photo-picker';
   wrap.innerHTML = `<div class="photo-preview" hidden><img alt="${esc(label)} 미리보기"><button type="button" class="btn small ghost" data-rm>지우기</button></div>
@@ -184,7 +186,7 @@ export function photoPicker({ kind, kidId, label = '사진' }) {
     if (!file) return;
     state.busy = true; status.hidden = false; status.textContent = '사진을 올리는 중…';
     try {
-      const blob = await shrink(file);
+      const blob = await shrink(file, alpha ? 640 : 1600, alpha);
       const r = await post('/api/photos', blob, { headers: { 'X-Photo-Kind': kind, ...(kidId ? { 'X-Kid-Id': String(kidId) } : {}), 'Content-Type': 'application/octet-stream' } });
       state.id = r.id; $('img', prev).src = r.url; prev.hidden = false; status.hidden = true;
     } catch (e) { status.textContent = e.message || '사진을 올리지 못했어요.'; }

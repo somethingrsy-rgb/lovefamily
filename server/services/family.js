@@ -148,7 +148,7 @@ export function setKidPin(core, ctx, kidId, pin) {
 }
 
 export function publicMember(m, ctx) {
-  const o = { id: m.id, kind: m.kind, role: m.role, name: m.name, avatar: m.avatar, color: m.color };
+  const o = { id: m.id, kind: m.kind, role: m.role, name: m.name, avatar: m.avatar, color: m.color, avatarUrl: m.avatar_photo_id ? `/api/photos/${m.avatar_photo_id}` : null };
   if (m.kind === 'adult') o.isGuardian = !!m.is_guardian;
   if (m.kind === 'kid') { o.hasPin = !!m.pin_hash; if (ctx) o.unlocked = ctx.kidUnlocked(m); }
   return o;
@@ -184,7 +184,16 @@ export function updateMember(core, ctx, memberId, b) {
     guardian = b.isGuardian ? 1 : 0;
     if (!guardian && core.adults(ctx.familyId).filter((a) => a.is_guardian && a.id !== m.id).length === 0) throw err(409, 'last_guardian', '부모님 권한을 가진 어른이 한 명은 있어야 해요.');
   }
-  core.run('UPDATE members SET name = ?, avatar = ?, color = ?, is_guardian = ? WHERE id = ?', name, avatar, color, guardian, m.id);
+  let photo = m.avatar_photo_id;
+  if (b.photoId !== undefined) {
+    if (b.photoId === null) photo = null;
+    else {
+      const ph = core.get('SELECT * FROM photos WHERE id = ?', Number(b.photoId));
+      if (!ph || ph.family_id !== ctx.familyId || ph.kind !== 'avatar') throw err(400, 'bad_photo', '얼굴 사진을 찾을 수 없어요.');
+      photo = ph.id;
+    }
+  }
+  core.run('UPDATE members SET name = ?, avatar = ?, color = ?, is_guardian = ?, avatar_photo_id = ? WHERE id = ?', name, avatar, color, guardian, photo, m.id);
   core.refresh(ctx.familyId, 'family', 'home');
   return publicMember(core.member(m.id), ctx);
 }

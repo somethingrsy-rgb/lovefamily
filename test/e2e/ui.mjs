@@ -55,7 +55,7 @@ await phone.waitForSelector('.kid-card');
 await phone.screenshot({ path: path.join(shots, '02-phone-home-adult.png'), fullPage: true });
 
 // 유엘이 iPad 에서 루틴 체크
-await ipad.click('.kid-card:has-text("유엘")');
+await ipad.click('.kid-card:has-text("유엘") .kid-main');
 await ipad.waitForSelector('.kid-hub');
 await ipad.screenshot({ path: path.join(shots, '03-ipad-kid-hub.png') });
 await ipad.click('text=오늘 루틴');
@@ -84,7 +84,7 @@ await ipad.waitForFunction(() => /도장 받았어요/.test(document.querySelect
 await ipad.screenshot({ path: path.join(shots, '08-ipad-home-stamped.png') });
 
 // 저금통(아이 화면): 어른 재인증 없이 보인다
-await ipad.click('.kid-card:has-text("유엘")'); await ipad.click('text=돼지 저금통');
+await ipad.click('.kid-card:has-text("유엘") .kid-main'); await ipad.click('text=돼지 저금통');
 await ipad.waitForSelector('.piggy-hero');
 assert.match(await ipad.textContent('#total'), /12,000원/);
 await ipad.screenshot({ path: path.join(shots, '09-ipad-wallet.png'), fullPage: true });
@@ -132,7 +132,7 @@ for (const [href, sel, name] of [['#/routines', '.rlist', '14-ipad-routines'], [
 }
 // 야간 테마
 await ipad.goto(base + '/#/family'); await ipad.waitForSelector('input[name=theme]');
-await ipad.click('.seg-opt:has-text("밤")'); await ipad.goto(base + '/#/'); await ipad.waitForSelector('.kid-card');
+await ipad.click('.seg-opt:has(input[value=dark])'); await ipad.goto(base + '/#/'); await ipad.waitForSelector('.kid-card');
 assert.equal(await ipad.evaluate(() => document.documentElement.dataset.theme), 'dark');
 await ipad.screenshot({ path: path.join(shots, '19-ipad-home-dark.png') });
 

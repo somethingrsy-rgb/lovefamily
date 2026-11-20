@@ -1,6 +1,6 @@
 import { $, $$, esc, DOW, lsGet, lsSet, shortDate, dateLabel } from '../util.js';
 import { S, get, post, patch, del, put, bus, isDevice, isAdultNow } from '../api.js';
-import { avatar, toast, errToast, formSheet, confirmDialog, needAdult } from '../ui.js';
+import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker } from '../ui.js';
 import { back } from '../common.js';
 import { supplySheet } from './supplies.js';
 
@@ -30,6 +30,7 @@ const AV = (S.info?.avatars) || [];
 function memberForm(m) {
   return `<label class="field">이름<input name="name" maxlength="20" value="${esc(m.name)}" required></label>
     <div class="field"><span>아바타</span><div class="icon-pick">${(S.info.avatars || []).map((a) => `<label><input type="radio" name="avatar" value="${a}" ${a === m.avatar ? 'checked' : ''}><span>${a}</span></label>`).join('')}</div></div>
+    <div class="field"><span>얼굴 사진 <small class="muted">(배경이 투명한 PNG가 가장 예뻐요. 가족만 볼 수 있어요)</small></span><div id="facepp"></div><label class="check"><input type="checkbox" name="rmphoto"> <span>사진 지우고 이모지로 되돌리기</span></label></div>
     ${m.kind === 'kid' ? `<div class="field"><span>카드 색</span><div class="color-pick">${(S.info.kidColors || []).map((c) => `<label><input type="radio" name="color" value="${c}" ${c === m.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>` : ''}`;
 }
 
@@ -75,7 +76,15 @@ export async function mount(el) {
     $('#rot', el)?.addEventListener('click', run(async () => { if (await confirmDialog('가족 코드를 새로 만들면 이전 코드는 쓸 수 없어요. 계속할까요?')) { await post('/api/family/code/rotate'); S.info = await get('/api/me'); } }));
     el.onclick = async (e) => {
       const ed = e.target.closest('[data-edit]'); const pin = e.target.closest('[data-pin]');
-      if (ed) { if (!(await needAdult())) return; const all = [...S.info.adults, ...S.info.kids]; const m = all.find((x) => x.id === Number(ed.dataset.edit)); await run(() => formSheet({ title: `${m.name} 수정`, submit: '저장', cls: 'tall', html: memberForm(m), onSubmit: (v) => patch(`/api/members/${m.id}`, { name: v.name, avatar: v.avatar, ...(v.color ? { color: v.color } : {}) }) }))(); }
+      if (ed) { if (!(await needAdult())) return; const all = [...S.info.adults, ...S.info.kids]; const m = all.find((x) => x.id === Number(ed.dataset.edit)); const picker = photoPicker({ kind: 'avatar', label: '얼굴', alpha: true });
+        if (m.avatarUrl) { picker.state.id = null; $('img', picker).src = m.avatarUrl; $('.photo-preview', picker).hidden = false; }
+        setTimeout(() => document.getElementById('facepp')?.appendChild(picker), 0);
+        await run(() => formSheet({ title: `${m.name} 수정`, submit: '저장', cls: 'tall', html: memberForm(m), onSubmit: (v) => {
+          if (picker.state.busy) throw new Error('사진을 올리는 중이에요. 잠깐만요.');
+          const body = { name: v.name, avatar: v.avatar, ...(v.color ? { color: v.color } : {}) };
+          if (v.rmphoto === 'on') body.photoId = null; else if (picker.state.id) body.photoId = picker.state.id;
+          return patch(`/api/members/${m.id}`, body);
+        } }))(); }
       const ae = e.target.closest('[data-act]'); const ad = e.target.closest('[data-actdel]');
       if (ae) { if (!(await needAdult())) return; const a = (await get('/api/activities')).find((x) => x.id === Number(ae.dataset.act)); await run(() => formSheet({ title: `${a.name} 수정`, submit: '저장', html: `<label class="field">활동 이름<input name="name" maxlength="20" value="${esc(a.name)}" required></label><label class="field">아이콘<input name="icon" maxlength="4" value="${esc(a.icon)}"></label><label class="field">기본 시간(분)<input name="minutes" inputmode="numeric" value="${a.minutes}"></label>`, onSubmit: (v) => patch(`/api/activities/${a.id}`, { name: v.name, icon: v.icon, minutes: Number(v.minutes) }) }))(); }
       if (ad) { if (!(await needAdult())) return; if (await confirmDialog('이 활동을 지울까요? 연결된 루틴의 타이머 버튼도 사라져요.', { danger: true })) await run(() => del(`/api/activities/${ad.dataset.actdel}`))(); }

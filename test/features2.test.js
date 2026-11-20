@@ -295,3 +295,25 @@ test('⑫ 가족 활동: 아이별 선택·변경, 같은 활동이면 일정 1�
     assert.equal((await f.device.post('/api/family-activities/plans', body)).status, 401);
   } finally { await f.close(); }
 });
+
+test('얼굴 사진(투명 PNG): 어른만 올리고, 가족 구성원 정보에 포함되며, 다른 가족은 볼 수 없다', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    assert.equal((await f.device.call('POST', '/api/photos', PNG, { 'X-Photo-Kind': 'avatar' })).status, 401, '아이/공용 기기는 못 올림');
+    const up = await f.mom.call('POST', '/api/photos', PNG, { 'X-Photo-Kind': 'avatar' });
+    assert.equal(up.status, 201);
+    const m = await f.mom.ok('PATCH', `/api/members/${f.ids.yuha}`, { photoId: up.json.id });
+    assert.equal(m.avatarUrl, `/api/photos/${up.json.id}`);
+    const home = await f.device.ok('GET', '/api/home');
+    assert.equal(home.kids.find((k) => k.id === f.ids.yuha).avatarUrl, m.avatarUrl);
+    assert.equal(home.kids.find((k) => k.id === f.ids.yuel).avatarUrl, null);
+    assert.equal((await f.device.get(m.avatarUrl)).status, 200);
+    const { Client } = await import('./helpers.js');
+    const other = new Client(f.base); await other.ok('POST', '/api/auth/register', { loginId: 'o@t', password: 'secret9', role: 'mom' });
+    assert.equal((await other.get(m.avatarUrl)).status, 404, '다른 가족은 볼 수 없음');
+    assert.equal((await other.patch(`/api/members/${f.ids.yuha}`, { photoId: up.json.id })).status, 404);
+    // 지우기
+    assert.equal((await f.mom.ok('PATCH', `/api/members/${f.ids.yuha}`, { photoId: null })).avatarUrl, null);
+  } finally { await f.close(); }
+});
