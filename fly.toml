@@ -1,26 +1,28 @@
-# Fly.io 배포 설정 (SQLite 단일 서버 + 영구 볼륨). app 이름은 소문자·숫자·하이픈만 가능하며 전 세계에서 유일해야 해요.
-app = "lovefamily"
-primary_region = "nrt"   # 도쿄(한국에서 가장 가까움)
+# fly.toml app configuration file generated for lovefamily on 2026-11-20T17:03:22Z
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'lovefamily'
+primary_region = 'nrt'
 
 [build]
-
 [env]
-  PORT = "3000"
-  DATA_DIR = "/data"
-  COOKIE_SECURE = "1"
+  COOKIE_SECURE = '1'
+  DATA_DIR = '/data'
+  PORT = '3000'
 
 [[mounts]]
-  source = "lovefamily_data"
-  destination = "/data"
+  source = 'lovefamily_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  # 타이머·알림이 항상 동작하도록 서버를 끄지 않고, SQLite 라서 한 대만 둡니다.
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
