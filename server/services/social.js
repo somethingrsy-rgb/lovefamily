@@ -7,6 +7,9 @@ import { getBoards } from './stamps.js';
 import { todoForAdult } from './money.js';
 import { requestedMissions } from './wishes.js';
 import { publicMember } from './family.js';
+import { homeTimers, kidTimer } from './timers.js';
+import { supplyCards } from './supplies.js';
+import { famActSummary } from './famact.js';
 
 // ---------- 가족 상태 ----------
 export const STATUS_LABEL = { working: '일하는 중', heading_home: '집에 가는 중', picking_up: '데리러 가는 중', home: '집에 있어요' };
@@ -140,6 +143,7 @@ export function deletePost(core, ctx, pid) {
   if (!p || p.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 글이에요.');
   if (p.author_id !== adult.id && !adult.is_guardian) throw err(403, 'forbidden', '쓴 사람이나 부모님만 지울 수 있어요.');
   core.run('DELETE FROM post_reads WHERE post_id = ?', p.id);
+  core.run('UPDATE supplies SET post_id = NULL WHERE post_id = ?', p.id);
   core.run('DELETE FROM posts WHERE id = ?', p.id);
   core.refresh(ctx.familyId, 'posts', 'home', 'calendar');
   return { ok: true };
@@ -176,7 +180,8 @@ export function addEvent(core, ctx, b) {
   const title = text(b.title, '일정 이름', { max: 60 });
   if (!isDate(b.date)) throw err(400, 'bad_date', '날짜가 올바르지 않아요.');
   const kidId = b.kidId && b.kidId !== 'all' ? ctx.kid(vid(b.kidId, '대상')).id : null;
-  const eid = core.insert('INSERT INTO events (family_id, title, date, kid_id, created_by, created_at) VALUES (?,?,?,?,?,?)', ctx.familyId, title, b.date, kidId, adult.id, core.now());
+  const time = typeof b.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(b.time) ? b.time : null;
+  const eid = core.insert('INSERT INTO events (family_id, title, date, time, kid_id, created_by, created_at) VALUES (?,?,?,?,?,?,?)', ctx.familyId, title, b.date, time, kidId, adult.id, core.now());
   core.refresh(ctx.familyId, 'calendar', 'home');
   return { id: eid };
 }
@@ -184,6 +189,7 @@ export function deleteEvent(core, ctx, eid) {
   ctx.adult();
   const e = core.get('SELECT * FROM events WHERE id = ?', eid);
   if (!e || e.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 일정이에요.');
+  if (e.plan_id) core.run("UPDATE fam_plans SET status = 'canceled', updated_at = ? WHERE id = ?", core.now(), e.plan_id);
   core.run('DELETE FROM events WHERE id = ?', e.id);
   core.refresh(ctx.familyId, 'calendar', 'home');
   return { ok: true };
@@ -191,8 +197,8 @@ export function deleteEvent(core, ctx, eid) {
 // 날짜별 일정: 직접 적은 일정 + 알림장의 준비물/제출 기한
 export function scheduleFor(core, familyId, from, to) {
   const out = [];
-  for (const e of core.all('SELECT * FROM events WHERE family_id = ? AND date >= ? AND date < ? ORDER BY date, id', familyId, from, to))
-    out.push({ type: 'event', id: e.id, date: e.date, title: e.title, kidId: e.kid_id, kidName: e.kid_id ? core.member(e.kid_id)?.name : null });
+  for (const e of core.all('SELECT * FROM events WHERE family_id = ? AND date >= ? AND date < ? ORDER BY date, time, id', familyId, from, to))
+    out.push({ type: 'event', id: e.id, date: e.date, time: e.time, planId: e.plan_id, title: e.title, kidId: e.kid_id, kidName: e.kid_id ? core.member(e.kid_id)?.name : null });
   for (const p of core.all('SELECT * FROM posts WHERE family_id = ? AND due_date >= ? AND due_date < ? ORDER BY due_date, id', familyId, from, to))
     out.push({ type: 'due', id: p.id, date: p.due_date, title: p.title, supplies: p.supplies, kidId: p.kid_id, kidName: p.kid_id ? core.member(p.kid_id)?.name : null });
   return out;
@@ -302,7 +308,7 @@ export function subscribePush(core, ctx, sub) {
   const adult = ctx.adult();
   if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) throw err(400, 'bad_sub', '푸시 구독 정보가 올바르지 않아요.');
   if (typeof sub.endpoint !== 'string' || !/^https:\/\//.test(sub.endpoint) || sub.endpoint.length > 1000) throw err(400, 'bad_sub', '푸시 구독 정보가 올바르지 않아요.');
-  core.run('INSERT INTO push_subs (member_id, endpoint, p256dh, auth, created_at) VALUES (?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET member_id = excluded.member_id, p256dh = excluded.p256dh, auth = excluded.auth', adult.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, core.now());
+  core.run('INSERT INTO push_subs (member_id, endpoint, p256dh, auth, device, created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET member_id = excluded.member_id, p256dh = excluded.p256dh, auth = excluded.auth, device = excluded.device', adult.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, ctx.isDevice ? 1 : 0, core.now());
   return { ok: true };
 }
 export function unsubscribePush(core, ctx, endpoint) {
@@ -323,6 +329,7 @@ export function home(core, ctx) {
       ...publicMember(k, ctx),
       day: { status: d.status, total: d.total, done: d.done, remaining: d.items.filter((i) => !i.done).map((i) => i.name), requestId: d.requestId || null, stampBy: d.stamp?.providerName || null },
       board: { no: b.boardNo, count: b.count, size: b.size },
+      timer: kidTimer(core, ctx.familyId, k.id),
     };
   });
   const adults = core.adults(ctx.familyId)
@@ -332,7 +339,10 @@ export function home(core, ctx) {
   const posts = core.all('SELECT * FROM posts WHERE family_id = ? ORDER BY pinned DESC, id DESC LIMIT 3', ctx.familyId).map((p) => ({
     id: p.id, title: p.title, pinned: !!p.pinned, tag: p.kid_id ? core.member(p.kid_id)?.name : '공용', at: p.created_at, hasPhoto: !!p.photo_id,
   }));
-  return { now: core.now(), today, family: { name: fam.name }, kids, adults, schedule: sched, posts, notes: listNotes(core, ctx, 3), slotLabel: SLOT_LABEL };
+  return {
+    now: core.now(), today, family: { name: fam.name }, kids, adults, schedule: sched, posts, notes: listNotes(core, ctx, 3), slotLabel: SLOT_LABEL,
+    supplies: supplyCards(core, ctx.familyId), famActivity: famActSummary(core, ctx), timers: homeTimers(core, ctx.familyId),
+  };
 }
 
 // 어른 홈: 도장 확인 대기, 용돈/구매 요청, 미션 확인, 받은 메시지, 안 읽은 알림장

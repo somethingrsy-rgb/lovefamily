@@ -5,6 +5,9 @@ import * as S from './services/stamps.js';
 import * as M from './services/money.js';
 import * as W from './services/wishes.js';
 import * as X from './services/social.js';
+import * as T from './services/timers.js';
+import * as SP from './services/supplies.js';
+import * as FA from './services/famact.js';
 import { id as vid } from './util.js';
 
 // [method, path, handler(ctx, h) , opts]
@@ -112,6 +115,31 @@ export function buildRoutes(app) {
   add('GET', '/api/push/key', (c, h) => ({ publicKey: app.vapidPublicKey || null }));
   add('POST', '/api/push/subscribe', (c, h) => X.subscribePush(h.core, c, h.body.subscription));
   add('POST', '/api/push/unsubscribe', (c, h) => X.unsubscribePush(h.core, c, h.body.endpoint));
+  // ---- 활동 타이머 ----
+  add('GET', '/api/activities', (c, h) => T.listActivities(h.core, c));
+  add('POST', '/api/activities', (c, h) => ({ status: 201, body: T.createActivity(h.core, c, h.body) }));
+  add('PATCH', '/api/activities/:id', (c, h) => T.updateActivity(h.core, c, P(h), h.body));
+  add('DELETE', '/api/activities/:id', (c, h) => T.deleteActivity(h.core, c, P(h)));
+  add('GET', '/api/timers', (c, h) => T.listTimers(h.core, c));
+  add('POST', '/api/kids/:id/timers', (c, h) => ({ status: 201, body: T.startTimer(h.core, c, P(h), h.body) }));
+  add('POST', '/api/timers/:id/dismiss', (c, h) => T.dismissTimer(h.core, c, P(h)));
+  add('POST', '/api/timers/:id/cancel', (c, h) => T.cancelTimer(h.core, c, P(h)));
+  add('POST', '/api/timers/:id/extend', (c, h) => T.extendTimer(h.core, c, P(h), h.body));
+  add('PUT', '/api/timers/:id/next', (c, h) => T.setNext(h.core, c, P(h), h.body));
+
+  // ---- 내일 준비물 ----
+  add('POST', '/api/supplies', (c, h) => ({ status: 201, body: SP.createSupplies(h.core, c, h.body) }));
+  add('GET', '/api/kids/:id/supplies', (c, h) => SP.listSupplies(h.core, c, P(h)));
+  add('PUT', '/api/supplies/:id/kids/:kidId', (c, h) => SP.setChecked(h.core, c, P(h), P(h, 'kidId'), h.body.checked));
+  add('DELETE', '/api/supplies/:id', (c, h) => SP.deleteSupply(h.core, c, P(h)));
+
+  // ---- 이번 주 가족 활동 ----
+  add('GET', '/api/family-activities', (c, h) => FA.famActSummary(h.core, c));
+  add('POST', '/api/family-activities/options', (c, h) => ({ status: 201, body: FA.addOption(h.core, c, h.body) }));
+  add('DELETE', '/api/family-activities/options/:id', (c, h) => FA.removeOption(h.core, c, P(h)));
+  add('PUT', '/api/kids/:id/family-pick', (c, h) => FA.pick(h.core, c, P(h), h.body.optionId ?? null));
+  add('POST', '/api/family-activities/plans', (c, h) => FA.confirmPlan(h.core, c, h.body));
+  add('DELETE', '/api/family-activities/plans/:id', (c, h) => FA.cancelPlan(h.core, c, P(h)));
   void fs;
   return r;
 }

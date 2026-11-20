@@ -21,7 +21,8 @@ export class Hub {
       if (to) {
         const okAdult = c.memberId && to.adults?.includes(c.memberId);
         const okKid = c.kidId && to.kids?.includes(c.kidId);
-        if (!okAdult && !okKid) continue;
+        const okDev = to.devices && c.device;
+        if (!okAdult && !okKid && !okDev) continue;
       }
       try { c.res.write(data); } catch { this.conns.delete(c); }
     }
@@ -90,8 +91,13 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
     return nid;
   };
 
-  core.sendPush = (memberId, payload) => {
-    const subs = core.all('SELECT * FROM push_subs WHERE member_id = ?', memberId);
+  // 거실 기기로 등록된 구독에만 보내는 푸시(타이머 등 가족 공용 알림)
+  core.sendPushDevices = (familyId, payload) => {
+    const subs = core.all('SELECT s.* FROM push_subs s JOIN members m ON m.id = s.member_id WHERE m.family_id = ? AND s.device = 1', familyId);
+    core.pushTo(subs, payload);
+  };
+  core.sendPush = (memberId, payload) => core.pushTo(core.all('SELECT * FROM push_subs WHERE member_id = ?', memberId), payload);
+  core.pushTo = (subs, payload) => {
     if (!subs.length || !core.pushSender) return;
     for (const s of subs) {
       Promise.resolve()

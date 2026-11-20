@@ -8,6 +8,7 @@ import { Ctx, SESSION_COOKIE } from './ctx.js';
 import { HttpError, sha256, err } from './util.js';
 import { ensureToday } from './services/routines.js';
 import { reconcileRewards } from './services/stamps.js';
+import { settleTimers } from './services/timers.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -83,7 +84,7 @@ export function createApp(opts = {}) {
         const ctx = new Ctx(core, s, { ...req.headers, 'x-act-kid': url.searchParams.get('kid') || '' });
         const kid = ctx.actKidId();
         const valid = kid && core.member(kid)?.family_id === s.family_id && core.member(kid)?.kind === 'kid' ? kid : null;
-        core.hub.add(res, { familyId: s.family_id, memberId: s.kind === 'user' ? s.member_id : null, kidId: valid });
+        core.hub.add(res, { familyId: s.family_id, memberId: s.kind === 'user' ? s.member_id : null, kidId: valid, device: s.kind === 'device' });
         const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch {} }, 25000);
         res.on('close', () => clearInterval(ping));
         return;
@@ -141,7 +142,8 @@ export function createApp(opts = {}) {
   }
 
   const server = http.createServer((req, res) => { handle(req, res); });
-  let timer = null;
+  let timer = null; let timerTick = null;
+  const settle = () => { try { settleTimers(core); } catch (e) { console.error('timers', e); } };
   let lastDate = core.today();
   const tick = () => {
     try {
@@ -155,8 +157,8 @@ export function createApp(opts = {}) {
   };
   return {
     core, server,
-    listen: (port, host = '0.0.0.0') => new Promise((ok) => { server.listen(port, host, () => { tick(); timer = setInterval(tick, 5 * 60 * 1000); ok(server.address().port); }); }),
-    tick,
-    close: () => new Promise((ok) => { clearInterval(timer); for (const c of core.hub.conns) { try { c.res.end(); } catch {} } server.closeAllConnections?.(); server.close(() => { try { core.db.close(); } catch {} ok(); }); }),
+    listen: (port, host = '0.0.0.0') => new Promise((ok) => { server.listen(port, host, () => { tick(); settle(); timer = setInterval(tick, 5 * 60 * 1000); timerTick = setInterval(settle, 1000); ok(server.address().port); }); }),
+    tick, settle,
+    close: () => new Promise((ok) => { clearInterval(timer); clearInterval(timerTick); for (const c of core.hub.conns) { try { c.res.end(); } catch {} } server.closeAllConnections?.(); server.close(() => { try { core.db.close(); } catch {} ok(); }); }),
   };
 }

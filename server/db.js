@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY, login_id TEXT NOT NULL UNIQUE COLLATE NOCASE, pw_hash TEXT NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS families (
   id INTEGER PRIMARY KEY, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE,
-  show_grandma_status INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL);
+  show_grandma_status INTEGER NOT NULL DEFAULT 1, timer_sound INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS members (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL REFERENCES families(id),
   kind TEXT NOT NULL CHECK (kind IN ('kid','adult')),
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS kid_unlocks (
   session_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, expires_at INTEGER NOT NULL, PRIMARY KEY (session_id, kid_id));
 CREATE TABLE IF NOT EXISTS push_subs (
   id INTEGER PRIMARY KEY, member_id INTEGER NOT NULL, endpoint TEXT NOT NULL UNIQUE,
-  p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at INTEGER NOT NULL);
+  p256dh TEXT NOT NULL, auth TEXT NOT NULL, device INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS idempotency (
   scope TEXT NOT NULL, key TEXT NOT NULL, status INTEGER NOT NULL, response TEXT NOT NULL, created_at INTEGER NOT NULL,
   PRIMARY KEY (scope, key));
@@ -33,14 +33,14 @@ CREATE TABLE IF NOT EXISTS idempotency (
 CREATE TABLE IF NOT EXISTS routines (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL REFERENCES members(id),
   name TEXT NOT NULL, icon TEXT NOT NULL, days INTEGER NOT NULL, slot TEXT NOT NULL,
-  sort INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+  sort INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, activity_id INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS days (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL REFERENCES members(id),
   date TEXT NOT NULL, created_at INTEGER NOT NULL, UNIQUE (kid_id, date));
 CREATE TABLE IF NOT EXISTS day_items (
   id INTEGER PRIMARY KEY, day_id INTEGER NOT NULL REFERENCES days(id), routine_id INTEGER,
   name TEXT NOT NULL, icon TEXT NOT NULL, slot TEXT NOT NULL, sort INTEGER NOT NULL,
-  done INTEGER NOT NULL DEFAULT 0, done_at INTEGER, flag_reason TEXT);
+  done INTEGER NOT NULL DEFAULT 0, done_at INTEGER, flag_reason TEXT, activity_id INTEGER);
 CREATE INDEX IF NOT EXISTS day_items_day ON day_items(day_id);
 
 -- 도장
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS post_reads (
 CREATE TABLE IF NOT EXISTS notes (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, author_id INTEGER NOT NULL, text TEXT NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS events (
-  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, title TEXT NOT NULL, date TEXT NOT NULL, kid_id INTEGER, created_by INTEGER NOT NULL, created_at INTEGER NOT NULL);
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, title TEXT NOT NULL, date TEXT NOT NULL, kid_id INTEGER, created_by INTEGER NOT NULL, created_at INTEGER NOT NULL, plan_id INTEGER, time TEXT);
 
 -- 개인 메시지 (kid_id + adult_id 한 쌍의 대화. 두 사람에게만 열림)
 CREATE TABLE IF NOT EXISTS messages (
@@ -122,11 +122,53 @@ CREATE TABLE IF NOT EXISTS notifications (
   title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', dedupe TEXT UNIQUE,
   created_at INTEGER NOT NULL, read_at INTEGER);
 CREATE INDEX IF NOT EXISTS notifications_member ON notifications(member_id, id);
+
+-- 활동 타이머 (남은 시간은 항상 ends_at 기준으로 계산)
+CREATE TABLE IF NOT EXISTS activities (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, name TEXT NOT NULL, icon TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'other',
+  minutes INTEGER NOT NULL DEFAULT 30, sort INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS timers (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, activity_id INTEGER, name TEXT NOT NULL, icon TEXT NOT NULL, kind TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL, extended_ms INTEGER NOT NULL DEFAULT 0, started_at INTEGER NOT NULL, ends_at INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('running','ended','dismissed','canceled')),
+  warn_sent_for INTEGER, end_sent_for INTEGER, next_type TEXT, next_item_id INTEGER, next_name TEXT, next_icon TEXT, ended_at INTEGER, created_at INTEGER NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS one_running_timer ON timers(kid_id) WHERE status = 'running';
+
+-- 내일 준비물 (루틴·도장과 완전히 별개)
+CREATE TABLE IF NOT EXISTS supplies (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, post_id INTEGER, name TEXT NOT NULL, name_norm TEXT NOT NULL, icon TEXT NOT NULL,
+  date TEXT NOT NULL, created_by INTEGER NOT NULL, created_at INTEGER NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS supplies_dedupe ON supplies(family_id, IFNULL(post_id, 0), name_norm, date);
+CREATE TABLE IF NOT EXISTS supply_kids (
+  supply_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, checked INTEGER NOT NULL DEFAULT 0, checked_at INTEGER, PRIMARY KEY (supply_id, kid_id));
+
+-- 이번 주 가족 활동
+CREATE TABLE IF NOT EXISTS fam_options (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, name TEXT NOT NULL, icon TEXT NOT NULL, photo_id INTEGER, active INTEGER NOT NULL DEFAULT 1,
+  created_by INTEGER NOT NULL, created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS fam_picks (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, week TEXT NOT NULL, kid_id INTEGER NOT NULL, option_id INTEGER NOT NULL, picked_at INTEGER NOT NULL,
+  UNIQUE (week, kid_id));
+CREATE TABLE IF NOT EXISTS fam_plans (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, week TEXT NOT NULL, option_id INTEGER NOT NULL, date TEXT NOT NULL, time TEXT,
+  status TEXT NOT NULL DEFAULT 'planned', event_id INTEGER, created_by INTEGER NOT NULL, updated_at INTEGER NOT NULL, UNIQUE (week, option_id));
+CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id IS NOT NULL;
 `;
+
+// 이미 만들어진 개발/운영 DB 를 위한 컬럼 추가
+const COLUMNS = [
+  ['families', 'timer_sound INTEGER NOT NULL DEFAULT 1'], ['push_subs', 'device INTEGER NOT NULL DEFAULT 0'],
+  ['routines', 'activity_id INTEGER'], ['day_items', 'activity_id INTEGER'], ['events', 'plan_id INTEGER'], ['events', 'time TEXT'],
+];
 
 export function openDb(path) {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
-  db.exec(SCHEMA);
+  db.exec(SCHEMA.replace(/CREATE UNIQUE INDEX IF NOT EXISTS events_plan[^;]*;/, ''));
+  for (const [table, ddl] of COLUMNS) {
+    const col = ddl.split(' ')[0];
+    if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id IS NOT NULL;');
   return db;
 }

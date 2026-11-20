@@ -10,6 +10,14 @@ export function parseDays(v) {
   if (Array.isArray(v) && v.length && v.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) return v.reduce((m, d) => m | (1 << d), 0);
   throw err(400, 'bad_days', '반복 요일을 선택해 주세요.');
 }
+// 타이머 연결: 명시하면 그 활동, null 이면 연결 없음, 생략하면 이름이 같은 활동(예: 식사하기)에 자동 연결
+function resolveActivity(core, familyId, v, name) {
+  if (v === null || v === 0 || v === '') return null;
+  if (v === undefined) return core.get('SELECT id FROM activities WHERE family_id = ? AND active = 1 AND name = ?', familyId, name)?.id ?? null;
+  const a = core.get('SELECT id FROM activities WHERE id = ? AND family_id = ? AND active = 1', Number(v), familyId);
+  if (!a) throw err(400, 'bad_activity', '타이머 활동을 찾을 수 없어요.');
+  return a.id;
+}
 export const daysArray = (mask) => [0, 1, 2, 3, 4, 5, 6].filter((d) => (mask >> d) & 1);
 const scheduledOn = (routine, date) => ((routine.days >> dow(date)) & 1) === 1;
 
@@ -26,7 +34,7 @@ export function ensureDay(core, kidId, date) {
     const rs = core.all('SELECT * FROM routines WHERE kid_id = ? AND active = 1', kidId)
       .filter((r) => scheduledOn(r, date))
       .sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot] || a.sort - b.sort || a.id - b.id);
-    rs.forEach((r, i) => core.insert('INSERT INTO day_items (day_id, routine_id, name, icon, slot, sort) VALUES (?,?,?,?,?,?)', dayId, r.id, r.name, r.icon, r.slot, i));
+    rs.forEach((r, i) => core.insert('INSERT INTO day_items (day_id, routine_id, name, icon, slot, sort, activity_id) VALUES (?,?,?,?,?,?,?)', dayId, r.id, r.name, r.icon, r.slot, i, r.activity_id));
     return core.get('SELECT * FROM days WHERE id = ?', dayId);
   });
 }
@@ -71,7 +79,7 @@ export function dayState(core, kidId, date) {
   const day = ensureDay(core, kidId, date);
   if (!day) return { kidId, date, exists: false, status: 'none', items: [], total: 0, done: 0, editable: false };
   const items = core.all('SELECT * FROM day_items WHERE day_id = ? ORDER BY sort, id', day.id).map((i) => ({
-    id: i.id, name: i.name, icon: i.icon, slot: i.slot, slotLabel: SLOT_LABEL[i.slot], done: !!i.done, flag: i.flag_reason || null,
+    id: i.id, name: i.name, icon: i.icon, slot: i.slot, slotLabel: SLOT_LABEL[i.slot], done: !!i.done, flag: i.flag_reason || null, activityId: i.activity_id || null,
   }));
   const stamp = activeStamp(core, kidId, date);
   const pending = core.get("SELECT * FROM stamp_requests WHERE day_id = ? AND status = 'pending'", day.id);
@@ -120,7 +128,7 @@ export function requestStamp(core, ctx, kidId, date) {
 }
 
 // ---------- 루틴 정의 CRUD ----------
-const routineOut = (r) => ({ id: r.id, kidId: r.kid_id, name: r.name, icon: r.icon, days: daysArray(r.days), slot: r.slot, slotLabel: SLOT_LABEL[r.slot], sort: r.sort });
+const routineOut = (r) => ({ activityId: r.activity_id || null, id: r.id, kidId: r.kid_id, name: r.name, icon: r.icon, days: daysArray(r.days), slot: r.slot, slotLabel: SLOT_LABEL[r.slot], sort: r.sort });
 
 export function listRoutines(core, ctx, kidId) {
   ctx.kid(kidId);
@@ -137,11 +145,12 @@ export function createRoutines(core, ctx, b) {
   const slot = oneOf(b.slot || 'morning', SLOTS, '시간대');
   return core.tx(() => {
     const out = [];
+    const activityId = resolveActivity(core, ctx.familyId, b.activityId, name);
     for (const kidId of kidIds) {
       ctx.kid(kidId);
       ensureDay(core, kidId, core.today()); // 오늘 목록은 건드리지 않도록 먼저 스냅샷
       const sort = (core.get('SELECT COALESCE(MAX(sort), -1) m FROM routines WHERE kid_id = ?', kidId).m) + 1;
-      const rid = core.insert('INSERT INTO routines (family_id, kid_id, name, icon, days, slot, sort, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)', ctx.familyId, kidId, name, icon, days, slot, sort, core.now(), core.now());
+      const rid = core.insert('INSERT INTO routines (family_id, kid_id, name, icon, days, slot, sort, activity_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)', ctx.familyId, kidId, name, icon, days, slot, sort, activityId, core.now(), core.now());
       applyToday(core, core.get('SELECT * FROM routines WHERE id = ?', rid)); // 새 루틴은 오늘이 예정일이면 바로 오늘 목록에(승인 전 한정)
       out.push(routineOut(core.get('SELECT * FROM routines WHERE id = ?', rid)));
     }
@@ -158,8 +167,8 @@ function applyToday(core, routine) {
   const item = core.get('SELECT * FROM day_items WHERE day_id = ? AND routine_id = ?', day.id, routine.id);
   const should = routine.active && scheduledOn(routine, today);
   if (item && !should) core.run('DELETE FROM day_items WHERE id = ?', item.id);
-  else if (item) core.run('UPDATE day_items SET name = ?, icon = ?, slot = ? WHERE id = ?', routine.name, routine.icon, routine.slot, item.id);
-  else if (should) core.insert('INSERT INTO day_items (day_id, routine_id, name, icon, slot, sort) VALUES (?,?,?,?,?,?)', day.id, routine.id, routine.name, routine.icon, routine.slot, 999);
+  else if (item) core.run('UPDATE day_items SET name = ?, icon = ?, slot = ?, activity_id = ? WHERE id = ?', routine.name, routine.icon, routine.slot, routine.activity_id, item.id);
+  else if (should) core.insert('INSERT INTO day_items (day_id, routine_id, name, icon, slot, sort, activity_id) VALUES (?,?,?,?,?,?,?)', day.id, routine.id, routine.name, routine.icon, routine.slot, 999, routine.activity_id);
   reconcileRequest(core, day);
   return true;
 }
@@ -174,7 +183,8 @@ export function updateRoutine(core, ctx, routineId, b) {
     const icon = b.icon !== undefined ? text(b.icon, '아이콘', { max: 8 }) : r.icon;
     const days = b.days !== undefined ? parseDays(b.days) : r.days;
     const slot = b.slot !== undefined ? oneOf(b.slot, SLOTS, '시간대') : r.slot;
-    core.run('UPDATE routines SET name = ?, icon = ?, days = ?, slot = ?, updated_at = ? WHERE id = ?', name, icon, days, slot, core.now(), r.id);
+    const activityId = b.activityId !== undefined ? resolveActivity(core, ctx.familyId, b.activityId, name) : r.activity_id;
+    core.run('UPDATE routines SET name = ?, icon = ?, days = ?, slot = ?, activity_id = ?, updated_at = ? WHERE id = ?', name, icon, days, slot, activityId, core.now(), r.id);
     const applied = b.applyToday ? applyToday(core, core.get('SELECT * FROM routines WHERE id = ?', r.id)) : false;
     core.refresh(ctx.familyId, 'routines', 'home', 'day');
     return { routine: routineOut(core.get('SELECT * FROM routines WHERE id = ?', r.id)), appliedToday: applied };

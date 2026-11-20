@@ -1,5 +1,6 @@
 import { err, text, oneOf, hashPassword, verifyPassword, randToken, randCode, sha256 } from '../util.js';
 import { ELEVATION_MS, UNLOCK_MS } from '../ctx.js';
+import { seedActivities } from './timers.js';
 
 export const ROLES = ['mom', 'dad', 'grandma', 'other'];
 export const ROLE_LABEL = { mom: '엄마', dad: '아빠', grandma: '할머니', other: '어른' };
@@ -56,6 +57,7 @@ export function register(core, b) {
       core.insert('INSERT INTO members (family_id, kind, role, name, avatar, color, sort, created_at) VALUES (?,?,?,?,?,?,?,?)',
         familyId, 'kid', 'kid', text(k.name, '아이 이름', { max: 20 }), k.avatar || AVATARS[i], k.color || KID_COLORS[i % KID_COLORS.length], i, core.now());
     });
+    seedActivities(core, familyId);
     return { familyId, memberId, userId, session: newSession(core, { familyId, kind: 'user', userId, memberId }) };
   });
 }
@@ -157,7 +159,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id },
-    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, code: adult ? fam.code : undefined },
+    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, code: adult ? fam.code : undefined },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -192,9 +194,10 @@ export function updateFamily(core, ctx, b) {
   const fam = core.get('SELECT * FROM families WHERE id = ?', ctx.familyId);
   const name = b.name !== undefined ? text(b.name, '가족 이름', { max: 30 }) : fam.name;
   const show = b.showGrandmaStatus !== undefined ? (b.showGrandmaStatus ? 1 : 0) : fam.show_grandma_status;
-  core.run('UPDATE families SET name = ?, show_grandma_status = ? WHERE id = ?', name, show, fam.id);
+  const sound = b.timerSound !== undefined ? (b.timerSound ? 1 : 0) : fam.timer_sound;
+  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ? WHERE id = ?', name, show, sound, fam.id);
   void adult;
-  core.refresh(ctx.familyId, 'family', 'home');
+  core.refresh(ctx.familyId, 'family', 'home', 'timers');
   return me(core, ctx).family;
 }
 
