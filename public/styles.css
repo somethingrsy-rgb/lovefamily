@@ -325,3 +325,13 @@ textarea { min-height: 90px; resize: vertical; }
 .home-main .clock { min-width: 0; }
 @media (min-width: 900px) and (orientation: landscape) and (max-width: 1250px) { .home-main .kids { grid-template-columns: 1fr 1fr; } .home-main .lower { grid-template-columns: 1fr; } .home-main .kid-card { padding: 14px; min-height: 0; } .home-main .kid-name h2 { font-size: 1.5rem; } .home-main .avatar.xl { width: 72px; height: 72px; font-size: 2.5rem; } .home-main .kt-time { font-size: 1.8rem; } }
 @media (max-width: 520px) { .home-main .adult-cards { grid-template-columns: 1fr; } }
+
+/* 방 안의 가족 캐릭터: 바닥에 서 있고, 이름표는 발 아래, 상태 칩은 오른쪽 위 */
+.room-char { position: absolute; left: 50%; bottom: 6.2cqw; transform: translateX(-50%); height: 20.5cqw; width: auto; pointer-events: none; filter: drop-shadow(0 1.2cqw 1cqw rgba(70, 40, 110, .28)); }
+.room .room-chips { position: absolute; top: 1.2cqw; right: 1cqw; margin: 0; justify-content: flex-end; max-width: 92%; }
+.room .room-label { margin-bottom: .2cqw; }
+.room.kid:active .room-char, .room.adult:active .room-char { transform: translateX(-50%) translateY(-.6cqw); }
+@media (prefers-reduced-motion: no-preference) { .room-char { transition: transform .15s; } }
+.room-char { height: 21cqw; bottom: 5.4cqw; }
+.room.adult .room-chips { top: 1cqw; right: 1.2cqw; } .room.adult .room-chips i { font-size: 3.4cqw; padding: .3cqw 1.2cqw; }
+.room-char { height: 20cqw; bottom: 7cqw; }

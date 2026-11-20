@@ -57,19 +57,22 @@ const ROOMS = {
 };
 const ADULT_ROOM = { grandma: 'gma', mom: 'mom', dad: 'dad' };
 const box = (k) => { const [x1, y1, x2, y2] = ROOMS[k]; return `left:${x1}%;top:${y1}%;width:${x2 - x1}%;height:${y2 - y1}%`; };
-const face = (m) => (m.avatarUrl ? `<img class="room-face" src="${esc(m.avatarUrl)}" alt="">` : `<span class="room-emoji" aria-hidden="true">${esc(m.avatar)}</span>`);
+// 방 안에 서 있는 가족 캐릭터 (public/assets/chars/*.webp)
+const KID_CHAR = ['yuel', 'yuha'];
+const ADULT_CHAR = { grandma: 'gma', mom: 'mom', dad: 'dad' };
+const charImg = (key) => `<img class="room-char" src="/assets/chars/${key}.webp" alt="" draggable="false">`;
 function houseHtml(h) {
   const kidRooms = h.kids.slice(0, 2).map((k, i) => {
     const t = timerOf(k.id); const d = k.day;
     const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : '', t ? (t.state === 'ended' ? '⏰' : `⏱ <span data-timer="${t.id}">${fmt(remaining(t))}</span>`) : ''].filter(Boolean);
-    return `<button class="room kid" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${face(k)}<span class="room-label">${esc(k.name)}방</span>${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}</button>`;
+    return `<button class="room kid" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${charImg(KID_CHAR[i])}<span class="room-label">${esc(k.name)}방</span>${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}</button>`;
   }).join('');
   const pending = h.kids.filter((k) => k.day.status === 'requested').length;
   const adults = ['grandma', 'mom', 'dad'].map((role) => {
     const a = h.adults.find((x) => x.role === role) || S.info.adults.find((x) => x.role === role);
     if (!a) return `<div class="room empty" style="${box(ADULT_ROOM[role])}"><span class="room-label muted">${({ grandma: '할머니', mom: '엄마', dad: '아빠' })[role]}방</span></div>`;
     const st = a.status ? (STATUS.find((x) => x[0] === a.status.state) || [])[2] : '';
-    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${face(a)}<span class="room-label">${esc(a.name)}방</span>${a.status ? `<span class="room-chips"><i>${st} ${esc(a.status.label)}</i></span>` : ''}</button>`;
+    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${charImg(ADULT_CHAR[role])}<span class="room-label">${esc(a.name)}방</span>${a.status ? `<span class="room-chips" title="${esc(a.status.label)}"><i>${st}</i></span>` : ''}</button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="/assets/house.webp" alt="" class="house-img" width="1086" height="1448">
