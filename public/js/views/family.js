@@ -2,6 +2,7 @@ import { $, $$, esc, DOW, lsGet, lsSet, shortDate, dateLabel } from '../util.js'
 import { S, get, post, patch, del, put, bus, isDevice, isAdultNow } from '../api.js';
 import { avatar, toast, errToast, formSheet, confirmDialog, needAdult } from '../ui.js';
 import { back } from '../common.js';
+import { supplySheet } from './supplies.js';
 
 // ---- 푸시 알림 ----
 const b64 = (s) => { const p = '='.repeat((4 - (s.length % 4)) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); };
@@ -36,17 +37,20 @@ export async function mount(el) {
   async function load() {
     S.info = await get('/api/me');
     const info = S.info; const dev = isDevice(); const adult = !dev || isAdultNow();
-    const ps = adult && !dev ? await pushState().catch(() => ({ s: 'unsupported', msg: '' })) : null;
+    const ps = adult ? await pushState().catch(() => ({ s: 'unsupported', msg: '' })) : null;
     const theme = lsGet('theme', 'auto');
+    const acts = adult ? await get('/api/activities').catch(() => []) : [];
     const code = info.family.code;
     el.innerHTML = `<header class="page-head"><h1>👨‍👩‍👧‍👦 가족</h1></header>
       <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? '아이' : ({ mom: '엄마', dad: '아빠', grandma: '할머니' })[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</li>`).join('')}</ul></section>
-      <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a></div></section>
+      <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a><a class="big-btn small" href="#/family-activity"><span class="bi">🎈</span><b>가족 활동</b></a><button class="big-btn small" id="addsup"><span class="bi">🎒</span><b>준비물 직접 추가</b></button></div></section>
+      ${adult ? `<section class="card page-card"><h3>⏱ 활동 타이머 설정</h3><p class="muted small">활동 이름과 기본 시간을 바꿀 수 있어요. 30분 이상 타이머는 5분 전에 한 번 알려 줘요.</p><ul class="rlist">${(acts || []).map((a) => `<li><span class="ri">${esc(a.icon)}</span><div class="grow"><b>${esc(a.name)}</b><div class="small muted">기본 ${a.minutes}분</div></div><button class="btn ghost small" data-act="${a.id}">수정</button><button class="btn ghost small" data-actdel="${a.id}" aria-label="삭제">🗑</button></li>`).join('')}</ul><div class="row gap wrap"><button class="btn ghost" id="addact">+ 활동 추가</button></div>
+        <label class="check"><input type="checkbox" id="tsound" ${info.family.timerSound ? 'checked' : ''}> <span>타이머 알람 소리 사용 <small class="muted">(거실 iPad에서 한 번 울려요)</small></span></label></section>` : ''}
       ${adult && code ? `<section class="card page-card"><h3>가족 초대</h3><p class="muted small">어른은 각자 계정으로 같은 가족에 연결해요.</p><div class="code-box"><b id="code">${esc(code)}</b></div><div class="row gap wrap"><button class="btn primary" id="share">초대 링크 보내기</button><button class="btn ghost" id="copy">코드 복사</button><button class="btn ghost" id="rot">코드 새로 만들기</button></div></section>` : ''}
       <section class="card page-card"><h3>화면·알림 설정</h3>
         <div class="field"><span>테마</span><div class="seg">${[['auto', '자동(밤 7시~아침 7시)'], ['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
         ${adult ? `<label class="check"><input type="checkbox" id="gs" ${info.family.showGrandmaStatus ? 'checked' : ''}> <span>거실 보드에 할머니 상태 카드 표시</span></label>` : ''}
-        ${ps ? `<div class="field"><span>휴대폰 알림</span>${ps.s === 'on' ? '<p class="ok">✅ 이 기기에서 알림을 받고 있어요</p><button class="btn ghost" id="poff">알림 끄기</button>' : ps.s === 'off' ? '<button class="btn primary" id="pon">🔔 알림 허용</button>' : `<p class="muted small">${esc(ps.msg)}</p>`}</div>` : (dev ? '<p class="muted small">알림은 각자 휴대폰에서 켜요 (어른 계정으로 로그인).</p>' : '')}
+        ${ps ? `<div class="field"><span>휴대폰 알림</span>${ps.s === 'on' ? '<p class="ok">✅ 이 기기에서 알림을 받고 있어요</p><button class="btn ghost" id="poff">알림 끄기</button>' : ps.s === 'off' ? '<button class="btn primary" id="pon">🔔 알림 허용</button>' : `<p class="muted small">${esc(ps.msg)}</p>`}</div>` : (dev ? '<p class="muted small">이 기기에서 타이머 알림(앱이 닫혀 있거나 잠겨 있을 때)을 받으려면 먼저 어른 확인(🔑)을 한 뒤 이 화면에서 알림을 허용해 주세요.</p><button class="btn ghost" id="adultMode">🔑 어른 확인</button>' : '')}
       </section>
       <section class="card page-card"><button class="btn ghost wide" id="logout">로그아웃</button><p class="muted small center">${dev ? '거실 공용 기기 모드' : '내 휴대폰 모드'} · 우리집 v1</p></section>`;
     bind(ps);
@@ -57,6 +61,10 @@ export async function mount(el) {
     $('#gs', el)?.addEventListener('change', run(() => patch('/api/family', { showGrandmaStatus: $('#gs', el).checked })));
     $('#pon', el)?.addEventListener('click', run(() => enablePush(ps)));
     $('#poff', el)?.addEventListener('click', run(() => disablePush(ps)));
+    $('#adultMode', el)?.addEventListener('click', async () => { if (await needAdult()) load(); });
+    $('#tsound', el)?.addEventListener('change', run(() => patch('/api/family', { timerSound: $('#tsound', el).checked })));
+    $('#addsup', el)?.addEventListener('click', () => supplySheet({}));
+    $('#addact', el)?.addEventListener('click', run(() => formSheet({ title: '활동 추가', submit: '추가', html: '<label class="field">활동 이름<input name="name" maxlength="20" required></label><label class="field">아이콘<input name="icon" maxlength="4" value="⏱️"></label><label class="field">기본 시간(분)<input name="minutes" inputmode="numeric" value="30"></label>', onSubmit: (v) => post('/api/activities', { name: v.name, icon: v.icon, minutes: Number(v.minutes) }) })));
     $('#logout', el).onclick = async () => { if (await confirmDialog('로그아웃할까요?')) window.__app.logout(); };
     const code = S.info.family.code;
     $('#copy', el)?.addEventListener('click', () => { navigator.clipboard?.writeText(code).then(() => toast('복사했어요')).catch(() => toast(code)); });
@@ -68,6 +76,9 @@ export async function mount(el) {
     el.onclick = async (e) => {
       const ed = e.target.closest('[data-edit]'); const pin = e.target.closest('[data-pin]');
       if (ed) { if (!(await needAdult())) return; const all = [...S.info.adults, ...S.info.kids]; const m = all.find((x) => x.id === Number(ed.dataset.edit)); await run(() => formSheet({ title: `${m.name} 수정`, submit: '저장', cls: 'tall', html: memberForm(m), onSubmit: (v) => patch(`/api/members/${m.id}`, { name: v.name, avatar: v.avatar, ...(v.color ? { color: v.color } : {}) }) }))(); }
+      const ae = e.target.closest('[data-act]'); const ad = e.target.closest('[data-actdel]');
+      if (ae) { if (!(await needAdult())) return; const a = (await get('/api/activities')).find((x) => x.id === Number(ae.dataset.act)); await run(() => formSheet({ title: `${a.name} 수정`, submit: '저장', html: `<label class="field">활동 이름<input name="name" maxlength="20" value="${esc(a.name)}" required></label><label class="field">아이콘<input name="icon" maxlength="4" value="${esc(a.icon)}"></label><label class="field">기본 시간(분)<input name="minutes" inputmode="numeric" value="${a.minutes}"></label>`, onSubmit: (v) => patch(`/api/activities/${a.id}`, { name: v.name, icon: v.icon, minutes: Number(v.minutes) }) }))(); }
+      if (ad) { if (!(await needAdult())) return; if (await confirmDialog('이 활동을 지울까요? 연결된 루틴의 타이머 버튼도 사라져요.', { danger: true })) await run(() => del(`/api/activities/${ad.dataset.actdel}`))(); }
       if (pin) { if (!(await needAdult())) return; const m = S.info.kids.find((x) => x.id === Number(pin.dataset.pin)); await run(() => formSheet({ title: `${m.name} 비밀번호`, submit: '저장', html: `<p class="muted">공용 기기에서 다른 아이가 저금통·사고 싶은 것·메시지를 보지 못하게 4자리 숫자를 정할 수 있어요. 비우면 해제돼요.</p><label class="field">숫자 4자리<input name="pin" inputmode="numeric" maxlength="4" pattern="[0-9]*" autocomplete="off"></label>`, onSubmit: (v) => put(`/api/kids/${m.id}/pin`, { pin: v.pin || null }) }))(); }
     };
   }
@@ -87,8 +98,8 @@ export async function calendar(el) {
     el.innerHTML = `${back('/family', '가족 달력', !isDevice() || isAdultNow() ? '<button class="btn small primary" id="addev">+ 일정</button>' : '')}
       <section class="card page-card"><div class="month-nav"><button class="btn ghost" data-m="-1" aria-label="이전 달">‹</button><h3>${y}년 ${m}월</h3><button class="btn ghost" data-m="1" aria-label="다음 달">›</button></div>
       <div class="cal big">${DOW.map((d, i) => `<div class="cal-h ${i === 0 ? 'sun' : ''}">${d}</div>`).join('')}${'<div></div>'.repeat(first.getUTCDay())}${Array.from({ length: days }, (_, i) => { const date = `${month}-${String(i + 1).padStart(2, '0')}`; const list = by[date] || [];
-        return `<div class="cal-d ${date === S.info.today ? 'today' : ''}"><span>${i + 1}</span>${list.slice(0, 3).map((s) => `<small class="ev ${s.type}">${esc(s.title)}</small>`).join('')}${list.length > 3 ? `<small>+${list.length - 3}</small>` : ''}${(stampBy[date] || []).map((k) => `<i>${esc(S.info.kids.find((x) => x.id === k)?.avatar || '💮')}</i>`).join('')}</div>`; }).join('')}</div></section>
-      <section class="card page-card"><h3>이번 달 일정·준비물</h3>${c.schedule.length ? `<ul class="sched">${c.schedule.map((s) => `<li><span class="dot ${s.type}"></span><div><b>${shortDate(s.date)} ${esc(s.title)}</b>${s.kidName ? ` <span class="tag">${esc(s.kidName)}</span>` : ''}${s.supplies ? `<div class="small">🎒 ${esc(s.supplies)}</div>` : ''}${s.type === 'event' && (!isDevice() || isAdultNow()) ? ` <button class="btn ghost small" data-delev="${s.id}">삭제</button>` : ''}</div></li>`).join('')}</ul>` : '<p class="muted">일정이 없어요</p>'}</section>`;
+        return `<div class="cal-d ${date === S.info.today ? 'today' : ''}"><span>${i + 1}</span>${list.slice(0, 3).map((s) => `<small class="ev ${s.type}">${s.time ? esc(s.time) + ' ' : ''}${esc(s.title)}</small>`).join('')}${list.length > 3 ? `<small>+${list.length - 3}</small>` : ''}${(stampBy[date] || []).map((k) => `<i>${esc(S.info.kids.find((x) => x.id === k)?.avatar || '💮')}</i>`).join('')}</div>`; }).join('')}</div></section>
+      <section class="card page-card"><h3>이번 달 일정·준비물</h3>${c.schedule.length ? `<ul class="sched">${c.schedule.map((s) => `<li><span class="dot ${s.type}"></span><div><b>${shortDate(s.date)} ${s.time ? esc(s.time) + ' ' : ''}${esc(s.title)}</b>${s.kidName ? ` <span class="tag">${esc(s.kidName)}</span>` : ''}${s.supplies ? `<div class="small">🎒 ${esc(s.supplies)}</div>` : ''}${s.type === 'event' && (!isDevice() || isAdultNow()) ? ` <button class="btn ghost small" data-delev="${s.id}">삭제</button>` : ''}</div></li>`).join('')}</ul>` : '<p class="muted">일정이 없어요</p>'}</section>`;
     el.onclick = async (e) => {
       const nv = e.target.closest('[data-m]'); const dv = e.target.closest('[data-delev]');
       try {

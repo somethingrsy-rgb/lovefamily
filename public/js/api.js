@@ -125,6 +125,7 @@ export function connectStream() {
     let ev; try { ev = JSON.parse(m.data); } catch { return; }
     if (ev.t === 'refresh') bus.emit('refresh', ev.topics || ['all']);
     else if (ev.t === 'notify') bus.emit('notify', ev);
+    else if (ev.t === 'timer') bus.emit('timer', ev);
   };
 }
 export function disconnectStream() { es?.close(); es = null; esKid = undefined; }

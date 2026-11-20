@@ -2,6 +2,7 @@ import { $, $$, esc, ago, shortDate, kstDate } from '../util.js';
 import { S, get, post, del, isDevice, isAdultNow } from '../api.js';
 import { avatar, toast, errToast, formSheet, photoPicker, confirmDialog, needAdult } from '../ui.js';
 import { back } from '../common.js';
+import { supplySheet } from './supplies.js';
 
 export async function mount(el, params) {
   let filter = 'all';
@@ -17,11 +18,12 @@ export async function mount(el, params) {
         ${p.body ? `<p>${esc(p.body).replace(/\n/g, '<br>')}</p>` : ''}
         <div class="chips">${p.dueDate ? `<span class="tag due">📅 ${shortDate(p.dueDate)}까지</span>` : ''}${p.supplies ? `<span class="tag">🎒 ${esc(p.supplies)}</span>` : ''}</div>
         <footer><span class="small muted">${esc(p.authorName)} · ${ago(p.createdAt)}</span><span class="reads" aria-label="확인한 사람">${p.reads.map((r) => `<span class="read ${r.readAt ? 'on' : ''}" title="${esc(r.name)} ${r.readAt ? '확인' : '아직'}">${esc(r.name)}${r.readAt ? ' ✓' : ''}</span>`).join('')}</span></footer>
-        ${adultNow() ? `<div class="row gap wrap">${p.readByMe === false ? `<button class="btn small primary" data-read="${p.id}">확인했어요</button>` : ''}<button class="btn small ghost" data-pin="${p.id}" data-on="${p.pinned ? 0 : 1}">${p.pinned ? '고정 해제' : '📌 상단 고정'}</button><button class="btn small ghost" data-del="${p.id}">삭제</button></div>` : ''}</article>`).join('') || '<div class="empty card">아직 글이 없어요</div>'}`;
+        ${adultNow() ? `<div class="row gap wrap">${p.readByMe === false ? `<button class="btn small primary" data-read="${p.id}">확인했어요</button>` : ''}<button class="btn small primary" data-sup="${p.id}" data-title="${esc(p.title)}">🎒 준비물 추가</button><button class="btn small ghost" data-pin="${p.id}" data-on="${p.pinned ? 0 : 1}">${p.pinned ? '고정 해제' : '📌 상단 고정'}</button><button class="btn small ghost" data-del="${p.id}">삭제</button></div>` : ''}</article>`).join('') || '<div class="empty card">아직 글이 없어요</div>'}`;
     $$('[data-f]', el).forEach((b) => b.addEventListener('click', () => { filter = b.dataset.f; load(); }));
     $('#adm', el)?.addEventListener('click', async () => { if (await needAdult()) load(); });
     $('#newp', el)?.addEventListener('click', compose);
     el.onclick = async (e) => {
+      const sp = e.target.closest('[data-sup]'); if (sp) return supplySheet({ postId: Number(sp.dataset.sup), postTitle: sp.dataset.title, onDone: load });
       const r = e.target.closest('[data-read]'); const p = e.target.closest('[data-pin]'); const d = e.target.closest('[data-del]');
       try {
         if (r) { await post(`/api/posts/${r.dataset.read}/read`); load(); }

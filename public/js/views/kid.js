@@ -2,6 +2,7 @@ import { $, $$, esc, dateLabel, shortDate, addDays, won, SLOT } from '../util.js
 import { S, get, post, del, toggleItem, pendingItems, isDevice, isAdultNow, kidById, bus } from '../api.js';
 import { avatar, toast, errToast, playStamp, formSheet, confirmDialog } from '../ui.js';
 import { back } from '../common.js';
+import { startFlow } from './timerui.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
 
@@ -22,7 +23,7 @@ export async function hub(el, { id }) {
           <a class="big-btn" href="#/kid/${id}/wishes"><span class="bi">🛍️</span><b>사고 싶은 것</b><small>모아서 사기</small></a>
           <a class="big-btn" href="#/kid/${id}/talk"><span class="bi">💌</span><b>가족에게 말하기</b><small>메시지 보내기</small></a>
         </div>
-        <div class="row gap wrap center"><a class="btn ghost" href="#/kid/${id}/missions">🎯 미션</a><a class="btn ghost" href="#/kid/${id}/stamps">💮 도장판</a><a class="btn ghost" href="#/kid/${id}/inbox">📬 받은 편지함${unread ? ` <span class="badge">${unread}</span>` : ''}</a></div>
+        <div class="row gap wrap center"><a class="btn ghost" href="#/kid/${id}/timer">⏱ 타이머</a><a class="btn ghost" href="#/kid/${id}/supplies">🎒 챙길 것</a><a class="btn ghost" href="#/kid/${id}/family">🎈 가족 활동</a><a class="btn ghost" href="#/kid/${id}/missions">🎯 미션</a><a class="btn ghost" href="#/kid/${id}/stamps">💮 도장판</a><a class="btn ghost" href="#/kid/${id}/inbox">📬 받은 편지함${unread ? ` <span class="badge">${unread}</span>` : ''}</a></div>
       </section>`;
   }
   await load();
@@ -50,7 +51,7 @@ export async function today(el, { id }) {
       recheck: `<div class="banner warn">🔎 다시 확인해 보래요: ${esc(d.recheck?.reason || '')}<div class="small">표시된 항목을 다시 해 보고 체크해 주세요.</div></div>`,
       none: `<div class="banner rest">😴 이 날은 예정된 루틴이 없어요</div>`,
     }[d.status] || '';
-    el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 루틴`)}
+    el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 루틴`, `<a class="btn small" href="#/kid/${id}/timer">⏱ 타이머</a>`)}
       <div class="day-nav"><button class="btn ghost" id="prev" aria-label="전날">‹</button><h2>${dateLabel(date)}${isToday ? ' <span class="tag">오늘</span>' : ''}</h2><button class="btn ghost" id="next" ${isToday ? 'disabled' : ''} aria-label="다음날">›</button></div>
       ${banner}
       ${!d.exists ? '<div class="empty">이 날의 루틴 기록이 없어요</div>' : ''}
@@ -58,12 +59,13 @@ export async function today(el, { id }) {
         const p = pend.get(i.id); const done = p ? p.done : i.done;
         return `<li><button class="check-item ${done ? 'done' : ''} ${i.flag ? 'flag' : ''} ${p ? 'pending' : ''}" data-id="${i.id}" data-done="${done ? 1 : 0}" ${d.editable ? '' : 'disabled'} aria-pressed="${done}">
           <span class="ci-icon">${esc(i.icon)}</span><span class="ci-name">${esc(i.name)}${i.flag ? `<small>🔎 ${esc(i.flag)}</small>` : ''}</span>
-          <span class="ci-box">${p ? (S.online ? '⏳' : '📥') : done ? '✔' : ''}</span>${p ? `<em class="ci-note">${S.online ? '저장 중' : '저장 대기'}</em>` : ''}</button></li>`; }).join('')}</ul></section>`).join('')}
+          <span class="ci-box">${p ? (S.online ? '⏳' : '📥') : done ? '✔' : ''}</span>${p ? `<em class="ci-note">${S.online ? '저장 중' : '저장 대기'}</em>` : ''}</button>${i.activityId ? `<button class="btn small item-timer" data-tstart="${i.activityId}" aria-label="${esc(i.name)} 타이머 시작">⏱ 타이머 시작</button>` : ''}</li>`; }).join('')}</ul></section>`).join('')}
       ${d.status === 'recheck' && d.done === d.total ? `<button class="btn primary big wide" id="rereq">다시 확인 요청하기</button>` : ''}
       ${d.exists ? `<p class="progress-line">${d.done}/${d.total} 완료 · ${d.status === 'approved' ? '도장을 받아서 바꿀 수 없어요' : '어른이 확인하면 도장을 받아요'}</p>` : ''}`;
     $('#prev', el).onclick = () => { date = addDays(date, -1); lastStatus = null; load().catch(errToast); };
     $('#next', el).onclick = () => { date = addDays(date, 1); lastStatus = null; load().catch(errToast); };
     $('#rereq', el)?.addEventListener('click', async () => { try { await post(`/api/kids/${id}/day/request`, { date }); toast('다시 요청했어요'); load(); } catch (e) { errToast(e); } });
+    $$('[data-tstart]', el).forEach((b) => b.addEventListener('click', async () => { try { if (await startFlow(id, Number(b.dataset.tstart))) location.hash = `#/kid/${id}/timer`; } catch (e) { errToast(e); } }));
     $$('.check-item', el).forEach((b) => b.addEventListener('click', async () => {
       const next = b.dataset.done !== '1';
       b.dataset.done = next ? 1 : 0; b.classList.toggle('done', next); b.classList.add('pending');

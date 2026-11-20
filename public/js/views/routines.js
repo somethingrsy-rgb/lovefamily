@@ -5,12 +5,13 @@ import { avatar, toast, errToast, formSheet, confirmDialog } from '../ui.js';
 const QUICK = [['양치하기', '🪥', 'morning'], ['책가방 싸기', '🎒', 'morning'], ['숙제하기', '📚', 'after_school'], ['씻기', '🛁', 'evening'], ['내일 옷 꺼내 두기', '👕', 'evening'], ['장난감 정리', '🧸', 'evening'], ['잠옷 입기', '👚', 'evening'], ['물 마시기', '💧', 'after_school']];
 const ICONS = ['🪥', '🎒', '📚', '🛁', '👕', '🧸', '👚', '💧', '🍽️', '🧹', '🎹', '🛏️', '🐶', '📖', '✏️', '🧦', '🥛', '🚿', '⚽', '✅'];
 
-const routineForm = (r = {}, { showBoth, kids } = {}) => `
+const routineForm = (r = {}, { showBoth, kids, acts = [] } = {}) => `
   <label class="field">루틴 이름<input name="name" maxlength="30" value="${esc(r.name || '')}" required></label>
   <div class="field"><span>아이콘</span><div class="icon-pick">${ICONS.map((i) => `<label><input type="radio" name="icon" value="${i}" ${(r.icon || '✅') === i ? 'checked' : ''}><span>${i}</span></label>`).join('')}</div></div>
   <div class="field"><span>반복</span><div class="chips" id="dayset">${[['daily', '매일'], ['weekdays', '평일'], ['weekend', '주말'], ['custom', '요일 선택']].map(([k, t]) => `<button type="button" class="chip" data-set="${k}">${t}</button>`).join('')}</div>
     <div class="dow-pick">${DOW.map((d, i) => `<label class="dow"><input type="checkbox" name="d${i}" ${((r.days || [0, 1, 2, 3, 4, 5, 6]).includes(i)) ? 'checked' : ''}><span class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</span></label>`).join('')}</div></div>
   <div class="field"><span>시간대</span><div class="seg">${Object.entries(SLOT).map(([k, t]) => `<label class="seg-opt"><input type="radio" name="slot" value="${k}" ${(r.slot || 'morning') === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
+  <label class="field">타이머 연결 <small class="muted">(식사하기처럼 시간이 정해진 루틴 옆에 [타이머 시작] 버튼이 생겨요)</small><select name="activityId"><option value="">연결 안 함</option>${acts.map((a) => `<option value="${a.id}" ${r.activityId === a.id ? 'selected' : ''}>${esc(a.icon)} ${esc(a.name)} (${a.minutes}분)</option>`).join('')}</select></label>
   ${showBoth ? `<label class="check"><input type="checkbox" name="both" checked> <span>${kids.map((k) => esc(k.name)).join('·')} 모두에게 추가 <small class="muted">(추가한 뒤 각자 따로 고칠 수 있어요)</small></span></label>` : ''}`;
 function bindDays(root) {
   const set = (arr) => $$('.dow input', root).forEach((c, i) => { c.checked = arr.includes(i); });
@@ -21,7 +22,7 @@ const readDays = (v) => [0, 1, 2, 3, 4, 5, 6].filter((i) => v[`d${i}`] === 'on')
 export async function mount(el) {
   let kidId = S.info.kids[0]?.id;
   async function load() {
-    const list = await get(`/api/kids/${kidId}/routines`);
+    const [list, acts] = await Promise.all([get(`/api/kids/${kidId}/routines`), get('/api/activities').catch(() => [])]);
     const kids = S.info.kids; const kid = kids.find((k) => k.id === kidId);
     el.innerHTML = `<header class="page-head"><h1>📝 루틴</h1><div class="head-right"><button class="btn primary" id="add">+ 루틴 추가</button></div></header>
       <div class="kid-tabs" role="tablist">${kids.map((k) => `<button role="tab" class="kid-tab ${k.id === kidId ? 'on' : ''}" aria-selected="${k.id === kidId}" data-kid="${k.id}" style="--kc:${esc(k.color)}">${avatar(k, 'sm')} ${esc(k.name)}</button>`).join('')}</div>
@@ -48,11 +49,11 @@ export async function mount(el) {
     async function editForm(r) {
       const both = !r && kids.length > 1;
       const p = formSheet({ title: r ? '루틴 수정' : '루틴 추가', submit: r ? '저장' : '추가', cls: 'tall',
-        html: `${routineForm(r, { showBoth: both, kids })}${r ? '<label class="check"><input type="checkbox" name="applyToday"> <span>오늘 목록에도 바로 적용 <small class="muted">(도장 승인 전만)</small></span></label>' : ''}`,
+        html: `${routineForm(r, { showBoth: both, kids, acts })}${r ? '<label class="check"><input type="checkbox" name="applyToday"> <span>오늘 목록에도 바로 적용 <small class="muted">(도장 승인 전만)</small></span></label>' : ''}`,
         onSubmit: async (v) => {
           const days = readDays(v);
           if (!days.length) throw new Error('반복 요일을 하나 이상 골라 주세요.');
-          const body = { name: v.name, icon: v.icon, days, slot: v.slot };
+          const body = { name: v.name, icon: v.icon, days, slot: v.slot, activityId: v.activityId ? Number(v.activityId) : null };
           if (r) { const res = await patch(`/api/routines/${r.id}`, { ...body, applyToday: v.applyToday === 'on' }); toast(res.appliedToday ? '오늘부터 바꿨어요' : '다음 해당 요일부터 바뀌어요'); }
           else { await post('/api/routines', { ...body, kidIds: v.both === 'on' ? kids.map((k) => k.id) : [kidId] }); toast('추가했어요'); }
         } });

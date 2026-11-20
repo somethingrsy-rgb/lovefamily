@@ -17,6 +17,16 @@ export function toast(msg, kind = '') {
 }
 export function errToast(e) { toast(e instanceof ApiError || e?.net ? e.message : '문제가 생겼어요. 다시 해 주세요.', 'bad'); if (!(e instanceof ApiError) && !e?.net) console.error(e); }
 
+export function toastAction(msg, label, fn) {
+  const el = document.createElement('div');
+  el.className = 'toast action'; el.setAttribute('role', 'status');
+  el.innerHTML = `<span></span> <button class="btn small">${esc(label)}</button>`;
+  el.firstChild.textContent = msg;
+  el.querySelector('button').onclick = () => { el.remove(); fn(); };
+  layer().appendChild(el);
+  setTimeout(() => el.classList.add('out'), 5200); setTimeout(() => el.remove(), 5700);
+}
+
 // 실시간 메시지/요청 팝업
 export function popup({ title, body, actionLabel = '열기', onAction, kind = '' }) {
   const el = document.createElement('div');

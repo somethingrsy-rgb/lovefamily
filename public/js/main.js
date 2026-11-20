@@ -13,6 +13,10 @@ import * as stamps from './views/stamps.js';
 import * as family from './views/family.js';
 import * as notebook from './views/notebook.js';
 import * as detail from './views/detail.js';
+import * as timerui from './views/timerui.js';
+import * as supplies from './views/supplies.js';
+import * as plan from './views/plan.js';
+import { startTimerManager } from './timers.js';
 
 const app = document.getElementById('app');
 const routes = [];
@@ -38,6 +42,10 @@ R('/kid/:id/wallet', wallet, { tab: 'today', kid: true }); R('/kid/:id/wishes', 
 R('/kid/:id/talk', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/talk/:adultId', talk.talk, { tab: 'today', kid: true });
 R('/kid/:id/inbox', talk.kidInbox, { tab: 'today', kid: true }); R('/kid/:id/missions', kid.missions, { tab: 'today', kid: true });
 R('/kid/:id/stamps', stamps, { tab: 'stamps', kid: true });
+R('/kid/:id/timer', timerui.timerPage, { tab: 'today', kid: true, nopin: true });
+R('/kid/:id/supplies', supplies.kidSupplies, { tab: 'today', kid: true, nopin: true });
+R('/kid/:id/family', plan.kidPick, { tab: 'today', kid: true, nopin: true });
+R('/family-activity', plan.adultPlan, { tab: 'family', adult: true });
 
 const TABS = [['today', '/', '🏠', '오늘'], ['routines', '/routines', '📝', '루틴'], ['stamps', '/stamps', '💮', '도장판'], ['family', '/family', '👨‍👩‍👧‍👦', '가족']];
 
@@ -102,7 +110,7 @@ async function render() {
   main.innerHTML = '<div class="loading">불러오는 중…</div>';
   if (match.adult && !(await needAdult())) { if (token === navToken) go('/'); return; }
   if (token !== navToken) return;
-  if (match.kid && isDevice()) { // 비밀번호가 걸린 아이는 해제 후 입장
+  if (match.kid && !match.nopin && isDevice()) { // 비밀번호가 걸린 아이는 해제 후 입장
     const k = S.info.kids.find((x) => x.id === Number(params.id));
     if (k?.hasPin) { try { await get(`/api/kids/${k.id}/wallet`); } catch { if (token === navToken) go('/'); return; } }
   }
@@ -160,14 +168,14 @@ hooks.loginRequired = () => { S.info = null; disconnectStream(); go('/login'); }
 
 export async function boot() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-  if (await loadInfo()) { connectStream(); }
+  if (await loadInfo()) { connectStream(); startTimerManager(); }
   if (!location.hash || location.hash === '#') { if (!S.info) go('/login'); }
   render();
 }
 export async function afterLogin() {
   await loadInfo(); S.actKid = null; S.elev = null;
   app.innerHTML = '';
-  connectStream();
+  connectStream(); startTimerManager();
   go('/');
   render();
 }
