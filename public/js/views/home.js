@@ -1,6 +1,6 @@
 import { $, $$, esc, dateLabel, timeLabel, kstParts, shortDate } from '../util.js';
 import { S, get, post, put, isDevice, isAdultNow, bus, boundKid } from '../api.js';
-import { avatar, memberAvatar, toast, errToast, toastAction, openSheet } from '../ui.js';
+import { avatar, memberAvatar, toast, errToast, toastAction, openSheet, openPhoto } from '../ui.js';
 import { loadTimers } from '../timers.js';
 import { kidTimerHtml, bindDismiss } from './timerui.js';
 import { kidLine } from './plan.js';
@@ -44,7 +44,7 @@ function suppliesHtml(list) {
 }
 async function supplyClick(e) {
   const b = e.target.closest('[data-sup]'); const ph = e.target.closest('[data-photo]');
-  if (ph) return openSheet(`<img class="full-photo" src="${esc(ph.dataset.photo)}" alt="알림장 원본 사진"><div class="row end"><button class="btn primary" data-close>닫기</button></div>`);
+  if (ph) return openPhoto(ph.dataset.photo, '알림장 원본 사진');
   if (!b) return;
   const was = b.dataset.checked === '1'; const supId = b.dataset.sup; const kid = b.dataset.kid;
   try {

@@ -1,6 +1,6 @@
 import { $, $$, esc, shortDate, dateLabel, addDays } from '../util.js';
 import { S, get, post, put, del, isDevice, isAdultNow, kidById, bus } from '../api.js';
-import { avatar, toast, errToast, formSheet, openSheet, confirmDialog, needAdult } from '../ui.js';
+import { avatar, toast, errToast, formSheet, openSheet, confirmDialog, needAdult, openPhoto } from '../ui.js';
 import { back } from '../common.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
@@ -74,7 +74,7 @@ export async function kidSupplies(el, { id }) {
       const c = e.target.closest('[data-sup]'); const ph = e.target.closest('[data-photo]'); const dl = e.target.closest('[data-del]');
       try {
         if (c) { await put(`/api/supplies/${c.dataset.sup}/kids/${id}`, { checked: c.dataset.checked !== '1' }); load(); }
-        if (ph) openSheet(`<img class="full-photo" src="${esc(ph.dataset.photo)}" alt="알림장 원본 사진"><div class="row end"><button class="btn primary" data-close>닫기</button></div>`);
+        if (ph) openPhoto(ph.dataset.photo, '알림장 원본 사진');
         if (dl && await confirmDialog('이 준비물을 지울까요?', { danger: true })) { await del(`/api/supplies/${dl.dataset.del}`); load(); }
       } catch (x) { errToast(x); }
     };

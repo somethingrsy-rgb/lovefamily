@@ -65,6 +65,26 @@ export function popup({ title, body, actionLabel = '열기', onAction, kind = ''
   return close;
 }
 
+// ---- 사진 크게 보기(전체 화면) ----
+// 사진을 누르면 화면 가득 보여 주고, 한 번 더 누르면 확대해서 손가락으로 밀어 볼 수 있다. ✕ 또는 바깥을 누르거나 뒤로 가기로 닫는다.
+export function openPhoto(url, alt = '사진') {
+  document.querySelector('.photo-viewer')?.remove();
+  const v = document.createElement('div');
+  v.className = 'photo-viewer'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', alt);
+  v.innerHTML = `<button class="pv-close" aria-label="닫기">✕</button><div class="pv-scroll"><img src="${esc(url)}" alt="${esc(alt)}" draggable="false"></div><div class="pv-hint">사진을 한 번 더 누르면 확대돼요</div>`;
+  document.body.appendChild(v); document.body.classList.add('noscroll');
+  const close = () => { v.remove(); document.body.classList.remove('noscroll'); window.removeEventListener('keydown', key); window.removeEventListener('hashchange', close); };
+  const key = (e) => { if (e.key === 'Escape') close(); };
+  window.addEventListener('keydown', key); window.addEventListener('hashchange', close);
+  v.addEventListener('click', (e) => {
+    if (e.target.closest('.pv-close')) return close();
+    const img = e.target.closest('img');
+    if (img) { v.classList.toggle('zoomed'); v.querySelector('.pv-hint')?.remove(); return; }
+    close();
+  });
+  return close;
+}
+
 // ---- 시트(모달) ----
 let sheetCount = 0;
 export const sheetOpen = () => sheetCount > 0;

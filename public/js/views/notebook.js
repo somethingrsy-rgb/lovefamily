@@ -1,6 +1,6 @@
 import { $, $$, esc, ago, shortDate, kstDate } from '../util.js';
 import { S, get, post, del, isDevice, isAdultNow } from '../api.js';
-import { avatar, toast, errToast, formSheet, photoPicker, confirmDialog, needAdult } from '../ui.js';
+import { avatar, toast, errToast, formSheet, photoPicker, confirmDialog, needAdult, openPhoto } from '../ui.js';
 import { back } from '../common.js';
 import { supplySheet } from './supplies.js';
 
@@ -23,6 +23,7 @@ export async function mount(el, params) {
     $('#adm', el)?.addEventListener('click', async () => { if (await needAdult()) load(); });
     $('#newp', el)?.addEventListener('click', compose);
     el.onclick = async (e) => {
+      const pimg = e.target.closest('.post-photo'); if (pimg) return openPhoto(pimg.getAttribute('src'), pimg.getAttribute('alt') || '알림장 사진');
       const sp = e.target.closest('[data-sup]'); if (sp) return supplySheet({ postId: Number(sp.dataset.sup), postTitle: sp.dataset.title, onDone: load });
       const r = e.target.closest('[data-read]'); const p = e.target.closest('[data-pin]'); const d = e.target.closest('[data-del]');
       try {

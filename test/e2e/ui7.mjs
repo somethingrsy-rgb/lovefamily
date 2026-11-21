@@ -66,10 +66,29 @@ await page.mouse.move(fb.x + fb.width / 2 - 30, fb.y + fb.height / 2, { steps: 3
 assert.equal((await tabsNow())[0], 'family', '하단 메뉴도 순서가 바뀐다');
 await page.click('.layout-bar [data-done]');
 console.log('✓ 하단 메뉴 순서 변경');
+// 알림장 사진을 누르면 전체 화면으로 크게 보이고, 한 번 더 누르면 확대, 바깥/✕로 닫힌다
+{
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAASwAAADICAIAAADdvUsCAAACRklEQVR4nO3TQQEAEADAQPQPIYlMIoixh7sE+2zefQbQWXUA/M6EEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHETAgxE0LMhBAzIcRMCDETQsyEEDMhxEwIMRNCzIQQMyHEHnDfA96mtkCTAAAAAElFTkSuQmCC', 'base64');
+  const up = await (await fetch(base + '/api/photos', { method: 'POST', headers: { 'X-Requested-With': 'lovefamily', cookie, 'X-Photo-Kind': 'post', 'Content-Type': 'application/octet-stream' }, body: png })).json();
+  await call('POST', '/api/posts', { title: '11.27 도시락', body: '급식파업', photoId: up.id });
+  await page.goto(base + '/#/notebook'); await page.waitForSelector('.post-photo');
+  await page.click('.post-photo');
+  await page.waitForSelector('.pv-scroll img');
+  const vb = await (await page.$('.pv-scroll img')).boundingBox();
+  assert.ok(vb.width > 0 && vb.height > 0 && vb.x >= 0, '전체 화면 보기가 열린다');
+  assert.equal(await page.$eval('.photo-viewer', (e) => getComputedStyle(e).position), 'fixed');
+  await page.click('.pv-scroll img'); // 한 번 더 누르면 확대
+  assert.ok(await page.$eval('.photo-viewer', (e) => e.classList.contains('zoomed')), '한 번 더 누르면 확대');
+  await page.click('.photo-viewer .pv-close');
+  assert.equal(!!(await page.$('.photo-viewer')), false, '✕로 닫힌다');
+  await page.click('.post-photo'); await page.waitForSelector('.photo-viewer');
+  await page.mouse.click(5, 300);  // 사진 바깥(검은 곳)을 눌러도 닫힌다
+  await page.waitForTimeout(200);
+  console.log('✓ 알림장 사진을 누르면 전체 화면으로 보임(확대·닫기)');
+}
 // 처음 배열로
-await page.mouse.move(b0.x + 20, b0.y + 20); 
 await call('PUT', '/api/layout', { layout: {} });
-await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
+await page.goto(base + '/#/'); await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
 assert.deepEqual(await names(page), ['유엘', '유하'], '처음 배열');
 // 아이 폰에서는 꾹 눌러도 배열 바꾸기가 열리지 않는다
 const { code } = await call('POST', `/api/kids/${yuel}/pair-code`);
