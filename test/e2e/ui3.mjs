@@ -11,7 +11,7 @@ const { chromium, devices } = require('playwright');
 const shots = process.env.SHOTS_DIR || path.join(os.tmpdir(), 'lf-shots');
 fs.mkdirSync(shots, { recursive: true });
 
-const FLOOR_Y = [31.8, 54.2, 75.4];
+const FLOOR_Y = [33.4, 54.2, 77.2];
 const COL_X = [19.6, 50.2, 80.3];
 const PILLAR_X = [35.2, 64.9];
 const app = createApp({ dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'lf-ui3-')) });

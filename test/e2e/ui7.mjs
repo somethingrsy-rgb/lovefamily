@@ -58,7 +58,7 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.equal(page.url().includes('#/kid'), false, '고양이를 눌러도 방 화면으로 넘어가지 않는다');
   console.log('✓ 집 안 고양이: 돌아다니고, 누르면 애교');
   // 연이는 장난에 끼지 않는다(고양이 두 마리끼리만)
-  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c, y]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 31.8; } r.x = 20; c.x = 80; y.x = 21; });
+  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c, y]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 33.4; } r.x = 20; c.x = 80; y.x = 21; });
   await page.waitForTimeout(1200);
   assert.equal(await page.evaluate(() => window.__pets[2].mode), 'idle', '고양이와 연이는 만나도 장난치지 않는다');
   // 루비·크리스탈·연이를 각각 끄고 켠다
