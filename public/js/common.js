@@ -11,7 +11,7 @@ export const amountHtml = (name = 'amount', { max } = {}) => `<div class="amount
     <button type="button" class="money-btn" data-add="100"><img class="mimg mcoin" src="/assets/money/c100.webp" alt="" draggable="false"><b>100원</b></button>
     <button type="button" class="money-btn" data-add="500"><img class="mimg mcoin" src="/assets/money/c500.webp" alt="" draggable="false"><b>500원</b></button>
     <button type="button" class="money-btn" data-add="1000"><img class="mimg mbill" src="/assets/money/b1000.webp" alt="" draggable="false"><b>1,000원</b></button>
-    <button type="button" class="money-btn" data-add="5000"><span class="mimg bill5" aria-hidden="true">5,000</span><b>5,000원</b></button>
+    <button type="button" class="money-btn" data-add="5000"><img class="mimg mbill" src="/assets/money/b5000.webp" alt="" draggable="false"><b>5,000원</b></button>
     <button type="button" class="money-btn" data-add="10000"><img class="mimg mbill" src="/assets/money/b10000.webp" alt="" draggable="false"><b>10,000원</b></button>
     <button type="button" class="money-btn" data-add="50000"><img class="mimg mbill" src="/assets/money/b50000.webp" alt="" draggable="false"><b>50,000원</b></button>
   </div>
