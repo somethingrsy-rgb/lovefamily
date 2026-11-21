@@ -576,8 +576,32 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 
 /* 하단 메뉴: 흐림(번짐) 없이 한 색 */
 .tabs { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--card); }
-/* 하단 메뉴 선택 표시: 그라데이션 없이 연보라 한 색 */
-.tab.on, :root[data-theme=dark] .tab.on { background: #d9ccf6; color: #3d2f6e; }
 
-/* 돈 요청 확인 화면의 주요 버튼(승인·지급 완료 등): 연보라 한 색 + 검정 글씨 */
-.money-detail .btn.primary { background: #d9ccf6; color: #111; box-shadow: none; }
+
+/* ===== 버튼은 두 가지 색만: 분홍(주요 버튼) · 민트(선택/강조 박스). 흰 글씨 + 굵은 같은 글씨체. 그라데이션 없음 ===== */
+:root { --pink: #ec8cb4; --mint: #98ccc8; }
+button, .btn, .chip, input, select, textarea { font-family: inherit; }
+.btn { font-weight: 800; }
+.btn.primary, .btn.danger, :root[data-theme=dark] .btn.primary { background: var(--pink); color: #fff; box-shadow: none; }
+.btn.stop-btn { background: var(--mint); color: #fff; box-shadow: none; }
+.tab.on, :root[data-theme=dark] .tab.on { background: var(--mint); color: #fff; }
+.steps li.on { background: var(--mint); color: #fff; }
+.seg-opt input:checked + span { background: var(--mint); border-color: var(--mint); color: #fff; font-weight: 800; }
+.adult-opt.on, .adult-opt:has(input:checked) { background: var(--mint); border-color: var(--mint); color: #fff; font-weight: 800; }
+.act-card.on { background: var(--mint); border-color: var(--mint); color: #fff; }
+.chip.on, .reason-chips .chip.on, .icon-opt.on { background: var(--mint); border-color: var(--mint); color: #fff; box-shadow: none; font-weight: 800; }
+.money-btn .mcount { background: var(--pink); }
+.bubbles li.me { background: var(--pink); color: #fff; }
+.bar i, .goal-bar i, .rt-bar u { background: var(--pink); }
+
+/* ===== 모든 박스의 모서리: 민트 박스(일반) 기준 — 작은 박스 10px, 큰 박스 16px (둥근 알약·완전한 원은 쓰지 않는다) ===== */
+:root { --r-s: 10px; --r-l: 16px; }
+.btn, .btn.small, .btn.big, .bank-req .btn, .chip, .tab, .steps li, .seg-opt span, .adult-opt, .act-card, .money-btn, .icon-opt, .icon-pick label span, .sup-row .icon-pick,
+.sup-row select, .next-opt span, .status-btn, .item-timer, .check-item, .sup-check, .sup-chip, .kid-tab, .dow span, .cal-d, .pad-btn, .opt-ic, .toast,
+input:not([type]), input[inputmode], input[type=date], input[type=number], input[type=password], input[type=text], input[type=time], select, textarea { border-radius: var(--r-s); }
+.money-btn .mcount, .badge, .tag, .kid-state, .rem-chips li, .read, .room-chips i, .room-label, .room-time, .check-item .ci-box, .sc-box { border-radius: 8px; }
+.card, .adult-card, .banner, .big-btn, .bubbles li, .kid-card, .kid-card .kid-timer, .mcard, .missions li, .nn-card, .notif li, .popup, .reqs li, .rlist li, .stats div,
+.threads a, .todo li, .tp-card, .kid-hub, .stamp-paper, .walk-pad, .code-box b, .cell, .icon-grid, .praise, .praises li, .full-photo, .photo-preview img, .post-photo,
+.wish-photo, .opt-card img, .now-next.small .nn-card, .timer-big, .piggy-hero, .goal, .board, .kid-timer.paused { border-radius: var(--r-l); }
+.sheet { border-radius: var(--r-l) var(--r-l) 0 0; }
+@media (min-width: 700px) { .sheet { border-radius: var(--r-l); } }
