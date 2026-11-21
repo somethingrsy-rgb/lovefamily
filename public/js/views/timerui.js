@@ -67,7 +67,7 @@ export function bindDismiss(root, after) {
 // 활동 화면: 활동 고르기 → 시작 / 진행 중 큰 숫자 + 원형 표시
 export async function timerPage(el, { id }) {
   const kid = kidOf(id);
-  let acts = []; let sel = null; let nextChoice = null; let budget = {};
+  let acts = []; let sel = null; let nextChoice = null; let budget = {}; let lastTap = { id: null, t: 0 };
   async function load() {
     const [a, b] = await Promise.all([get('/api/activities'), get(`/api/kids/${id}/activity-budget`).catch(() => []), loadTimers()]);
     acts = a; budget = Object.fromEntries(b.map((x) => [x.activityId, x]));
@@ -86,7 +86,14 @@ export async function timerPage(el, { id }) {
         <button class="btn primary big wide" id="start" ${sel && !(budget[sel] && budget[sel].leftMs <= 0) ? '' : 'disabled'}>▶ 시작</button>`;
       el.onclick = async (e) => {
         const a = e.target.closest('[data-act]');
-        if (a) { sel = Number(a.dataset.act); const b = budget[sel]; if (b && b.leftMs <= 0 && !(!isDevice() || isAdultNow())) toast('오늘은 이 시간을 다 썼어요. 내일 또 할 수 있어요'); draw(); return; }
+        if (a) {
+          sel = Number(a.dataset.act); const b = budget[sel]; const used = !!(b && b.leftMs <= 0);
+          const now = Date.now(); const dbl = lastTap.id === sel && now - lastTap.t < 450; lastTap = { id: dbl ? null : sel, t: now };
+          if (used) { toast('오늘은 이 시간을 다 썼어요. 내일 또 할 수 있어요'); draw(); return; }
+          // 활동 그림을 빠르게 두 번 누르면(더블클릭/더블탭) 바로 시작한다
+          if (dbl) { if (await startFlow(id, sel, nextChoice)) { nextChoice = null; sel = null; toast('시작했어요 ⏱'); load(); } return; }
+          draw(); return;
+        }
         try {
           if (e.target.closest('#next')) { const n = await nextPicker(id); if (n !== undefined) { nextChoice = n; draw(); } }
           if (e.target.closest('#start') && sel) { if (await startFlow(id, sel, nextChoice)) { nextChoice = null; sel = null; toast('시작했어요 ⏱'); load(); } }

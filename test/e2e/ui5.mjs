@@ -29,8 +29,12 @@ await page.goto(base + `/#/kid/${kid}/timer`);
 await page.waitForSelector('.act-card');
 assert.match(await page.textContent('.act-card:has-text("게임하기") small'), /하루 30분/, '활동 카드에 하루 총 시간이 보인다');
 await page.click('.act-card:has-text("게임하기")');
-await page.click('#start');
+assert.ok(await page.$('#start:not([disabled])'), '한 번 누르면 고르기만 한다');
+assert.equal(await page.$('#pause'), null, '한 번 누른 것만으로는 시작되지 않는다');
+await page.waitForTimeout(600);
+await page.dblclick('.act-card:has-text("게임하기")'); // 두 번 누르면 바로 시작
 await page.waitForSelector('#pause');
+console.log('✓ 활동을 두 번 누르면 바로 시작');
 await page.waitForTimeout(2200);
 await page.click('#pause');
 await page.waitForSelector('#resume');
