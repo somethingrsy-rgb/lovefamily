@@ -571,3 +571,5 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 
 .reason-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 8px; } .reason-chips .chip.on { background: linear-gradient(135deg, #f78fb8, #b693f0); color: #fff; box-shadow: 0 4px 12px rgba(180, 90, 160, .3); }
 .big-btn .bi .avatar { margin: 0 auto; }
+
+.money-btn { position: relative; } .money-btn .mcount { position: absolute; top: 4px; right: 6px; font-style: normal; font-weight: 900; font-size: .95rem; padding: 1px 8px; border-radius: 999px; background: linear-gradient(135deg, #f78fb8, #b693f0); color: #fff; }

@@ -173,7 +173,7 @@ const coinSeen = new Set();
 bus.on('coins', (ev) => {
   if (!isDevice() || coinSeen.has(ev.key)) return;
   coinSeen.add(ev.key); coinsSeen.set(ev.kidId, Date.now());
-  playCoins('in', ev.amount, { hideAmount: !boundKid() });
+  playCoins(ev.dir === 'out' ? 'out' : 'in', ev.amount, { hideAmount: !boundKid(), pieces: ev.pieces });
 });
 bus.on('notify', async (ev) => {
   if (seen.has(ev.id)) return;

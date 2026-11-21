@@ -217,3 +217,33 @@ test('용돈을 받으면 그 아이 폰(과 거실 기기)에만 "저금통에 
     sa.stop(); sb.stop();
   } finally { await f.close(); }
 });
+
+test('아이가 누른 지폐·동전 그대로 저금통 모션 신호가 간다(500원 2번 → 500원 2개). 꺼낼 때도 똑같이 나온다. 합이 안 맞으면 금액만으로', async () => {
+  const f = await setup();
+  try {
+    const { phone } = await pairPhone(f, f.ids.yuel);
+    const ev = []; const ac = new AbortController();
+    const res = await fetch(f.base + '/api/stream', { headers: { cookie: phone.cookie, 'X-Requested-With': 'lovefamily' }, signal: ac.signal });
+    (async () => { try { const rd = res.body.getReader(); const dec = new TextDecoder(); for (;;) { const { value, done } = await rd.read(); if (done) break; for (const m of dec.decode(value).matchAll(/data: (.*)\n/g)) ev.push(JSON.parse(m[1])); } } catch {} })();
+    await new Promise((r) => setTimeout(r, 80));
+    const coins = () => ev.filter((e) => e.t === 'coins');
+    // 넣기: 500원 2번
+    const d = await phone.ok('POST', `/api/kids/${f.ids.yuel}/requests`, { type: 'deposit', amount: 1000, pieces: [500, 500], purpose: '용돈', toMemberId: f.ids.mom });
+    await f.mom.ok('POST', `/api/money/requests/${d.id}/confirm`);
+    await new Promise((r) => setTimeout(r, 120));
+    assert.deepEqual(coins().map((e) => [e.dir, e.amount, e.pieces]), [['in', 1000, [500, 500]]], '천원 한 장이 아니라 500원 두 개');
+    // 합이 안 맞는 조각은 버리고 금액만 보낸다
+    const d2 = await phone.ok('POST', `/api/kids/${f.ids.yuel}/requests`, { type: 'deposit', amount: 1000, pieces: [500, 100], purpose: '용돈', toMemberId: f.ids.mom });
+    await f.mom.ok('POST', `/api/money/requests/${d2.id}/confirm`);
+    await new Promise((r) => setTimeout(r, 120));
+    assert.equal(coins()[1].pieces, null);
+    // 꺼내기: 100원 3개 → 어른이 지급하면 같은 조각이 나온다
+    const w = await phone.ok('POST', `/api/kids/${f.ids.yuel}/requests`, { type: 'withdraw', amount: 300, pieces: [100, 100, 100], purpose: '문구점', toMemberId: f.ids.mom });
+    await f.mom.ok('POST', `/api/money/requests/${w.id}/approve`);
+    await f.mom.ok('POST', `/api/money/requests/${w.id}/pay`);
+    await new Promise((r) => setTimeout(r, 120));
+    const out = coins().filter((e) => e.dir === 'out');
+    assert.equal(out.length, 1); assert.deepEqual(out[0].pieces, [100, 100, 100]); assert.equal(out[0].amount, 300);
+    ac.abort();
+  } finally { await f.close(); }
+});

@@ -92,6 +92,31 @@ await page.click('[data-reason="친구랑 간식"]');
 assert.equal(await page.inputValue('input[name=purpose]'), '친구랑 간식', '쓸 곳도 버튼으로 고른다');
 console.log('✓ 돈 꺼내기: 어디에 쓸지 버튼으로 선택');
 console.log('✓ 엄마·아빠 얼굴 그림, 입금 이유 버튼');
+// 아이가 500원을 두 번 누르면 저금통에도 500원 2개가 들어간다(천원 한 장이 아니라)
+await page.click('.sheet [data-close]').catch(() => {}); await page.waitForTimeout(400);
+await page.goto(base + `/#/kid/${yuel}/wallet`); await page.waitForSelector('#dep'); await page.click('#dep'); await page.waitForSelector('[data-add="500"]');
+await page.click('[data-add="500"]'); await page.click('[data-add="500"]');
+assert.equal((await page.textContent('[data-add="500"] .mcount')).trim(), '×2', '누른 횟수가 표시된다');
+await page.click('[data-reason="용돈"]'); await page.click('.sheet button.primary[type=submit], .sheet .btn.primary:has-text("알리기")');
+await page.waitForFunction(async (id) => (await (await fetch(`/api/kids/${id}/requests`)).json()).some((r) => r.status === 'pending' && r.type === 'deposit'), yuel, { timeout: 6000 });
+const rq = (await call('GET', `/api/kids/${yuel}/requests`)).find((r) => r.status === 'pending' && r.type === 'deposit');
+await call('POST', `/api/money/requests/${rq.id}/confirm`);
+await page.waitForSelector('.coin-overlay .coin', { timeout: 6000 });
+assert.deepEqual(await page.$$eval('.coin-overlay .coin', (e) => e.map((x) => x.getAttribute('src').split('/').pop())), ['c500.webp', 'c500.webp'], '500원 동전 2개가 들어간다');
+console.log('✓ 아이가 누른 그대로(500원 2개) 저금통에 들어감');
+await page.waitForSelector('.coin-overlay', { state: 'detached', timeout: 8000 });
+// 돈 꺼내기: 100원 3번 → 지급되면 100원 3개가 저금통에서 나온다
+await page.goto(base + `/#/kid/${yuel}/wallet`); await page.waitForSelector('#wd'); await page.click('#wd'); await page.waitForSelector('[data-add="100"]');
+await page.click('[data-add="100"]'); await page.click('[data-add="100"]'); await page.click('[data-add="100"]');
+await page.click('[data-reason="문구점"]'); await page.click('.sheet .btn.primary:has-text("요청 보내기")');
+await page.waitForFunction(async (id) => (await (await fetch(`/api/kids/${id}/requests`)).json()).some((r) => r.status === 'pending' && r.type === 'withdraw'), yuel, { timeout: 6000 });
+const wr = (await call('GET', `/api/kids/${yuel}/requests`)).find((r) => r.status === 'pending' && r.type === 'withdraw');
+await call('POST', `/api/money/requests/${wr.id}/approve`); await call('POST', `/api/money/requests/${wr.id}/pay`);
+await page.waitForSelector('.coin-overlay .coin.out', { timeout: 6000 });
+assert.deepEqual(await page.$$eval('.coin-overlay .coin.out', (e) => e.map((x) => x.getAttribute('src').split('/').pop())), ['c100.webp', 'c100.webp', 'c100.webp']);
+assert.match(await page.textContent('.coin-overlay .anim-text'), /저금통에서 쏙/);
+console.log('✓ 돈 꺼내기: 누른 그대로(100원 3개) 저금통에서 나옴');
+await page.waitForSelector('.coin-overlay', { state: 'detached', timeout: 8000 });
 // 어른은 저금통 기록을 지울 수 있다(아이 폰에는 지우기 버튼이 없다)
 assert.equal(await page.$$eval('[data-delled]', (e) => e.length), 0, '아이 폰에는 지우기 버튼이 없다');
 {
@@ -100,7 +125,7 @@ assert.equal(await page.$$eval('[data-delled]', (e) => e.length), 0, '아이 폰
   await ap.goto(base + '/#/login'); await ap.fill('input[name=loginId]', 'mom@t'); await ap.fill('input[name=password]', 'secret1'); await ap.click('button[type=submit]'); await ap.waitForSelector('.walker');
   await ap.goto(base + `/#/kid/${yuel}/wallet`); await ap.waitForSelector('[data-delled]');
   const before = await ap.$$eval('[data-delled]', (e) => e.length);
-  assert.equal(before, 3, '입금 3건 모두 지우기 버튼이 있다');
+  assert.equal(before, 5, '입금·출금 5건 모두 지우기 버튼이 있다');
   await ap.screenshot({ path: path.join(shots, '85-ledger-delete.png') });
   await ap.click('[data-delled] >> nth=0'); await ap.click('[data-yes]');
   await ap.waitForFunction((n) => document.querySelectorAll('[data-delled]').length === n - 1, before, { timeout: 5000 });

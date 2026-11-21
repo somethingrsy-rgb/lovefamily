@@ -34,8 +34,12 @@ export function ledgerAdd(core, { familyId, kidId, kind, amount, affects = 1, me
     'INSERT INTO ledger (family_id, kid_id, kind, amount, affects, memo, date, actor_id, balance_after, request_id, idem_key, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
     familyId, kidId, kind, amount, affects, memo, date || core.today(), actorId, bal, requestId, idemKey, core.now());
   // 용돈·보상이 들어오면 아이 폰(그 아이 것만)과 거실 기기에 '저금통에 쏙' 소식을 보낸다
-  if (affects && amount > 0 && ['deposit', 'stamp_reward', 'mission_reward'].includes(kind)) {
-    core.afterCommit(() => core.hub.publish(familyId, { t: 'coins', dir: 'in', kidId, amount, kind, key: `coin:${lid}` }, { kids: [kidId], devices: true }));
+  const isIn = affects && amount > 0 && ['deposit', 'stamp_reward', 'mission_reward'].includes(kind);
+  const isOut = affects && amount < 0 && kind === 'withdraw';
+  if (isIn || isOut) {
+    let pieces = null;
+    if (requestId) { const pr = core.get('SELECT pieces FROM money_requests WHERE id = ?', requestId)?.pieces; if (pr) { try { pieces = JSON.parse(pr); } catch { pieces = null; } } }
+    core.afterCommit(() => core.hub.publish(familyId, { t: 'coins', dir: isIn ? 'in' : 'out', kidId, amount: Math.abs(amount), pieces, kind, key: `coin:${lid}` }, { kids: [kidId], devices: true }));
   }
   return { row: core.get('SELECT * FROM ledger WHERE id = ?', lid), created: true };
 }
@@ -180,6 +184,13 @@ function notifyKidMoney(core, familyId, kidId, kind, title, body) {
   core.notify({ familyId, memberId: kidId, kind, title, body, url: '/#/kid/wallet', popup: true });
 }
 
+const DENOMS = new Set([100, 500, 1000, 5000, 10000, 50000]);
+// 아이가 누른 지폐·동전 목록(예: [500, 500]). 금액과 합이 맞지 않거나 이상한 값이면 버린다(그때는 금액만으로 모션을 만든다).
+export function cleanPieces(v, amount) {
+  if (!Array.isArray(v) || !v.length || v.length > 60) return null;
+  if (!v.every((x) => Number.isInteger(x) && DENOMS.has(x))) return null;
+  return v.reduce((a, b) => a + b, 0) === amount ? v : null;
+}
 export function createRequest(core, ctx, kidId, b) {
   const kid = ctx.asKid(kidId);
   const type = b.type === 'deposit' ? 'deposit' : b.type === 'withdraw' ? 'withdraw' : null;
@@ -193,8 +204,8 @@ export function createRequest(core, ctx, kidId, b) {
       if (amount > w.available) throw err(409, 'insufficient', `지금 쓸 수 있는 돈은 ${w.available.toLocaleString('ko-KR')}원이에요.`, { available: w.available });
     }
     const rid = core.insert(
-      'INSERT INTO money_requests (family_id, kid_id, type, amount, purpose, to_member_id, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)',
-      ctx.familyId, kid.id, type, amount, purpose, to.id, 'pending', core.now(), core.now());
+      'INSERT INTO money_requests (family_id, kid_id, type, amount, purpose, to_member_id, status, created_at, updated_at, pieces) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      ctx.familyId, kid.id, type, amount, purpose, to.id, 'pending', core.now(), core.now(), (() => { const pc = cleanPieces(b.pieces, amount); return pc ? JSON.stringify(pc) : null; })());
     core.notify({
       familyId: ctx.familyId, memberId: to.id, kind: `money_${type}`, title: `${kid.name}의 ${type === 'deposit' ? '입금' : '출금'} 요청`,
       body: `${amount.toLocaleString('ko-KR')}원 · ${purpose}`, url: `/#/money/${rid}`, dedupe: `money-req:${rid}`, lock: `${kid.name} · ${type === 'deposit' ? '입금' : '출금'} 요청`,

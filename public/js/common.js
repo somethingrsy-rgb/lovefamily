@@ -20,15 +20,18 @@ export const amountHtml = (name = 'amount', { max } = {}) => `<div class="amount
 export function bindAmount(root) {
   const f = $('.amount-field', root); if (!f) return;
   const input = $('input', f); const txt = $('.amount-text b', f);
-  const upd = () => { input.value = input.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''); txt.textContent = won(Number(input.value || 0)); };
-  input.addEventListener('input', upd);
+  f._pieces = []; // 아이가 누른 지폐·동전(누른 순서대로). 금액을 직접 고치면 비운다
+  const badges = () => $$('.money-btn', f).forEach((b) => { const n = f._pieces.filter((x) => x === Number(b.dataset.add)).length; let bd = b.querySelector('.mcount'); if (!n) { bd?.remove(); return; } if (!bd) { bd = document.createElement('i'); bd.className = 'mcount'; b.appendChild(bd); } bd.textContent = `×${n}`; });
+  const upd = () => { input.value = input.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''); txt.textContent = won(Number(input.value || 0)); badges(); };
+  input.addEventListener('input', () => { f._pieces = []; upd(); });
   f.addEventListener('click', (e) => {
-    const a = e.target.closest('[data-add]'); if (a) { input.value = String(Number(input.value || 0) + Number(a.dataset.add)); upd(); }
-    if (e.target.closest('[data-clear]')) { input.value = ''; upd(); }
+    const a = e.target.closest('[data-add]');
+    if (a) { const sum = f._pieces.reduce((x, y) => x + y, 0); if (sum !== Number(input.value || 0)) f._pieces = []; f._pieces.push(Number(a.dataset.add)); input.value = String(Number(input.value || 0) + Number(a.dataset.add)); upd(); }
+    if (e.target.closest('[data-clear]')) { input.value = ''; f._pieces = []; upd(); }
   });
 }
 export const amountSheet = ({ title, submit, extra = '', max, onSubmit, intro = '' }) => {
-  const p = formSheet({ title, submit, html: `${intro}${amountHtml('amount', { max })}${extra}`, onSubmit: (v, sh) => { const a = Number(v.amount); if (!a || a < 1) throw new Error('금액을 입력해 주세요.'); return onSubmit({ ...v, amount: a }, sh); } });
+  const p = formSheet({ title, submit, html: `${intro}${amountHtml('amount', { max })}${extra}`, onSubmit: (v, sh) => { const a = Number(v.amount); if (!a || a < 1) throw new Error('금액을 입력해 주세요.'); const pc = document.querySelector('.sheet .amount-field')?._pieces || []; return onSubmit({ ...v, amount: a, pieces: pc.reduce((x, y) => x + y, 0) === a ? pc : undefined }, sh); } });
   setTimeout(() => { const s = document.querySelector('.sheet'); if (s) bindAmount(s); }, 0);
   return p;
 };
