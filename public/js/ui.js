@@ -246,6 +246,7 @@ export function playStamp({ kidName, provider, key }) {
   if (key != null) { if (stampSeen.has(key)) return; stampSeen.add(key); }
   // 도장이 위에서 쑥 내려와 "쾅" 찍히고(화면이 살짝 흔들림), 도장이 올라가면 자국이 남는다
   overlay(`<div class="stamp-scene"><div class="stamp-paper"></div>
+      <div class="stamp-ring"></div>
       <div class="stamp-mark"><img src="/assets/emoji/stamp-mark.webp" alt=""></div>
       <img class="stamp-tool" src="/assets/stamp-tool.webp" alt="" draggable="false">
       <div class="stamp-flash"></div><div class="stamp-bang">쾅!</div></div>
