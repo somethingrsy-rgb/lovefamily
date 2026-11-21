@@ -93,7 +93,8 @@ function tryPlay(now) {
     // 너무 붙어서 겹치지 않게, 가운데를 기준으로 서로 PLAY_GAP 만큼 떨어져 선다(천천히 걸어서 벌어진다)
     const mid = Math.min(Math.max((a.x + b.x) / 2, MIN_X + PLAY_GAP / 2), MAX_X - PLAY_GAP / 2);
     left.tx = mid - PLAY_GAP / 2; right.tx = mid + PLAY_GAP / 2;
-    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 6200; c.path = []; c.key = ''; c.playKind = pick(PLAYS); c.hop = 0; }
+    const kind = pick(PLAYS); // 두 마리가 같은 동작으로 논다
+    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 6200; c.path = []; c.key = ''; c.playKind = kind; c.hop = 0; }
   }
 }
 
