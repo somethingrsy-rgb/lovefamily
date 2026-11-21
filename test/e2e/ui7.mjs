@@ -72,6 +72,10 @@ console.log('✓ 하단 메뉴 순서 변경');
   const up = await (await fetch(base + '/api/photos', { method: 'POST', headers: { 'X-Requested-With': 'lovefamily', cookie, 'X-Photo-Kind': 'post', 'Content-Type': 'application/octet-stream' }, body: png })).json();
   await call('POST', '/api/posts', { title: '11.27 도시락', body: '급식파업', photoId: up.id });
   await page.goto(base + '/#/notebook'); await page.waitForSelector('.post-photo');
+  // 목록의 사진도 잘리지 않는다: 원본 비율(300×200) 그대로 보인다
+  const pb = await (await page.$('.post-photo')).boundingBox();
+  assert.ok(Math.abs(pb.width / pb.height - 1.5) < 0.05, `사진이 원본 비율로 보여야 한다(가로/세로 ${(pb.width / pb.height).toFixed(2)})`);
+  assert.equal(await page.$eval('.post-photo', (e) => getComputedStyle(e).objectFit), 'contain');
   await page.click('.post-photo');
   await page.waitForSelector('.pv-scroll img');
   const vb = await (await page.$('.pv-scroll img')).boundingBox();
