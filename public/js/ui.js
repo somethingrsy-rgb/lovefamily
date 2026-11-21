@@ -255,13 +255,18 @@ export function playStamp({ kidName, provider, key }) {
     <div class="anim-text">${esc(provider ? `${provider}${/[가-힣]$/.test(provider) && (provider.charCodeAt(provider.length - 1) - 0xac00) % 28 ? '이' : '가'} 도장을 줬어요!` : '도장을 받았어요!')}</div>${'<i class="confetti"></i>'.repeat(14)}`, 3200, 'stamp-overlay');
 }
 export const coinsSeen = new Map(); // 아이 id → 마지막으로 '쏙' 모션을 보여 준 시각(같은 입금을 두 번 보여 주지 않기 위함)
+// 금액을 지폐·동전으로 나눈다(큰 것부터): 3,700원 → 천원 3장 + 오백원 1개 + 백원 2개. 정확히 그 금액만큼만 보여 준다.
+export function splitMoney(amount) {
+  const out = []; let left = Math.max(0, Math.round(amount / 100) * 100);
+  for (const [v, key] of [[50000, 'b50000'], [10000, 'b10000'], [5000, 'b5000'], [1000, 'b1000'], [500, 'c500'], [100, 'c100']]) {
+    while (left >= v) { out.push(key); left -= v; }
+  }
+  return out;
+}
 export function playCoins(dir, amount, { hideAmount = false } = {}) {
-  const bill = amount >= 50000 ? 'b50000' : amount >= 10000 ? 'b10000' : amount >= 1000 ? 'b1000' : null;
-  const n = Math.min(8, Math.max(3, Math.round(amount / 1000) + 2));
-  const coins = Array.from({ length: n }, (_, i) => {
-    const src = bill && i % 3 === 0 ? bill : amount >= 500 || i % 2 ? 'c500' : 'c100';
-    return `<img class="coin ${dir} c${i} ${src.startsWith('b') ? 'bill' : ''}" src="/assets/money/${src}.webp" alt="" draggable="false">`;
-  }).join('');
+  const pieces = splitMoney(amount).slice(0, 12); // 너무 많으면 큰 것부터 최대 12개까지만 그린다
+  const n = Math.max(1, pieces.length);
+  const coins = (pieces.length ? pieces : ['c100']).map((src, i) => `<img class="coin ${dir} c${i} ${src.startsWith('b') ? 'bill' : ''}" style="margin-left:${((i % 6) - 2.5) * 34 + (i >= 6 ? 14 : 0)}px;animation-delay:${(i * 0.15).toFixed(2)}s" src="/assets/money/${src}.webp" alt="" draggable="false">`).join('');
   // 저금하면(in): 동전이 다 들어간 뒤 돼지가 좋아서 폴짝폴짝 뛰고 하트가 올라온다
   const hop = 0.15 * (n - 1) + 0.95; // 마지막 동전이 들어가는 시각(초)
   const hearts = dir === 'in' ? '<i class="piggy-heart h0">💕</i><i class="piggy-heart h1">💕</i><i class="piggy-heart h2">💕</i>' : '';

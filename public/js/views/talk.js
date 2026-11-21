@@ -19,7 +19,7 @@ export async function talk(el, { id, adultId }) {
     if (!to) {
       const ths = await get(`/api/threads?kidId=${id}`);
       el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} 가족에게 말하기`)}<p class="center big-q">누구에게 말할까요?</p>
-        <div class="big-grid">${S.info.adults.map((a) => { const t = ths.find((x) => x.adultId === a.id); return `<button class="big-btn" data-to="${a.id}" style="--kc:${esc(a.color)}"><span class="bi">${esc(a.avatar)}</span><b>${esc(a.name)}에게</b>${t?.unread ? `<span class="badge">${t.unread}</span>` : ''}</button>`; }).join('')}</div>`;
+        <div class="big-grid">${S.info.adults.map((a) => { const t = ths.find((x) => x.adultId === a.id); return `<button class="big-btn" data-to="${a.id}" style="--kc:${esc(a.color)}"><span class="bi">${memberAvatar(a.id, 'xl', a)}</span><b>${esc(a.name)}에게</b>${t?.unread ? `<span class="badge">${t.unread}</span>` : ''}</button>`; }).join('')}</div>`;
       el.onclick = (e) => { const b = e.target.closest('[data-to]'); if (b) { to = Number(b.dataset.to); load().catch(errToast); } };
       return;
     }

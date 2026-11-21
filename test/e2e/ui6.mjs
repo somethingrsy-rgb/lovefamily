@@ -58,11 +58,35 @@ await page.waitForSelector('.coin-overlay', { timeout: 6000 });
 assert.match(await page.textContent('.coin-overlay .anim-text'), /저금통에 쏙.*3,000원/, '자기 폰에는 금액도 보인다');
 await page.screenshot({ path: path.join(shots, '81-kidphone-coins.png') });
 await page.waitForFunction(() => { const el = document.querySelector('.piggy-anim.in .piggy-pic'); return el && getComputedStyle(el).animationName === 'piggyhop'; }, null, { timeout: 3000 });
-await page.waitForTimeout(2000); // 동전이 다 들어간 뒤 돼지가 폴짝 뛰는 중
+await page.waitForTimeout(700); // 동전이 다 들어간 뒤 돼지가 폴짝 뛰는 중
 await page.screenshot({ path: path.join(shots, '82-piggy-hop.png') });
 assert.ok(await page.$('.piggy-anim .piggy-heart'), '하트가 올라온다');
 console.log('✓ 저금한 뒤 돼지가 폴짝(하트 포함)');
 console.log('✓ 용돈을 받으면 아이 폰 어느 화면에서든 저금통에 쏙 모션');
+// 모션에는 넣은 금액만큼만: 3,000원 = 천원 3장
+assert.equal(await page.$$eval('.coin-overlay .coin', (e) => e.length), 3, '3,000원은 천원 지폐 3장만 떨어진다');
+assert.equal(await page.$$eval('.coin-overlay .coin.bill', (e) => e.length), 3);
+await page.waitForSelector('.coin-overlay', { state: 'detached', timeout: 8000 });
+await call('POST', `/api/kids/${yuel}/deposits`, { amount: 3700, memo: '용돈' });
+await page.waitForSelector('.coin-overlay .coin', { timeout: 6000 });
+assert.deepEqual(await page.$$eval('.coin-overlay .coin', (e) => e.map((x) => x.getAttribute('src').split('/').pop())), ['b1000.webp', 'b1000.webp', 'b1000.webp', 'c500.webp', 'c100.webp', 'c100.webp'], '3,700원 = 천원×3 + 오백원 + 백원×2');
+await page.waitForSelector('.coin-overlay', { state: 'detached', timeout: 8000 });
+await call('POST', `/api/kids/${yuel}/deposits`, { amount: 500, memo: '용돈' });
+await page.waitForSelector('.coin-overlay .coin', { timeout: 6000 });
+assert.equal(await page.$$eval('.coin-overlay .coin', (e) => e.length), 1, '500원은 오백원 동전 1개만');
+console.log('✓ 저금통 모션은 넣은 금액만큼만(3,000원 = 지폐 3장, 500원 = 동전 1개)');
+await page.waitForSelector('.coin-overlay', { state: 'detached', timeout: 8000 });
+// 말하기: 엄마·아빠 얼굴 그림, 입금 이유는 버튼으로
+await page.goto(base + `/#/kid/${yuel}/talk`); await page.waitForSelector('.big-btn[data-to]');
+assert.ok(await page.$('.big-btn[data-to] .avatar img'), '엄마·아빠가 이모지 글자가 아니라 얼굴 그림이다');
+await page.goto(base + `/#/kid/${yuel}/wallet`); await page.waitForSelector('#dep');
+await page.click('#dep'); await page.waitForSelector('[data-reason]');
+assert.deepEqual(await page.$$eval('[data-reason]', (e) => e.map((x) => x.dataset.reason)), ['용돈', '도장 30개', '문제집 1권', '세뱃돈']);
+await page.click('[data-reason="문제집 1권"]');
+assert.equal(await page.inputValue('input[name=purpose]'), '문제집 1권', '버튼을 누르면 이유가 채워진다');
+await page.screenshot({ path: path.join(shots, '83-reason-chips.png') });
+await page.click('[data-close]'); await page.goto(base + `/#/kid/${yuel}/talk`); await page.waitForSelector('.big-btn[data-to]'); await page.screenshot({ path: path.join(shots, '84-talk-avatars.png') });
+console.log('✓ 엄마·아빠 얼굴 그림, 입금 이유 버튼');
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 6 통과 · 스크린샷:', shots);

@@ -3,6 +3,7 @@ import { S, get, post, isDevice, isAdultNow, kidById } from '../api.js';
 import { avatar, toast, errToast, formSheet, playCoins, needAdult, coinsSeen } from '../ui.js';
 import { back, amountSheet } from '../common.js';
 
+const REASONS = ['용돈', '도장 30개', '문제집 1권', '세뱃돈'];
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
 export const adultPick = (name = 'toMemberId') => `<fieldset class="adult-pick-set"><legend>누구에게 보낼까요?</legend><div class="adult-pick">${S.info.adults.map((a, i) => `<label class="adult-opt radio"><input type="radio" name="${name}" value="${a.id}" ${i === 0 ? 'checked' : ''}>${avatar(a)}<span>${esc(a.name)}</span></label>`).join('')}</div></fieldset>`;
 const STEP = { withdraw: ['기다리는 중', '줄게요', '받았어요'], deposit: ['기다리는 중', '입금 확인'], purchase: ['기다리는 중', '사도 좋아요', '샀어요'] };
@@ -49,7 +50,7 @@ export async function mount(el, { id }) {
     $('#pm', el).onclick = () => shift(-1); $('#nm', el).onclick = () => shift(1);
     $('#adultMode', el)?.addEventListener('click', async () => { if (await needAdult()) load(); });
     const wrap = (fn) => async () => { try { await fn(); await load(); } catch (e) { errToast(e); } };
-    $('#dep', el)?.addEventListener('click', wrap(() => amountSheet({ title: '넣은 돈을 알려요', submit: '알리기', intro: '<p class="muted">어른이 실제로 돈을 받고 ‘입금 확인’을 누르면 저금통에 들어가요.</p>', extra: `<label class="field">이유<input name="purpose" maxlength="60" placeholder="용돈, 세뱃돈…" required></label>${adultPick()}`, onSubmit: async (v) => { await post(`/api/kids/${id}/requests`, { type: 'deposit', amount: v.amount, purpose: v.purpose, toMemberId: Number(v.toMemberId) }); toast('어른에게 알렸어요'); } })));
+    $('#dep', el)?.addEventListener('click', wrap(() => amountSheet({ title: '넣은 돈을 알려요', submit: '알리기', intro: '<p class="muted">어른이 실제로 돈을 받고 ‘입금 확인’을 누르면 저금통에 들어가요.</p>', extra: `<div class="field"><span>이유 <small class="muted">(버튼을 누르면 돼요)</small></span><div class="reason-chips">${REASONS.map((r) => `<button type="button" class="chip big" data-reason="${r}">${r}</button>`).join('')}</div><input name="purpose" maxlength="60" placeholder="다른 이유는 직접 쓰기" required></div>${adultPick()}`, onSubmit: async (v) => { await post(`/api/kids/${id}/requests`, { type: 'deposit', amount: v.amount, purpose: v.purpose, toMemberId: Number(v.toMemberId) }); toast('어른에게 알렸어요'); } })));
     $('#wd', el)?.addEventListener('click', wrap(() => amountSheet({ title: '돈 꺼내기', submit: '요청 보내기', max: w.available, intro: `<p class="muted">지금 쓸 수 있는 돈은 <b>${won(w.available)}</b>이에요.</p>`, extra: `<label class="field">어디에 쓸 거예요?<input name="purpose" maxlength="60" placeholder="문구점, 간식…" required></label>${adultPick()}`, onSubmit: async (v) => { await post(`/api/kids/${id}/requests`, { type: 'withdraw', amount: v.amount, purpose: v.purpose, toMemberId: Number(v.toMemberId) }); toast('어른에게 요청했어요'); } })));
     $('#cash', el)?.addEventListener('click', wrap(() => amountSheet({ title: '내가 쓴 현금', submit: '기록하기', intro: '<p class="muted">이미 꺼낸 돈을 어디에 썼는지 적어 둬요. 저금통 잔액은 다시 줄지 않아요.</p>', extra: '<label class="field">어디에 썼어요?<input name="memo" maxlength="60" required></label>', onSubmit: (v) => post(`/api/kids/${id}/cash-spent`, { amount: v.amount, memo: v.memo }) })));
     $('#adep', el)?.addEventListener('click', wrap(() => amountSheet({ title: '입금 등록', submit: '등록', intro: '<p class="muted">현금을 실제로 받은 뒤에 등록해 주세요.</p>', extra: '<label class="field">내용<input name="memo" maxlength="60" value="용돈"></label>', onSubmit: async (v) => { await post(`/api/kids/${id}/deposits`, { amount: v.amount, memo: v.memo }); toast('저금통에 넣었어요'); } })));
@@ -61,3 +62,16 @@ export async function mount(el, { id }) {
   return { refresh: load, topics: ['wallet', 'requests'] };
 }
 void ago;
+
+// 이유 버튼: 누르면 이유 칸이 채워지고 그 버튼이 선택 표시된다(칸을 직접 고치면 선택 표시는 풀린다)
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-reason]'); if (!b) return;
+  const box = b.closest('.field'); const input = box?.querySelector('input[name=purpose]'); if (!input) return;
+  input.value = b.dataset.reason;
+  box.querySelectorAll('[data-reason]').forEach((x) => x.classList.toggle('on', x === b));
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+});
+document.addEventListener('input', (e) => {
+  if (e.target.name !== 'purpose') return;
+  e.target.closest('.field')?.querySelectorAll('[data-reason]').forEach((x) => x.classList.toggle('on', x.dataset.reason === e.target.value));
+});

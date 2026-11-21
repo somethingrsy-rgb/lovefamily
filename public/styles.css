@@ -568,3 +568,6 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .piggy-heart.h0 { margin-left: -80px; animation-delay: calc(var(--hop, 1.4s) + .1s); } .piggy-heart.h1 { margin-left: -10px; animation-delay: calc(var(--hop, 1.4s) + .3s); } .piggy-heart.h2 { margin-left: 60px; animation-delay: calc(var(--hop, 1.4s) + .5s); }
 @keyframes pheart { 0% { opacity: 0; transform: translate3d(0, 20px, 0) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate3d(0, -90px, 0) scale(1.1); } }
 @media (prefers-reduced-motion: reduce) { .piggy-anim.in .piggy-pic, .piggy-heart { animation: none; } .piggy-heart { display: none; } }
+
+.reason-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 8px; } .reason-chips .chip.on { background: linear-gradient(135deg, #f78fb8, #b693f0); color: #fff; box-shadow: 0 4px 12px rgba(180, 90, 160, .3); }
+.big-btn .bi .avatar { margin: 0 auto; }
