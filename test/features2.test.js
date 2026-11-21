@@ -374,3 +374,22 @@ test('어른 삭제: 부모만, 본인 불가, 로그인·알림 정리, 대기 
     assert.equal((await f.device.post(`/api/kids/${f.ids.yuel}/requests`, { type: 'withdraw', amount: 100, purpose: 'x', toMemberId: extraId }, H)).status, 404);
   } finally { await f.close(); }
 });
+
+test('활동 기본 순서: 씻기 → 숙제 → 식사 → 게임 → TV → 책 읽기 → 양치, 직접 추가한 활동은 뒤', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    await f.mom.ok('POST', '/api/activities', { name: '피아노', icon: '🎹', minutes: 20 });
+    const names = (await f.mom.ok('GET', '/api/activities')).map((a) => a.name);
+    assert.deepEqual(names, ['씻기', '숙제하기', '식사하기', '게임하기', 'TV 보기', '책 읽기', '양치하기', '피아노']);
+    // 이전 버전(순서가 다른 DB) 시뮬레이션: 버전을 0 으로 되돌리고 순서를 뒤섞은 뒤 시작 보정 실행
+    f.core.run("UPDATE activities SET sort = 100 - id");
+    f.core.db.exec('PRAGMA user_version = 0');
+    const { ensureDefaultActivities } = await import('../server/services/timers.js');
+    ensureDefaultActivities(f.core);
+    assert.deepEqual((await f.mom.ok('GET', '/api/activities')).map((a) => a.name), ['씻기', '숙제하기', '식사하기', '게임하기', 'TV 보기', '책 읽기', '양치하기', '피아노']);
+    // 이후 어른이 바꾼 순서는 다시 덮어쓰지 않는다
+    f.core.run("UPDATE activities SET sort = 50 - id");
+    ensureDefaultActivities(f.core);
+    assert.equal((await f.mom.ok('GET', '/api/activities'))[0].name, '피아노');
+  } finally { await f.close(); }
+});

@@ -4,7 +4,8 @@ import { warnText, endText, nextEndText } from '../ko.js';
 export const WARN_MS = 5 * 60 * 1000;
 const KINDS = ['meal', 'tv', 'game', 'brush', 'homework', 'reading', 'bath', 'other'];
 // [이름, 아이콘, 종류, 기본 시간(분)] — 어른이 가족 탭에서 이름·시간을 바꿀 수 있다
-const DEFAULTS = [['식사하기', '🍽️', 'meal', 30], ['TV 보기', '📺', 'tv', 30], ['게임하기', '🎮', 'game', 30], ['양치하기', '🪥', 'brush', 5], ['숙제하기', '📚', 'homework', 30], ['책 읽기', '📖', 'reading', 30], ['씻기', '🛁', 'bath', 20]];
+const DEFAULTS = [['씻기', '🛁', 'bath', 20], ['숙제하기', '📚', 'homework', 30], ['식사하기', '🍽️', 'meal', 30], ['게임하기', '🎮', 'game', 30], ['TV 보기', '📺', 'tv', 30], ['책 읽기', '📖', 'reading', 30], ['양치하기', '🪥', 'brush', 5]];
+const KIND_ORDER = ['bath', 'homework', 'meal', 'game', 'tv', 'reading', 'brush']; // 활동 고르기 화면의 기본 순서
 
 // 기본 활동 중 아직 없는 종류만 채운다(이미 지운 활동은 되살리지 않는다 — 종류가 한 번이라도 있었으면 건너뜀).
 export function seedActivities(core, familyId) {
@@ -16,6 +17,19 @@ export function seedActivities(core, familyId) {
 }
 export function ensureDefaultActivities(core) {
   for (const f of core.all('SELECT id FROM families')) core.tx(() => seedActivities(core, f.id));
+  // 순서 정리는 DB 버전으로 딱 한 번만(이후 어른이 바꾼 순서는 건드리지 않는다): 기본 7종은 KIND_ORDER 순, 직접 추가한 활동은 그 뒤
+  const v = core.db.prepare('PRAGMA user_version').get().user_version;
+  if (v < 1) {
+    core.tx(() => {
+      for (const f of core.all('SELECT id FROM families')) {
+        const rows = core.all('SELECT id, kind FROM activities WHERE family_id = ? ORDER BY sort, id', f.id);
+        const known = KIND_ORDER.map((k) => rows.find((r) => r.kind === k)).filter(Boolean);
+        const rest = rows.filter((r) => !known.includes(r));
+        [...known, ...rest].forEach((r, i) => core.run('UPDATE activities SET sort = ? WHERE id = ?', i, r.id));
+      }
+      core.db.exec('PRAGMA user_version = 1');
+    });
+  }
 }
 
 // ---------- 활동 설정 (어른) ----------
