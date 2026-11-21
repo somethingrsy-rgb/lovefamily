@@ -1,6 +1,6 @@
 import { $, $$, esc, ago, timeLabel } from '../util.js';
 import { S, get, post, isDevice, kidById, adultById } from '../api.js';
-import { avatar, errToast, toast } from '../ui.js';
+import { avatar, memberAvatar, errToast, toast } from '../ui.js';
 import { back } from '../common.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
@@ -45,7 +45,7 @@ export async function kidInbox(el, { id }) {
   async function load() {
     const [ths, nt] = await Promise.all([get(`/api/threads?kidId=${id}`), get(`/api/notifications?kidId=${id}`)]);
     el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} 받은 편지함`, nt.unread ? '<button class="btn small ghost" id="ra">모두 읽음</button>' : '')}
-      <section class="card page-card"><h3>💌 메시지</h3>${ths.length ? `<ul class="threads">${ths.map((t) => `<li><a href="#/kid/${id}/talk/${t.adultId}">${avatar({ avatar: t.adultAvatar, color: '#e8e0f5' }, 'sm')}<div class="grow"><b>${esc(t.adultName)}</b><div class="small">${esc(t.last.body.slice(0, 40))}</div></div>${t.unread ? `<span class="badge">${t.unread}</span>` : ''}</a></li>`).join('')}</ul>` : '<p class="muted">아직 메시지가 없어요</p>'}</section>
+      <section class="card page-card"><h3>💌 메시지</h3>${ths.length ? `<ul class="threads">${ths.map((t) => `<li><a href="#/kid/${id}/talk/${t.adultId}">${memberAvatar(t.adultId, 'sm', { avatar: t.adultAvatar, color: '#e8e0f5' })}<div class="grow"><b>${esc(t.adultName)}</b><div class="small">${esc(t.last.body.slice(0, 40))}</div></div>${t.unread ? `<span class="badge">${t.unread}</span>` : ''}</a></li>`).join('')}</ul>` : '<p class="muted">아직 메시지가 없어요</p>'}</section>
       <section class="card page-card"><h3>🔔 소식</h3>${nt.items.length ? `<ul class="notif">${nt.items.map((n) => `<li class="${n.read ? '' : 'unread'}"><b>${esc(n.title)}</b><div class="small muted">${esc(n.body)}</div><span class="small muted">${ago(n.at)}</span></li>`).join('')}</ul>` : '<p class="muted">소식이 없어요</p>'}</section>`;
     $('#ra', el)?.addEventListener('click', async () => { await post(`/api/notifications/read-all?kidId=${id}`); load(); });
   }

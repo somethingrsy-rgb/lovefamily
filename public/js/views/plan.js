@@ -1,6 +1,6 @@
 import { $, $$, esc, dateLabel, addDays } from '../util.js';
 import { S, get, post, put, del, isDevice, isAdultNow, kidById } from '../api.js';
-import { avatar, toast, errToast, formSheet, photoPicker, confirmDialog } from '../ui.js';
+import { avatar, memberAvatar, toast, errToast, formSheet, photoPicker, confirmDialog } from '../ui.js';
 import { back } from '../common.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
@@ -15,7 +15,7 @@ export async function kidPick(el, { id }) {
     const me = s.kids.find((k) => k.kidId === Number(id));
     el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} 이번 주 가족 활동`)}
       <p class="center big-q">이번 주에 가족이랑 뭐 하고 싶어요?</p>
-      <section class="card page-card">${s.kids.map((k) => `<div class="pick-line"><span class="avatar sm" style="--kc:${esc(k.kidColor)}">${esc(k.kidAvatar)}</span><div>${esc(k.kidName)}이(가) 고른 활동: ${kidLine(k)}</div></div>`).join('')}</section>
+      <section class="card page-card">${s.kids.map((k) => `<div class="pick-line">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div>${esc(k.kidName)}이(가) 고른 활동: ${kidLine(k)}</div></div>`).join('')}</section>
       <div class="opt-grid">${s.options.map((o) => { const mine = me.optionId === o.id; const locked = !!o.plan && mine;
         return `<article class="opt-card card ${mine ? 'mine' : ''}">${o.photoUrl ? `<img src="${esc(o.photoUrl)}" alt="${esc(o.name)}" loading="lazy">` : `<div class="opt-ic">${esc(o.icon)}</div>`}<h3>${esc(o.icon)} ${esc(o.name)}</h3>
           <div class="chips">${o.pickedBy.map((p) => `<span class="tag">${esc(p.name)}</span>`).join('')}${o.pickedBy.length > 1 ? '<span class="tag due">둘 다 골랐어요</span>' : ''}${o.plan ? `<span class="tag">📅 ${esc(when(o.plan))}</span>` : ''}</div>
@@ -38,7 +38,7 @@ export async function adultPlan(el) {
     const s = await get('/api/family-activities');
     const tomorrow = addDays(S.info.today, 1);
     el.innerHTML = `${back('/family', '🎈 이번 주 가족 활동', '<button class="btn small primary" id="addopt">+ 후보 추가</button>')}
-      <section class="card page-card"><h3>아이들이 고른 활동</h3>${s.kids.map((k) => `<div class="pick-line"><span class="avatar sm" style="--kc:${esc(k.kidColor)}">${esc(k.kidAvatar)}</span><div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></div>`).join('')}</section>
+      <section class="card page-card"><h3>아이들이 고른 활동</h3>${s.kids.map((k) => `<div class="pick-line">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></div>`).join('')}</section>
       ${s.options.map((o) => `<article class="card page-card opt-admin"><div class="row gap center-v">${o.photoUrl ? `<img class="wish-photo" src="${esc(o.photoUrl)}" alt="">` : `<span class="opt-ic sm">${esc(o.icon)}</span>`}<div class="grow"><h3>${esc(o.icon)} ${esc(o.name)}</h3><div class="chips">${o.pickedBy.map((p) => `<span class="tag">${esc(p.name)} 선택</span>`).join('') || '<span class="muted small">아직 아무도 안 골랐어요</span>'}${o.pickedBy.length > 1 ? '<span class="tag due">둘 다 골랐어요 · 한 번에 확정</span>' : ''}</div></div><button class="btn ghost small" data-rm="${o.id}" aria-label="후보 삭제">🗑</button></div>
         <form class="plan-form" data-opt="${o.id}" novalidate><label class="field">날짜<input name="date" type="date" value="${o.plan?.date || tomorrow}" required></label><label class="field">시간<input name="time" type="time" value="${o.plan?.time || ''}"></label>
           <div class="row gap"><button class="btn primary grow">${o.plan ? '일정 변경' : '날짜 확정'}</button>${o.plan ? `<button type="button" class="btn ghost" data-cancel="${planId(s, o)}">확정 취소</button>` : ''}</div>${o.plan ? `<p class="ok small">📅 ${esc(when(o.plan))} 확정 — 달력과 거실 보드에 표시돼요</p>` : ''}</form></article>`).join('') || '<div class="empty card">‘공원 가기’, ‘보드게임 하기’처럼 후보를 추가해 보세요</div>'}`;

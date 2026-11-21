@@ -161,7 +161,7 @@ export function readPost(core, ctx, pid) {
 export function listNotes(core, ctx, limit = 10) {
   return core.all('SELECT * FROM notes WHERE family_id = ? ORDER BY id DESC LIMIT ?', ctx.familyId, limit).map((n) => {
     const a = core.member(n.author_id);
-    return { id: n.id, text: n.text, authorName: a?.name, authorAvatar: a?.avatar, at: n.created_at };
+    return { id: n.id, text: n.text, authorId: n.author_id, authorName: a?.name, authorAvatar: a?.avatar, at: n.created_at };
   });
 }
 export function addNote(core, ctx, b) {

@@ -14,8 +14,13 @@ function cartoonFace(m) {
   const role = m.role || info.adults.find((a) => a.id === Number(m.id))?.role;
   return ROLE_FACE[role] ? `/assets/chars/face-${ROLE_FACE[role]}.webp` : null;
 }
+// 가족 id 로 프로필을 그린다(올린 사진 > 가족 캐릭터 얼굴 > 이모지). 카드마다 이모지 글자만 따로 받는 곳에서 쓴다.
+export const memberAvatar = (id, cls = '', fallback = { avatar: '🙂', color: '#e8e0f5' }) => {
+  const m = S.info && [...S.info.kids, ...S.info.adults].find((x) => x.id === Number(id));
+  return avatar(m || fallback, cls);
+};
 export const avatar = (m, cls = '') => {
-  const url = m.avatarUrl || cartoonFace(m);
+  const url = m.avatarUrl || cartoonFace(m); // 올린 진짜 사진이 항상 우선
   return url
     ? `<span class="avatar photo ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true"><img src="${esc(url)}" alt=""></span>`
     : `<span class="avatar ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true">${esc(m.avatar)}</span>`;

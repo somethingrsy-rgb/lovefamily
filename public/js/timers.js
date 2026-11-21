@@ -1,6 +1,7 @@
 import { esc, lsGet, lsSet } from './util.js';
 import { S, get, post, bus, isDevice } from './api.js';
 import { actPic } from './actimg.js';
+import { memberAvatar } from './ui.js';
 
 // ---- 상태: 서버가 알려 준 '종료 시각'과 서버-기기 시계 차이로 남은 시간을 계산한다 ----
 export const T = { timers: [], offset: 0, sound: true, loaded: false };
@@ -79,7 +80,7 @@ export function showAlert(kind, t, { quiet = false } = {}) {
   card.className = `tp-card ${kind}`;
   card.style.setProperty('--kc', t.kidColor);
   card.dataset.key = kind === 'warn' ? t.warnKey : t.endKey;
-  card.innerHTML = `<div class="tp-head"><span class="avatar md" style="--kc:${esc(t.kidColor)}">${esc(t.kidAvatar)}</span><h2>${esc(t.kidName)} · ${kind === 'warn' ? '5분 남았어요' : '시간이 끝났어요'}</h2></div>
+  card.innerHTML = `<div class="tp-head">${memberAvatar(t.kidId, 'md', { avatar: t.kidAvatar, color: t.kidColor })}<h2>${esc(t.kidName)} · ${kind === 'warn' ? '5분 남았어요' : '시간이 끝났어요'}</h2></div>
     ${nextCards(t)}
     <p class="tp-text">${esc(kind === 'warn' ? t.texts.warn : t.texts.end)}</p>
     ${kind === 'end' && t.texts.nextEnd ? `<p class="tp-next">${esc(t.texts.nextEnd)}</p>` : ''}
