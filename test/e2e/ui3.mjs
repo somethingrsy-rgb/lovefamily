@@ -57,7 +57,7 @@ const phone = await open({ ...devices['iPhone 14'] }, 'iPhone');
 
 const pos = (p, id) => p.evaluate((i) => { const e = document.querySelector(`[data-walker="${i}"]`); return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top), moving: e.classList.contains('moving'), face: e.querySelector('.wk-sprite')?.style.transform || '', frame: (() => { const sp = e.querySelector('.wk-sprite'); return sp ? getComputedStyle(sp).backgroundPositionX : ''; })() } : null; }, id);
 const houseBox = async (p) => { await p.evaluate(() => document.querySelector('.house').scrollIntoView({ block: 'center' })); return p.$eval('.house', (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }); };
-const select = async (p, id) => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click(`[data-walker="${id}"]`); await p.waitForSelector('.pad-head'); };
+const select = async (p, id) => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click(`[data-walker="${id}"]`); await p.waitForSelector(`[data-walker="${id}"].sel`); };
 // 집 그림 위의 칸을 실제로 눌러 본다(칸의 위쪽 빈 곳: 사람이 서 있지 않은 높이)
 async function tapCell(p, row, col) {
   const box = await houseBox(p);
@@ -87,7 +87,7 @@ await ipad.goto(base + '/#/'); await ipad.waitForSelector('.walker'); await ipad
 
 // 1) 아빠(아래층 오른쪽 22)를 선택하고 거실 가운데(01)를 누른다 → 기둥 통로를 거쳐 층을 올라가야 한다
 await select(ipad, ids.dad);
-assert.match(await ipad.textContent('.walk-hint'), /가고 싶은 곳/);
+assert.equal(await ipad.$$eval('#walkpad, .walk-hint, .pad-head', (e) => e.length), 0, '안내창은 없다');
 assert.equal(await ipad.$$eval('.pad-btn', (e) => e.length), 0, '방향 패드 버튼은 없다');
 const up = await walk(ipad, ids.dad, 0, 1);
 console.log(`아빠 거실로: 걷는 중 샘플 ${up.length}개`);
@@ -107,7 +107,7 @@ assert.ok([...faces.r].some((f) => f.includes('scaleX(1)')) && [...faces.l].some
 console.log('✓ 오른쪽/왼쪽으로 걸을 때 얼굴 방향이 바뀜');
 
 // 3) 같은 칸에 둘이 서면 나란히: 유엘을 선택해 유하방(11)을 누른다
-await ipad.click('.pad-head [data-act=close]');
+await ipad.evaluate(() => document.querySelector('.walker.sel')?.click()); // 같은 캐릭터를 다시 누르면 선택 해제
 await select(ipad, ids.yuel);
 const yw = await walk(ipad, ids.yuel, 1, 1);   // 유하가 서 있는 칸의 한가운데를 눌러도 목적지로 인식돼야 한다
 assert.ok(yw.length > 10, '유엘이 실제로 걸어서 이동');
@@ -126,7 +126,7 @@ await phone.evaluate(() => window.scrollTo(0, 0));
 await phone.screenshot({ path: path.join(shots, '51-walk-phone.png') });
 
 // 5) 정원처럼 갈 수 없는 곳을 누르면 아무 일도 없다(화면도 바뀌지 않는다)
-await ipad.click('.pad-head [data-act=close]');
+await ipad.evaluate(() => document.querySelector('.walker.sel')?.click()); // 같은 캐릭터를 다시 누르면 선택 해제
 await select(ipad, ids.dad);
 const bg = await houseBox(ipad);
 // 정원 왼쪽 끝(방향 패드 창과 겹치지 않는 곳)을 누른다
@@ -140,7 +140,7 @@ assert.ok(!ipad.url().includes('#/stamps') && !ipad.url().includes('#/kid'), '�
 console.log('✓ 정원 등 갈 수 없는 곳은 무시');
 
 // 6) 내 방으로: 거실의 아빠가 집으로 돌아온다
-await ipad.click('[data-act=home]');
+await ipad.evaluate(() => window.scrollTo(0, 0)); await tapCell(ipad, 2, 2); // 내 방(아래층 오른쪽)을 눌러 돌아온다
 const back = [];
 for (let i = 0; i < 300; i++) { const s = await pos(ipad, ids.dad); if (s?.moving) back.push(s); if (s && !s.moving && back.length > 5) break; await ipad.waitForTimeout(40); }
 assert.equal(back.filter((s) => !onSkeleton(s)).length, 0, '돌아올 때도 뼈대 위');

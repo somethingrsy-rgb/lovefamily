@@ -87,7 +87,7 @@ function walkerHtml(p) {
 }
 export const walkersLayerHtml = () => `<div class="walkers" aria-label="집 안을 걷는 가족">${P.map(walkerHtml).join('')}</div>`;
 export const walkerCell = (id) => { const w = W.get(id); return w ? { cell: w.cell, moving: w.moving } : null; };
-export const walkPadHtml = () => '<div class="walk-pad" id="walkpad"></div>';
+export const walkPadHtml = () => ''; // 선택 안내창은 쓰지 않는다(캐릭터를 다시 누르면 선택 해제)
 
 function relayout() { // 서 있는 사람들의 자리를 다시 나눈다(CSS 전환으로 부드럽게)
   for (const p of P) {
@@ -140,7 +140,7 @@ function render() { const layer = document.querySelector('.walkers'); if (layer)
 
 // ===== 방향 패드 =====
 function updatePad() {
-  const pad = document.getElementById('walkpad'); if (!pad) return;
+  const pad = document.getElementById('walkpad'); if (!pad) return; // 안내창이 없으면 아무것도 하지 않는다
   const p = P.find((x) => x.id === selected); const w = p && W.get(p.id);
   if (!p) { pad.innerHTML = '<p class="walk-hint">🚶 캐릭터를 눌러 집 안을 걸어 보세요</p>'; return; }
   const busy = w.moving;
