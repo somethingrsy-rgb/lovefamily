@@ -6,6 +6,7 @@ import { kidTimerHtml, bindDismiss } from './timerui.js';
 import { kidLine } from './plan.js';
 import { statusButtons, bindStatus, statusLine, STATUS } from '../common.js';
 import { T, timerOf, fmt, remaining } from '../timers.js';
+import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
 
@@ -70,8 +71,15 @@ function adultPic(role, state) {
 function houseHtml(h) {
   const kidRooms = h.kids.slice(0, 2).map((k, i) => {
     const t = timerOf(k.id); const d = k.day;
-    const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : '', t ? (t.state === 'ended' ? '⏰' : `⏱ <span data-timer="${t.id}">${fmt(remaining(t))}</span>`) : ''].filter(Boolean);
-    return `<button class="room kid" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${charImg(KID_CHAR[i])}<span class="room-label">${esc(k.name)}방</span>${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}</button>`;
+    const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : ''].filter(Boolean);
+    // 활동 중이면 방 안의 캐릭터가 그 활동 그림으로 바뀌고(그림이 없으면 서 있는 모습 유지), 지난 시간·남은 시간·진행 막대를 보여 준다
+    const img = t && actImgUrl(t.kind, k.id);
+    const pic = img ? `<img class="room-char act" src="${img}" alt="" draggable="false">` : charImg(KID_CHAR[i]);
+    const total = t ? t.totalMs : 1; const rem = t ? remaining(t) : 0;
+    const panel = !t ? '' : t.state === 'ended'
+      ? `<span class="room-timer ended"><b>⏰ 끝났어요</b><small>${esc(t.name)}</small></span>`
+      : `<span class="room-timer" role="timer" aria-label="${esc(t.name)} 남은 시간"><b><span data-timer="${t.id}">${fmt(rem)}</span></b><small>남음</small><i class="rt-bar"><u data-bar="${t.id}" style="width:${(100 * (1 - rem / total)).toFixed(1)}%"></u></i><small><span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span> 지남</small></span>`;
+    return `<button class="room kid" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${pic}<span class="room-label">${esc(k.name)}방</span>${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${panel}</button>`;
   }).join('');
   const pending = h.kids.filter((k) => k.day.status === 'requested').length;
   const adults = ['grandma', 'mom', 'dad'].map((role) => {

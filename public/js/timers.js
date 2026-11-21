@@ -36,6 +36,8 @@ function tick() {
   for (const t of T.timers) {
     const rem = remaining(t);
     document.querySelectorAll(`[data-timer="${t.id}"]`).forEach((el) => { el.textContent = t.state === 'ended' ? '00:00' : fmt(rem); });
+    document.querySelectorAll(`[data-elapsed="${t.id}"]`).forEach((el) => { el.textContent = fmt(Math.max(0, t.totalMs - rem)); });
+    document.querySelectorAll(`[data-bar="${t.id}"]`).forEach((el) => { el.style.width = `${(100 * (1 - rem / t.totalMs)).toFixed(1)}%`; });
     document.querySelectorAll(`[data-ring="${t.id}"]`).forEach((el) => { el.setAttribute('stroke-dashoffset', String(Number(el.dataset.c) * (1 - frac(t)))); if (rem <= 300000) el.classList.add('soon'); });
     if (t.state === 'running' && rem <= 0 && !reloaded.has(t.id + ':' + t.endsAt)) { reloaded.add(t.id + ':' + t.endsAt); loadTimers().catch(() => {}); }
   }
