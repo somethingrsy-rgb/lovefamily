@@ -1,4 +1,4 @@
-// 집 그림 안을 돌아다니는 고양이 두 마리(루비·크리스탈).
+// 집 그림 안을 돌아다니는 반려동물: 고양이 두 마리(루비·크리스탈)와 강아지 연이.
 // 층 바닥선을 걷다가 앉고·자고·털을 핥고, 기둥 통로에서는 폴짝 뛰어 다른 층으로 오간다. 누르면 애교를 부린다.
 // 사람 캐릭터처럼 정해진 위치를 서버와 맞추지는 않는다(기기마다 자기 마음대로 돌아다닌다).
 import { FLOOR_Y, PILLAR_X } from './walkers.js';
@@ -9,8 +9,13 @@ const SHEET = {
   'ruby-sit': [122, 152, 1], 'ruby-sleep': [155, 104, 1], 'ruby-groom': [131, 147, 1], 'ruby-aegyo': [164, 120, 1],
   'crystal-walkR': [159, 130, 12], 'crystal-walkL': [161, 130, 12], 'crystal-up': [174, 153, 12], 'crystal-down': [173, 131, 9],
   'crystal-sit': [124, 149, 1], 'crystal-sleep': [159, 109, 1], 'crystal-groom': [139, 150, 1], 'crystal-aegyo': [169, 127, 1], 'crystal-stand': [158, 130, 1],
+  // 강아지 연이 (public/assets/dog/dog-*.webp). 오르내리기는 뛰는 그림 하나를 같이 쓴다
+  'yeoni-walkR': [140, 121, 12], 'yeoni-walkL': [140, 121, 12], 'yeoni-up': [137, 121, 12], 'yeoni-down': [137, 121, 12],
+  'yeoni-sit': [102, 135, 1], 'yeoni-sleep': [125, 97, 1], 'yeoni-groom': [107, 132, 1], 'yeoni-aegyo': [114, 127, 1], 'yeoni-stand': [124, 131, 1], 'yeoni-roll': [145, 114, 1],
 };
-const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groom', 'stand'] };
+const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groom', 'stand'], yeoni: ['sit', 'sleep', 'groom', 'stand', 'roll'] };
+// 그림 파일 경로: 고양이는 cats/, 강아지(연이)는 dog/dog-이름.webp, 오르내리기는 dog-jump 하나
+const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' || name === 'down' ? 'jump' : name}.webp` : `/assets/cats/${id}-${name}.webp`);
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
@@ -22,6 +27,7 @@ const reduce = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').mat
 const cats = [
   { id: 'ruby', x: 24, y: FLOOR_Y[1], face: 1, mode: 'idle', pose: 'sit', until: 0, path: [], seg: 0, key: '' },
   { id: 'crystal', x: 72, y: FLOOR_Y[2], face: -1, mode: 'idle', pose: 'sleep', until: 0, path: [], seg: 0, key: '' },
+  { id: 'yeoni', x: 48, y: FLOOR_Y[0], face: 1, mode: 'idle', pose: 'sit', until: 0, path: [], seg: 0, key: '' },
 ];
 let running = false;
 let last = 0;
@@ -31,7 +37,7 @@ const floorIdx = (y) => FLOOR_Y.reduce((b, f, i) => (Math.abs(f - y) < Math.abs(
 function spriteHtml(c, name, anim) {
   const [w, h, n] = SHEET[`${c.id}-${name}`];
   const flip = c.face < 0 && !/walk[LR]$/.test(name) ? ' transform:scaleX(-1);' : '';
-  const style = `width:${(w * U).toFixed(2)}cqw;height:${(h * U).toFixed(2)}cqw;background-image:url(/assets/cats/${c.id}-${name}.webp);background-size:${n * 100}% 100%;${flip}`;
+  const style = `width:${(w * U).toFixed(2)}cqw;height:${(h * U).toFixed(2)}cqw;background-image:url(${fileOf(c.id, name)});background-size:${n * 100}% 100%;${flip}`;
   if (n === 1) return `<div class="pet-sp" style="${style}"></div>`;
   return `<div class="pet-sp anim" style="${style}animation-timing-function:steps(${n},jump-none);animation-duration:${anim === 'jump' ? '.9s' : '1.5s'};"></div>`;
 }

@@ -32,7 +32,7 @@ const page = await login(await browser.newContext({ viewport: { width: 1180, hei
 assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
 // 집 그림 안을 돌아다니는 고양이 두 마리: 있고, 시간이 지나면 움직이고, 누르면 애교(하트), 가족 설정에서 끌 수 있다
 {
-  assert.equal(await page.$$eval('.house .pets .pet', (e) => e.length), 2, '루비와 크리스탈');
+  assert.deepEqual(await page.$$eval('.house .pets .pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal', 'yeoni'], '루비·크리스탈·연이');
   const snap = () => page.$$eval('.pet', (e) => e.map((x) => `${x.style.left}|${x.style.top}|${x.querySelector('.pet-sp')?.style.backgroundImage}`).join(','));
   const first = await snap(); let moved = false;
   for (let i = 0; i < 30 && !moved; i++) { await page.waitForTimeout(500); moved = (await snap()) !== first; }
