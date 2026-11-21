@@ -100,7 +100,7 @@ test('아이 폰 푸시: 그 아이에게 온 알림만 그 폰으로(잠금화�
     const msg = f.pushes.filter((p) => p.endpoint.includes('phone'));
     assert.deepEqual(msg.map((p) => p.endpoint), ['https://push.example/yuha-phone']);
     assert.ok(!msg[0].payload.body.includes('비밀 내용'), '잠금화면에 본문 없음');
-    // 활동(타이머) 푸시는 거실 기기로만 — 아이 폰으로는 가지 않는다
+    // 활동(타이머) 푸시: 거실 기기 + 그 활동을 하는 아이의 폰(앱을 닫거나 화면이 잠겨 있어도). 형제 폰·어른 폰에는 가지 않는다
     f.pushes.length = 0;
     const tok = await f.elevate('mom', f.pw.mom);
     await f.device.ok('POST', '/api/push/subscribe', { subscription: { endpoint: 'https://push.example/ipad', keys: { p256dh: 'p', auth: 'a' } } }, { 'X-Elevation': tok });
@@ -108,7 +108,11 @@ test('아이 폰 푸시: 그 아이에게 온 알림만 그 폰으로(잠금화�
     await f.mom.ok('POST', `/api/kids/${f.ids.yuel}/timers`, { activityId: a.brush.id });
     f.clock.t += 6 * 60000; f.app.settle(); await f.flush();
     assert.ok(f.pushes.some((p) => p.endpoint === 'https://push.example/ipad'));
-    assert.ok(!f.pushes.some((p) => p.endpoint.includes('phone')));
+    const tp = f.pushes.filter((p) => p.endpoint.includes('phone'));
+    assert.deepEqual([...new Set(tp.map((p) => p.endpoint))], ['https://push.example/yuel-phone'], '유엘 활동 알림은 유엘 폰에만');
+    assert.ok(tp.some((p) => /5분|끝났/.test(p.payload.body)), '5분 남았어요/끝났어요 알림');
+    assert.ok(tp.every((p) => p.payload.url === `/#/kid/${f.ids.yuel}/timer` && p.payload.sticky), '누르면 활동 화면, 눌러서 확인할 때까지 남는다');
+    assert.ok(!f.pushes.some((p) => p.endpoint === 'https://push.example/mom' || p.endpoint === 'https://push.example/yuha-phone'), '어른·형제에게는 가지 않는다');
     // 연결 해제: 목록에 보이고, 해제하면 로그인·푸시가 모두 끊긴다
     const list = await f.mom.ok('GET', `/api/kids/${f.ids.yuel}/devices`);
     assert.equal(list.length, 1); assert.equal(list[0].push, true); assert.equal(list[0].label, '유엘의 휴대폰');

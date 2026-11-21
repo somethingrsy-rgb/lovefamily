@@ -129,6 +129,8 @@ function alert(core, t, kind) {
   core.afterCommit(() => {
     core.hub.publish(t.family_id, { t: 'timer', kind, key, timerId: t.id, kidId: t.kid_id }, { devices: true });
     core.sendPushDevices(t.family_id, { title: '우리집', body: lock, url: '/#/', tag: `timer-${t.id}-${kind}`, nid: null });
+    // 그 아이의 전용 폰에도(앱을 닫아 두거나 화면이 잠겨 있어도 알림이 오도록). 형제·어른 폰에는 가지 않는다.
+    core.sendPush(t.kid_id, { title: '우리집', body: lock, url: `/#/kid/${t.kid_id}/timer`, tag: `timer-${t.id}-${kind}`, nid: null, sticky: true });
   });
 }
 
