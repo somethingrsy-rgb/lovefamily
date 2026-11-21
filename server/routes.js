@@ -35,6 +35,7 @@ export function buildRoutes(app) {
   add('PUT', '/api/kids/:id/pin', (c, h) => F.setKidPin(h.core, c, P(h), h.body.pin));
   add('POST', '/api/kids/:id/unlock', (c, h) => F.unlockKid(h.core, c, P(h), h.body.pin));
 
+  add('PUT', '/api/walkers/:id', (c, h) => X.setWalker(h.core, c, P(h), h.body.cell));
   // ---- 홈 ----
   add('GET', '/api/home', (c, h) => { R.ensureToday(h.core, c.familyId); return X.home(h.core, c); });
   add('GET', '/api/adult/home', (c, h) => { R.ensureToday(h.core, c.familyId); return X.adultHome(h.core, c); });

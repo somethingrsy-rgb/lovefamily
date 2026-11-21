@@ -125,6 +125,10 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at INTEGER NOT NULL, read_at INTEGER);
 CREATE INDEX IF NOT EXISTS notifications_member ON notifications(member_id, id);
 
+-- 집 안을 걸어 다니는 가족의 현재 칸 (3×3 격자 '행열': 거실 00·01·02 / 유엘·유하·확인방 10·11·12 / 할머니·엄마·아빠방 20·21·22)
+CREATE TABLE IF NOT EXISTS walkers (
+  member_id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, cell TEXT NOT NULL, updated_at INTEGER NOT NULL);
+
 -- 활동 타이머 (남은 시간은 항상 ends_at 기준으로 계산)
 CREATE TABLE IF NOT EXISTS activities (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, name TEXT NOT NULL, icon TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'other',

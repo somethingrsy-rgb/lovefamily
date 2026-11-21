@@ -9,6 +9,7 @@ import { T, timerOf, fmt, remaining } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
+import { mountWalkers, walkPadHtml } from './walkers.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -73,27 +74,30 @@ function houseHtml(h) {
     const t = timerOf(k.id); const d = k.day;
     const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : ''].filter(Boolean);
     // 활동 중이면 방 안의 캐릭터가 그 활동 그림으로 바뀌고(그림이 없으면 서 있는 모습 유지), 지난 시간·남은 시간·진행 막대를 보여 준다
-    const img = t && actImgUrl(t.kind, k.id);
-    const pic = img ? `<img class="room-char act" src="${img}" alt="" draggable="false">` : charImg(KID_CHAR[i]);
     const total = t ? t.totalMs : 1; const rem = t ? remaining(t) : 0;
     // 지나간 시간만 그림 바로 아래에 표시(남은 시간·막대는 보여 주지 않는다)
     const timeTag = !t ? '' : t.state === 'ended'
       ? `<span class="room-time ended" role="timer" aria-label="${esc(t.name)} 끝남">⏰ 끝났어요</span>`
       : `<span class="room-time" role="timer" aria-label="${esc(t.name)} 지난 시간">⏱ <span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span></span>`;
-    return `<button class="room kid ${t ? 'has-time' : ''}" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${pic}${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;
+    return `<button class="room kid ${t ? 'has-time' : ''}" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;
   }).join('');
   const pending = h.kids.filter((k) => k.day.status === 'requested').length;
   const adults = ['grandma', 'mom', 'dad'].map((role) => {
     const a = h.adults.find((x) => x.role === role) || S.info.adults.find((x) => x.role === role);
     if (!a) return `<div class="room empty" style="${box(ADULT_ROOM[role])}"></div>`;
-    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${a.status ? ` · ${esc(a.status.label)}` : ''}">${adultPic(role, a.status?.state)}</button>`;
+    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${a.status ? ` · ${esc(a.status.label)}` : ''}"></button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="/assets/house.webp" alt="" class="house-img" width="1086" height="1448">
     <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기"></button>
     ${kidRooms}
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
-    ${adults}</div>`;
+    ${adults}${walkPadHtml()}</div>`;
+}
+function openAdultSheet(id, h, reload) {
+  const a = adultById(id); const st = h.adults.find((x) => x.id === a.id)?.status;
+  const sh = openSheet(`<h2>${avatar(a, 'sm')} ${esc(a.name)}의 상태</h2><p class="adult-status">${statusLine(st)}</p>${statusButtons(a.id, st?.state)}<div class="row end"><button class="btn ghost" data-close>닫기</button></div>`);
+  bindStatus(sh.el, () => { sh.close(); reload(); });
 }
 function bindHouse(root, reload, h) {
   root.addEventListener('click', async (e) => {
@@ -148,6 +152,7 @@ export async function mount(el) {
         <div class="panel card famact"><h3>🎈 이번 주 가족 활동 <a class="small" href="#/family-activity">어른 관리</a></h3>${h.famActivity.kids.map((k) => `<a class="pick-line" href="#/kid/${k.kidId}/family">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></a>`).join('')}</div>
       </section></div></div>`;
     bindHouse($('.house-col', el), load, h);
+    mountWalkers($('.house-col', el), h, { onOpen: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)) });
     bindDismiss($('.kids', el), load);
     $('.supplies', el)?.addEventListener('click', supplyClick);
     if (ah) bindAdultPanel($('.adult-panel', el), load);
@@ -160,5 +165,5 @@ export async function mount(el) {
   }
   await load();
   timer = setInterval(() => { const c = $('#clock', el); if (c) c.textContent = timeLabel(Date.now()); }, 15000);
-  return { refresh: load, topics: ['home', 'status', 'family', 'approvals', 'requests', 'messages', 'posts', 'notes', 'calendar', 'day', 'stamps', 'timers', 'supplies', 'famact'], destroy: () => clearInterval(timer) };
+  return { refresh: load, topics: ['home', 'status', 'family', 'approvals', 'requests', 'messages', 'posts', 'notes', 'calendar', 'day', 'stamps', 'timers', 'supplies', 'famact', 'walkers'], destroy: () => clearInterval(timer) };
 }

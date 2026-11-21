@@ -149,3 +149,35 @@ test('아이 폰은 실시간 도장 쾅 신호와 자기 알림 팝업을 받�
     sa.stop(); sb.stop();
   } finally { await f.close(); }
 });
+
+test('집 안 걷기: 칸 위치가 가족 모든 기기에 공유되고, 잘못된 칸·다른 가족은 막힌다', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    const listen = async (client, qs = '') => {
+      const ev = []; const ac = new AbortController();
+      const res = await fetch(f.base + '/api/stream' + qs, { headers: { cookie: client.cookie, 'X-Requested-With': 'lovefamily' }, signal: ac.signal });
+      (async () => { try { const rd = res.body.getReader(); const dec = new TextDecoder(); for (;;) { const { value, done } = await rd.read(); if (done) break; for (const m of dec.decode(value).matchAll(/data: (.*)\n/g)) ev.push(JSON.parse(m[1])); } } catch {} })();
+      await new Promise((r) => setTimeout(r, 80)); return { ev, stop: () => ac.abort() };
+    };
+    const sd = await listen(f.dad);
+    assert.deepEqual((await f.device.ok('GET', '/api/home')).walkers, {}, '처음엔 각자 자기 방(저장된 위치 없음)');
+    // 아이용 공용 기기에서 유엘을 확인방(12)으로
+    await f.device.ok('PUT', `/api/walkers/${f.ids.yuel}`, { cell: '12' });
+    await f.device.ok('PUT', `/api/walkers/${f.ids.mom}`, { cell: '00' }); // 거실
+    await new Promise((r) => setTimeout(r, 120));
+    const w = (await f.dad.ok('GET', '/api/home')).walkers;
+    assert.equal(w[f.ids.yuel], '12'); assert.equal(w[f.ids.mom], '00');
+    assert.ok(sd.ev.some((e) => e.t === 'refresh' && e.topics.includes('walkers')), '다른 기기에 실시간 신호');
+    for (const bad of ['33', '3', 'ab', '', null, '1 2', '012']) assert.equal((await f.device.put(`/api/walkers/${f.ids.yuel}`, { cell: bad })).status, 400, String(bad));
+    // 아이 폰도 움직일 수 있다 / 다른 가족 구성원은 못 움직인다
+    const { Client } = await import('./helpers.js');
+    const { code } = await f.mom.ok('POST', `/api/kids/${f.ids.yuha}/pair-code`);
+    const phone = new Client(f.base); await phone.ok('POST', '/api/auth/kid-pair', { code });
+    assert.equal((await phone.put(`/api/walkers/${f.ids.yuha}`, { cell: '10' })).status, 200);
+    const other = new Client(f.base); await other.ok('POST', '/api/auth/register', { loginId: 'ow@t', password: 'secret9', role: 'mom' });
+    assert.equal((await other.put(`/api/walkers/${f.ids.yuel}`, { cell: '00' })).status, 404);
+    assert.equal((await new Client(f.base).put(`/api/walkers/${f.ids.yuel}`, { cell: '00' })).status, 401);
+    assert.equal((await other.ok('GET', '/api/home')).walkers[f.ids.yuel], undefined, '다른 가족에겐 안 보인다');
+    sd.stop();
+  } finally { await f.close(); }
+});

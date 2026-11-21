@@ -432,3 +432,36 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 /* 아이 폰: 어른 전용 버튼은 보이지 않는다(서버도 막아 둠) */
 .kidphone .adult-set, .kidphone #adultMode, .kidphone #adm, .kidphone #next, .kidphone .adult-menu, .kidphone [data-adult-only] { display: none !important; }
 .kidphone .back[href="#/"] { visibility: hidden; }
+
+/* ===== 집 안을 걷는 가족 ===== */
+.walkers { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.walker { position: absolute; transform: translate(-50%, -100%); padding: 0; border: 0; background: transparent; pointer-events: auto; display: block; touch-action: manipulation; transition: left .45s ease, top .45s ease; -webkit-tap-highlight-color: transparent; }
+.walker.moving { transition: none; z-index: 5; }
+.walker.sel { z-index: 6; filter: drop-shadow(0 0 .9cqw rgba(255, 255, 255, .95)) drop-shadow(0 0 .5cqw rgba(141, 111, 220, .9)); }
+.walker.sel .wk-img, .walker.sel .wk-sprite { animation: wkbob 1s ease-in-out infinite; }
+.walker:focus-visible { outline: 3px solid #8d6fdc; outline-offset: 2px; border-radius: 8px; }
+.wk-img { display: block; height: 20cqw; width: auto; max-width: none; pointer-events: none; filter: drop-shadow(0 1cqw .8cqw rgba(70, 40, 110, .25)); }
+.wk-img.act { height: auto; max-width: 21cqw; max-height: 15.5cqw; }
+.wk-img.wide { height: auto; width: 25cqw; } .wk-img.wide.car { width: 22.5cqw; }
+.wk-sprite { width: calc(var(--fw) * 20cqw / 280); height: 20cqw; background-size: 1200% 100%; background-repeat: no-repeat; background-position: 0 0; animation: wkwalk .8s steps(12, jump-none) infinite; filter: drop-shadow(0 1cqw .8cqw rgba(70, 40, 110, .25)); pointer-events: none; }
+.wk-shadow { position: absolute; left: 50%; bottom: -.6cqw; width: 70%; height: 2cqw; transform: translateX(-50%); border-radius: 50%; background: rgba(70, 40, 110, .18); pointer-events: none; z-index: -1; }
+@keyframes wkwalk { to { background-position: 100% 0; } }
+@keyframes wkbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.8cqw); } }
+/* 방향 패드 */
+.walk-pad { margin: 10px auto 0; max-width: 360px; text-align: center; }
+.walk-hint { margin: 4px 0; color: var(--muted); font-weight: 700; font-size: .9rem; }
+.pad-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; font-size: 1.05rem; } .pad-head .btn { margin-left: 6px; min-height: 36px; }
+.pad-grid { display: grid; grid-template-columns: repeat(3, 64px); grid-template-areas: ". up ." "left . right" ". down ."; gap: 6px; justify-content: center; margin: 6px 0 10px; }
+.pad-btn { width: 64px; height: 56px; border-radius: 18px; border: 2px solid var(--line); background: var(--card); font-size: 1.5rem; font-weight: 900; color: var(--accent2); box-shadow: var(--shadow); } .pad-btn:disabled { opacity: .3; box-shadow: none; } .pad-btn:active:not(:disabled) { transform: scale(.94); background: #ebe0ff; }
+.pad-btn.up { grid-area: up; } .pad-btn.left { grid-area: left; } .pad-btn.right { grid-area: right; } .pad-btn.down { grid-area: down; }
+@media (prefers-reduced-motion: reduce) { .walker { transition: none; } .walker.sel .wk-img, .walker.sel .wk-sprite { animation: none; } }
+
+/* 방향 패드: 집 그림 아래쪽(정원 위)에 겹쳐 띄운다 */
+.walk-pad { position: absolute; left: 50%; bottom: 1.5%; transform: translateX(-50%); z-index: 9; width: min(94%, 330px); margin: 0; padding: 8px 10px; border-radius: 22px; background: rgba(255, 255, 255, .93); box-shadow: 0 6px 22px rgba(90, 60, 140, .3); }
+:root[data-theme=dark] .walk-pad { background: rgba(47, 39, 80, .94); }
+.walk-pad:has(.walk-hint) { background: rgba(255, 255, 255, .8); padding: 4px 10px; width: auto; max-width: 94%; }
+.walk-hint { margin: 0; font-size: .85rem; white-space: nowrap; }
+.pad-head { margin-bottom: 4px; font-size: 1rem; }
+.pad-row { display: flex; justify-content: center; gap: 8px; margin: 4px 0 8px; }
+.pad-row .pad-btn { width: 62px; height: 52px; }
+.walk-pad .btn.small { min-height: 38px; }

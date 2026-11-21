@@ -318,6 +318,18 @@ export function unsubscribePush(core, ctx, endpoint) {
   return { ok: true };
 }
 
+// ---------- 집 안 걷기 ----------
+const CELL = /^[012][012]$/;
+export function setWalker(core, ctx, memberId, cell) {
+  if (typeof cell !== 'string' || !CELL.test(cell)) throw err(400, 'bad_cell', '갈 수 없는 칸이에요.');
+  const m = core.member(memberId);
+  if (!m || m.family_id !== ctx.familyId || m.removed) throw err(404, 'not_found', '찾을 수 없어요.');
+  core.run('INSERT INTO walkers (member_id, family_id, cell, updated_at) VALUES (?,?,?,?) ON CONFLICT(member_id) DO UPDATE SET cell = excluded.cell, updated_at = excluded.updated_at', m.id, ctx.familyId, cell, core.now());
+  core.refresh(ctx.familyId, 'walkers');
+  return { ok: true, memberId: m.id, cell };
+}
+const walkersOf = (core, familyId) => Object.fromEntries(core.all('SELECT member_id, cell FROM walkers WHERE family_id = ?', familyId).map((w) => [w.member_id, w.cell]));
+
 // ---------- 홈 ----------
 // 공용 홈: 개인 메시지 본문·개인 잔액은 절대 싣지 않는다.
 export function home(core, ctx) {
@@ -342,7 +354,7 @@ export function home(core, ctx) {
   }));
   return {
     now: core.now(), today, family: { name: fam.name }, kids, adults, schedule: sched, posts, notes: listNotes(core, ctx, 3), slotLabel: SLOT_LABEL,
-    supplies: supplyCards(core, ctx.familyId), famActivity: famActSummary(core, ctx), timers: homeTimers(core, ctx.familyId),
+    supplies: supplyCards(core, ctx.familyId), famActivity: famActSummary(core, ctx), timers: homeTimers(core, ctx.familyId), walkers: walkersOf(core, ctx.familyId),
   };
 }
 
