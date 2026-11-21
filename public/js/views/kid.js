@@ -19,11 +19,11 @@ export async function hub(el, { id }) {
         <div class="hub-head">${avatar(kid, 'xxl')}<div><h1>${esc(kid.name)}</h1><p class="hub-state">${status}</p><p class="small">💮 도장 <b>${boards.count}</b>/${boards.size}</p></div></div>
         <div class="big-grid">
           <a class="big-btn" href="#/kid/${id}/today"><span class="bi">✅</span><b>오늘 루틴</b><small>${day.done}/${day.total}</small></a>
+          <a class="big-btn" href="#/kid/${id}/timer"><span class="bi">⏱️</span><b>활동</b><small>시작하기</small></a>
           <a class="big-btn" href="#/kid/${id}/wallet"><img class="bi-img" src="/assets/money/piggy.webp" alt="" draggable="false"><b>돼지 저금통</b><small>내 돈 보기</small></a>
-          <a class="big-btn" href="#/kid/${id}/wishes"><span class="bi">🛍️</span><b>사고 싶은 것</b><small>모아서 사기</small></a>
           <a class="big-btn" href="#/kid/${id}/talk"><span class="bi">💌</span><b>가족에게 말하기</b><small>메시지 보내기</small></a>
         </div>
-        <div class="row gap wrap center"><a class="btn ghost" href="#/kid/${id}/timer">⏱ 활동</a><a class="btn ghost" href="#/kid/${id}/supplies">🎒 챙길 것</a><a class="btn ghost" href="#/kid/${id}/family">🎈 가족 활동</a><a class="btn ghost" href="#/kid/${id}/missions">🎯 미션</a><a class="btn ghost" href="#/kid/${id}/stamps">💮 도장판</a><a class="btn ghost" href="#/kid/${id}/inbox">📬 받은 편지함${unread ? ` <span class="badge">${unread}</span>` : ''}</a></div>
+        <div class="row gap wrap center"><a class="btn ghost" href="#/kid/${id}/wishes">🛍️ 사고 싶은 것</a><a class="btn ghost" href="#/kid/${id}/supplies">🎒 챙길 것</a><a class="btn ghost" href="#/kid/${id}/family">🎈 가족 활동</a><a class="btn ghost" href="#/kid/${id}/missions">🎯 미션</a><a class="btn ghost" href="#/kid/${id}/stamps">💮 도장판</a><a class="btn ghost" href="#/kid/${id}/inbox">📬 받은 편지함${unread ? ` <span class="badge">${unread}</span>` : ''}</a></div>
       </section>`;
   }
   await load();

@@ -393,3 +393,4 @@ textarea { min-height: 90px; resize: vertical; }
 .coin { font-size: 0; width: 3.4rem; height: auto; } .coin.bill { width: 5.2rem; }
 .piggy-hero .total { white-space: nowrap; } .piggy-hero { gap: 14px; }
 @media (max-width: 520px) { .piggy-img { width: 98px; } .piggy-hero .total { font-size: 2.3rem; } }
+.big-btn .bi-img { height: 3.2rem; width: auto; max-height: none; }
