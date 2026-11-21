@@ -139,9 +139,14 @@ export async function mount(el) {
   let deferred = false; // 누군가 걷는 중이면 화면을 다시 그리지 않고, 도착한 뒤에 한 번만 갱신(걷는 그림이 끊기거나 깜박이지 않게)
   const adultUser = !isDevice();
   async function load() {
-    S.info = await get('/api/me').catch(() => S.info); // 올린 얼굴 사진이 바로 반영되도록 가족 정보를 새로 읽는다
-    await loadTimers().catch(() => {});
-    const [home, ah] = await Promise.all([get('/api/home'), adultUser ? get('/api/adult/home') : Promise.resolve(null)]);
+    // 요청을 한꺼번에 보낸다(하나씩 기다리면 휴대폰 망에서 왕복 시간이 그대로 쌓인다)
+    const [info, , home, ah] = await Promise.all([
+      get('/api/me').catch(() => S.info), // 올린 얼굴 사진이 바로 반영되도록 가족 정보를 새로 읽는다
+      loadTimers().catch(() => {}),
+      get('/api/home'),
+      adultUser ? get('/api/adult/home') : Promise.resolve(null),
+    ]);
+    S.info = info;
     draw(home, ah);
   }
   function draw(h, ah) {

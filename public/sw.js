@@ -1,5 +1,5 @@
 // 서비스 워커: 앱 껍데기 캐시(오프라인 대비) + 푸시 알림 표시/클릭 처리
-const CACHE = 'lovefamily-shell-v3';
+const CACHE = 'lovefamily-shell-v4';
 const SHELL = ['/', '/styles.css', '/js/main.js', '/manifest.webmanifest', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
@@ -7,16 +7,26 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-// 네트워크 우선, 실패하면 캐시. API 와 사진은 캐시하지 않는다(비공개 데이터).
+// 이미지·아이콘: 캐시에 있으면 바로 보여 주고 뒤에서 새로 받아 둔다(다음에 반영). 그 밖의 앱 파일: 네트워크 우선, 3초 안에 안 오면 캐시로.
+// API 와 사진은 캐시하지 않는다(비공개 데이터).
+const put = (req, res) => { if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); } return res; };
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
-  e.respondWith(
-    fetch(e.request).then((res) => {
-      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
-      return res;
-    }).catch(() => caches.match(e.request).then((r) => r || caches.match('/')))
-  );
+  if (/^\/(assets|icons)\//.test(url.pathname)) {
+    e.respondWith(caches.match(e.request).then((hit) => {
+      const net = fetch(e.request).then((res) => put(e.request, res)).catch(() => hit);
+      return hit || net;
+    }));
+    return;
+  }
+  e.respondWith(new Promise((resolve) => {
+    let done = false;
+    const fromCache = () => caches.match(e.request).then((r) => r || caches.match('/'));
+    const timer = setTimeout(() => fromCache().then((r) => { if (r && !done) { done = true; resolve(r); } }), 3000);
+    fetch(e.request).then((res) => { clearTimeout(timer); put(e.request, res); if (!done) { done = true; resolve(res); } })
+      .catch(() => { clearTimeout(timer); fromCache().then((r) => { if (!done) { done = true; resolve(r || Response.error()); } }); });
+  }));
 });
 
 // 푸시: 잠금화면에는 서버가 보낸 최소 문구(이름·알림 종류)만 표시한다.

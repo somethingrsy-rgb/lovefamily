@@ -1,5 +1,6 @@
 import http from 'node:http';
 import fs from 'node:fs';
+import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCore } from './core.js';
@@ -56,6 +57,8 @@ export function createApp(opts = {}) {
     res.end(payload);
   };
 
+  const COMPRESSIBLE = new Set(['.js', '.css', '.html', '.json', '.svg', '.webmanifest']);
+  const ZCACHE = new Map();
   function serveStatic(req, res, pathname) {
     let rel = decodeURIComponent(pathname);
     if (rel === '/' || !path.extname(rel)) rel = '/index.html';
@@ -63,6 +66,23 @@ export function createApp(opts = {}) {
     if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404, SEC_HEADERS); return res.end('Not found'); }
     const ext = path.extname(file);
     const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': rel === '/sw.js' || ext === '.html' ? 'no-cache' : 'public, max-age=300', ...SEC_HEADERS };
+    // 글자 파일은 압축해서 보낸다(휴대폰 데이터 환경에서 첫 화면이 훨씬 빨라진다). 압축 결과는 파일이 바뀔 때까지 메모리에 둔다.
+    if (COMPRESSIBLE.has(ext)) {
+      const ae = String(req.headers['accept-encoding'] || '');
+      const enc = /\bbr\b/.test(ae) ? 'br' : /\bgzip\b/.test(ae) ? 'gzip' : null;
+      if (enc) {
+        const st = fs.statSync(file); const key = `${file}|${enc}|${st.mtimeMs}|${st.size}`;
+        let buf = ZCACHE.get(key);
+        if (!buf) {
+          const raw = fs.readFileSync(file);
+          buf = enc === 'br' ? zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }) : zlib.gzipSync(raw, { level: 9 });
+          if (ZCACHE.size > 200) ZCACHE.clear();
+          ZCACHE.set(key, buf);
+        }
+        res.writeHead(200, { ...headers, 'Content-Encoding': enc, Vary: 'Accept-Encoding', 'Content-Length': buf.length });
+        return res.end(buf);
+      }
+    }
     res.writeHead(200, headers);
     fs.createReadStream(file).pipe(res);
   }
