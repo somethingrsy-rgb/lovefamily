@@ -162,7 +162,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, showCats: !!fam.show_cats, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
+    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, showCats: !!fam.show_cats, showDog: !!fam.show_dog, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -227,7 +227,8 @@ export function updateFamily(core, ctx, b) {
   const show = b.showGrandmaStatus !== undefined ? (b.showGrandmaStatus ? 1 : 0) : fam.show_grandma_status;
   const sound = b.timerSound !== undefined ? (b.timerSound ? 1 : 0) : fam.timer_sound;
   const cats = b.showCats !== undefined ? (b.showCats ? 1 : 0) : fam.show_cats;
-  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ? WHERE id = ?', name, show, sound, cats, fam.id);
+  const dog = b.showDog !== undefined ? (b.showDog ? 1 : 0) : fam.show_dog;
+  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ? WHERE id = ?', name, show, sound, cats, dog, fam.id);
   void adult;
   core.refresh(ctx.familyId, 'family', 'home', 'timers');
   return me(core, ctx).family;

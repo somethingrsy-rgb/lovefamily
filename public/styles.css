@@ -657,7 +657,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 }
 
 /* ===== 집 안을 돌아다니는 고양이(루비·크리스탈) ===== */
-.pets { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.pets { position: absolute; inset: 0; z-index: 12; pointer-events: none; overflow: hidden; }
 .pet { position: absolute; transform: translate(-50%, -100%); will-change: left, top; }
 .pet-body { position: relative; }
 .pet-sp { background-repeat: no-repeat; background-position: 0 0; filter: drop-shadow(0 .5cqw .4cqw rgba(70, 40, 110, .22)); }

@@ -32,6 +32,7 @@ const page = await login(await browser.newContext({ viewport: { width: 1180, hei
 assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
 // 집 그림 안을 돌아다니는 고양이 두 마리: 있고, 시간이 지나면 움직이고, 누르면 애교(하트), 가족 설정에서 끌 수 있다
 {
+  assert.ok(await page.evaluate(() => Number(getComputedStyle(document.querySelector('.pets')).zIndex) > Number(getComputedStyle(document.querySelector('.walkers')).zIndex)), '고양이·강아지가 사람보다 앞에 그려진다');
   assert.deepEqual(await page.$$eval('.house .pets .pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal', 'yeoni'], '루비·크리스탈·연이');
   const snap = () => page.$$eval('.pet', (e) => e.map((x) => `${x.style.left}|${x.style.top}|${x.querySelector('.pet-sp')?.style.backgroundImage}`).join(','));
   const first = await snap(); let moved = false;
@@ -50,9 +51,21 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   await page.waitForSelector('.pet-heart', { timeout: 2000 });
   assert.equal(page.url().includes('#/kid'), false, '고양이를 눌러도 방 화면으로 넘어가지 않는다');
   console.log('✓ 집 안 고양이: 돌아다니고, 누르면 애교');
+  // 연이는 장난에 끼지 않는다(고양이 두 마리끼리만)
+  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c, y]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 31.8; } r.x = 20; c.x = 80; y.x = 21; });
+  await page.waitForTimeout(1200);
+  assert.equal(await page.evaluate(() => window.__pets[2].mode), 'idle', '고양이와 연이는 만나도 장난치지 않는다');
+  // 고양이·강아지를 따로 끄고 켠다
   await call('PATCH', '/api/family', { showCats: false });
   await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
-  assert.equal(await page.$$eval('.pets', (e) => e.length), 0, '끄면 고양이가 안 나온다');
+  assert.deepEqual(await page.$$eval('.pet', (e) => e.map((x) => x.dataset.pet)), ['yeoni'], '고양이만 끄면 연이만 남는다');
+  await call('PATCH', '/api/family', { showCats: true, showDog: false });
+  await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
+  assert.deepEqual(await page.$$eval('.pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal'], '강아지만 끄면 고양이만 남는다');
+  await call('PATCH', '/api/family', { showCats: false });
+  await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
+  assert.equal(await page.$$eval('.pets', (e) => e.length), 0, '둘 다 끄면 아무도 안 나온다');
+  await call('PATCH', '/api/family', { showDog: true });
   await call('PATCH', '/api/family', { showCats: true });
   await page.reload(); await page.waitForSelector('.pet');
   console.log('✓ 가족 설정으로 고양이 끄기/켜기');

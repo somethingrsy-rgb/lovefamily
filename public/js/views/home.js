@@ -195,7 +195,7 @@ export async function mount(el) {
       onArrive: () => { if (deferred) { deferred = false; load(); } else syncBankReq(col, h, load); },
     });
     syncBankReq(col, h, load);
-    mountPets(col, S.info.family?.showCats !== false);
+    mountPets(col, { cats: S.info.family?.showCats !== false, dog: S.info.family?.showDog !== false });
     for (const k of h.kids) {
       if (lastDay.has(k.id) && lastDay.get(k.id) !== 'approved' && k.day.status === 'approved') cheer(k.id, { delay: isDevice() ? 3200 : 0 });
       lastDay.set(k.id, k.day.status);

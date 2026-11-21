@@ -77,6 +77,8 @@ const lastPlay = new Map(); // 'a|b' → 마지막 장난 시각
 function tryPlay(now) {
   for (let i = 0; i < cats.length; i++) for (let j = i + 1; j < cats.length; j++) {
     const a = cats[i]; const b = cats[j];
+    if (a.id === 'yeoni' || b.id === 'yeoni') continue; // 장난은 고양이 두 마리끼리만
+    if (!document.querySelector(`[data-pet="${a.id}"]`) || !document.querySelector(`[data-pet="${b.id}"]`)) continue; // 숨긴 쪽이 있으면 놀지 않는다
     if (a.mode === 'play' || b.mode === 'play' || a.mode === 'aegyo' || b.mode === 'aegyo') continue;
     if (Math.abs(a.y - b.y) > 0.5 || Math.abs(a.x - b.x) > 16) continue;
     const key = `${a.id}|${b.id}`;
@@ -85,7 +87,7 @@ function tryPlay(now) {
     if (Math.random() > 0.6) continue;
     const left = a.x <= b.x ? a : b; const right = left === a ? b : a;
     left.face = 1; right.face = -1;
-    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 4600; c.path = []; c.key = ''; c.playKind = c.id === 'yeoni' ? 'dog' : pick(PLAYS); c.hop = 0; }
+    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 4600; c.path = []; c.key = ''; c.playKind = pick(PLAYS); c.hop = 0; }
   }
 }
 
@@ -148,13 +150,15 @@ function onTap(e) {
 let tapBound = false;
 
 // 집 그림 안에 고양이 층을 만들고(없으면) 돌아다니게 한다. enabled=false 면 치운다.
-export function mountPets(houseEl, enabled = true) {
+export function mountPets(houseEl, enabled = { cats: true, dog: true }) {
   const house = houseEl?.querySelector?.('.house'); if (!house) return;
   house.querySelector('.pets')?.remove();
-  if (!enabled) return;
+  const on = (c) => (c.id === 'yeoni' ? enabled.dog : enabled.cats);
+  const shown = cats.filter(on);
+  if (!shown.length) return;
   const layer = document.createElement('div');
   layer.className = 'pets'; layer.setAttribute('aria-hidden', 'true');
-  layer.innerHTML = cats.map((c) => `<div class="pet" data-pet="${c.id}" style="left:${c.x}%;top:${c.y}%"><div class="pet-body"></div></div>`).join('');
+  layer.innerHTML = shown.map((c) => `<div class="pet" data-pet="${c.id}" style="left:${c.x}%;top:${c.y}%"><div class="pet-body"></div></div>`).join('');
   house.appendChild(layer);
   cats.forEach((c) => { c.key = ''; });
   if (!tapBound) { document.addEventListener('click', onTap, true); tapBound = true; }
