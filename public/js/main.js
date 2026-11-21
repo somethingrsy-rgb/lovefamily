@@ -19,6 +19,7 @@ import * as timerui from './views/timerui.js';
 import * as supplies from './views/supplies.js';
 import * as plan from './views/plan.js';
 import { startTimerManager } from './timers.js';
+import { syncPush } from './views/family.js';
 
 const app = document.getElementById('app');
 const routes = [];
@@ -187,7 +188,7 @@ hooks.loginRequired = () => { S.info = null; disconnectStream(); go('/login'); }
 
 export async function boot() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-  if (await loadInfo()) { connectStream(); startTimerManager(); }
+  if (await loadInfo()) { connectStream(); startTimerManager(); syncPush(); }
   if (!location.hash || location.hash === '#') { if (!S.info) go('/login'); }
   render();
 }

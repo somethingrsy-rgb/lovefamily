@@ -312,6 +312,15 @@ export function subscribePush(core, ctx, sub) {
   core.run('INSERT INTO push_subs (member_id, endpoint, p256dh, auth, device, session_id, created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET member_id = excluded.member_id, p256dh = excluded.p256dh, auth = excluded.auth, device = excluded.device, session_id = excluded.session_id', who.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, device, ctx.session.id, core.now());
   return { ok: true };
 }
+// 이 기기로 테스트 알림을 보내 본다: 구독이 있는지, 서버 키가 있는지, 푸시 서비스가 받아 주는지 알려 준다.
+export async function testPush(core, ctx) {
+  const who = ctx.boundKid ? ctx.kidRow(ctx.boundKid) : ctx.adult();
+  const subs = core.all('SELECT * FROM push_subs WHERE member_id = ?', who.id);
+  if (!core.pushSender) return { ok: false, reason: 'no_vapid', subs: subs.length, sent: 0, failed: [] };
+  if (!subs.length) return { ok: false, reason: 'no_sub', subs: 0, sent: 0, failed: [] };
+  const r = await core.pushToAwait(subs, { title: '우리집', body: '테스트 알림이에요. 이게 보이면 백그라운드 알림이 잘 되는 거예요 🔔', url: '/', tag: 'test', nid: null });
+  return { ok: r.sent > 0, reason: r.sent > 0 ? 'ok' : 'failed', subs: subs.length, ...r };
+}
 export function unsubscribePush(core, ctx, endpoint) {
   const who = ctx.boundKid ? ctx.kidRow(ctx.boundKid) : ctx.adult();
   core.run('DELETE FROM push_subs WHERE endpoint = ? AND member_id = ?', endpoint, who.id);

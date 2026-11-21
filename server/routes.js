@@ -120,6 +120,7 @@ export function buildRoutes(app) {
   add('POST', '/api/notifications/:id/read', (c, h) => X.markNotification(h.core, c, P(h)));
   add('GET', '/api/push/key', (c, h) => ({ publicKey: app.vapidPublicKey || null }));
   add('POST', '/api/push/subscribe', (c, h) => X.subscribePush(h.core, c, h.body.subscription));
+  add('POST', '/api/push/test', (c, h) => X.testPush(h.core, c));
   add('POST', '/api/push/unsubscribe', (c, h) => X.unsubscribePush(h.core, c, h.body.endpoint));
   // ---- 활동 타이머 ----
   add('GET', '/api/activities', (c, h) => T.listActivities(h.core, c));

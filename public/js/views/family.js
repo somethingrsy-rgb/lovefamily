@@ -24,6 +24,23 @@ export async function enablePush(st) {
   const sub = st.sub || await st.reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(st.publicKey) });
   await post('/api/push/subscribe', { subscription: sub.toJSON() });
 }
+// 앱을 열 때마다: 알림을 허용해 둔 기기는 구독이 살아 있는지 확인해 서버에 다시 알린다(iPhone은 구독이 풀리는 일이 있어서).
+export async function syncPush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || Notification.permission !== 'granted') return;
+    const { publicKey } = await get('/api/push/key', { noPrompt: true });
+    if (!publicKey) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(publicKey) });
+    await post('/api/push/subscribe', { subscription: sub.toJSON() }, { noPrompt: true });
+  } catch { /* 어른 확인이 필요한 공용 기기 등에서는 조용히 넘어간다 */ }
+}
+const PUSH_WHY = { no_vapid: '서버에 푸시 키(VAPID)가 없어요.', no_sub: '이 기기가 아직 알림에 등록되지 않았어요. ‘알림 끄기’ 후 다시 켜 보세요.', failed: '푸시 서비스가 거절했어요. 알림을 껐다가 다시 켜 보세요.' };
+export async function testPush() {
+  const r = await post('/api/push/test');
+  if (r.ok) toast('테스트 알림을 보냈어요. 앱을 닫아도 잠시 뒤 알림이 오는지 보세요 🔔');
+  else throw new Error(`${PUSH_WHY[r.reason] || '보내지 못했어요.'}${r.failed?.length ? ` (오류 ${r.failed.join(', ')})` : ''}`);
+}
 export async function disablePush(st) { if (st.sub) { await post('/api/push/unsubscribe', { endpoint: st.sub.endpoint }); await st.sub.unsubscribe(); } }
 
 const AV = (S.info?.avatars) || [];
@@ -52,7 +69,7 @@ export async function mount(el) {
       <section class="card page-card"><h3>화면·알림 설정</h3>
         <div class="field"><span>테마</span><div class="seg">${[['auto', '자동(밤 7시~아침 7시)'], ['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
         ${adult ? `<label class="check"><input type="checkbox" id="gs" ${info.family.showGrandmaStatus ? 'checked' : ''}> <span>거실 보드에 할머니 상태 카드 표시</span></label>` : ''}
-        ${ps ? `<div class="field"><span>휴대폰 알림</span>${ps.s === 'on' ? '<p class="ok">✅ 이 기기에서 알림을 받고 있어요</p><button class="btn ghost" id="poff">알림 끄기</button>' : ps.s === 'off' ? '<button class="btn primary" id="pon">🔔 알림 허용</button>' : `<p class="muted small">${esc(ps.msg)}</p>`}</div>` : (dev ? '<p class="muted small">이 기기에서 활동 알림(앱이 닫혀 있거나 잠겨 있을 때)을 받으려면 먼저 어른 확인(🔑)을 한 뒤 이 화면에서 알림을 허용해 주세요.</p><button class="btn ghost" id="adultMode">🔑 어른 확인</button>' : '')}
+        ${ps ? `<div class="field"><span>휴대폰 알림</span>${ps.s === 'on' ? '<p class="ok">✅ 이 기기에서 알림을 받고 있어요</p><div class="row gap wrap"><button class="btn" id="ptest">🔔 테스트 알림 보내기</button><button class="btn ghost" id="poff">알림 끄기</button></div><p class="small muted">앱을 닫거나 화면을 꺼도 알림이 와요. 안 오면 위 버튼으로 점검해 보세요.</p>' : ps.s === 'off' ? '<button class="btn primary" id="pon">🔔 알림 허용</button>' : `<p class="muted small">${esc(ps.msg)}</p>`}</div>` : (dev ? '<p class="muted small">이 기기에서 활동 알림(앱이 닫혀 있거나 잠겨 있을 때)을 받으려면 먼저 어른 확인(🔑)을 한 뒤 이 화면에서 알림을 허용해 주세요.</p><button class="btn ghost" id="adultMode">🔑 어른 확인</button>' : '')}
       </section>
       <section class="card page-card"><button class="btn ghost wide" id="logout">로그아웃</button><p class="muted small center">${dev ? '거실 공용 기기 모드' : '내 휴대폰 모드'} · 우리집 v1</p></section>`;
     bind(ps);
@@ -63,6 +80,7 @@ export async function mount(el) {
     $('#gs', el)?.addEventListener('change', run(() => patch('/api/family', { showGrandmaStatus: $('#gs', el).checked })));
     $('#pon', el)?.addEventListener('click', run(() => enablePush(ps)));
     $('#poff', el)?.addEventListener('click', run(() => disablePush(ps)));
+    $('#ptest', el)?.addEventListener('click', async () => { try { await testPush(); } catch (e) { errToast(e); } });
     $('#adultMode', el)?.addEventListener('click', async () => { if (await needAdult()) load(); });
     $('#tsound', el)?.addEventListener('change', run(() => patch('/api/family', { timerSound: $('#tsound', el).checked })));
     $('#addsup', el)?.addEventListener('click', () => supplySheet({}));

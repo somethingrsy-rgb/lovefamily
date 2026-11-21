@@ -97,6 +97,19 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
     const subs = core.all('SELECT s.* FROM push_subs s JOIN members m ON m.id = s.member_id WHERE m.family_id = ? AND s.device = 1', familyId);
     core.pushTo(subs, payload);
   };
+  // 결과를 기다리는 전송(테스트 알림): 성공·실패 코드를 돌려준다. 만료된 구독(404/410)은 지운다.
+  core.pushToAwait = async (subs, payload) => {
+    const out = { sent: 0, failed: [] };
+    for (const s of subs) {
+      try { await core.pushSender({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload)); out.sent++; }
+      catch (e) {
+        const code = e?.statusCode || 0;
+        out.failed.push(code || String(e?.message || e).slice(0, 80));
+        if (code === 404 || code === 410) core.run('DELETE FROM push_subs WHERE id = ?', s.id);
+      }
+    }
+    return out;
+  };
   core.sendPush = (memberId, payload) => core.pushTo(core.all('SELECT * FROM push_subs WHERE member_id = ?', memberId), payload);
   core.pushTo = (subs, payload) => {
     if (!subs.length || !core.pushSender) return;

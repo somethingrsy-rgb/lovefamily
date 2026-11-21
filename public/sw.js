@@ -48,3 +48,18 @@ self.addEventListener('notificationclick', (e) => {
     await self.clients.openWindow(url || '/');
   })());
 });
+
+// 푸시 구독이 만료·교체되면(iPhone에서 가끔) 스스로 다시 구독해서 서버에 알린다 — 그래야 앱을 닫아 둬도 알림이 계속 온다.
+self.addEventListener('pushsubscriptionchange', (e) => {
+  e.waitUntil((async () => {
+    try {
+      const { publicKey } = await (await fetch('/api/push/key', { credentials: 'same-origin', headers: { 'X-Requested-With': 'lovefamily' } })).json();
+      if (!publicKey) return;
+      const pad = '='.repeat((4 - (publicKey.length % 4)) % 4);
+      const raw = atob((publicKey + pad).replace(/-/g, '+').replace(/_/g, '/'));
+      const key = Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+      const sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      await fetch('/api/push/subscribe', { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'lovefamily', 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) });
+    } catch { /* 로그인이 풀렸다면 다음에 앱을 열 때 다시 맞춘다 */ }
+  })());
+});

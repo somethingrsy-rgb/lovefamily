@@ -21,3 +21,25 @@ test('메시지 읽음 처리: 안 읽은 게 있을 때만 갱신 신호를 보
     assert.ok(n.items.some((x) => x.kind === 'message'), '어른에게 메시지 알림이 있다');
   } finally { await f.close(); }
 });
+
+test('테스트 알림: 구독된 기기로 푸시가 가고, 구독이 없거나 만료되면 이유를 알려 준다(만료 구독은 정리)', async () => {
+  const f = await setup();
+  try {
+    const r = await f.mom.ok('POST', '/api/push/test');
+    assert.equal(r.ok, true); assert.equal(r.sent, 1);
+    assert.ok(f.pushes.some((p) => p.endpoint === 'https://push.example/mom' && /테스트/.test(p.payload.body)), '엄마 기기로 테스트 알림');
+    assert.equal(f.pushes.filter((p) => p.endpoint !== 'https://push.example/mom').length, 0, '다른 사람 기기로는 가지 않는다');
+    // 구독 없는 사람
+    const none = await f.dad.ok('POST', '/api/push/unsubscribe', { endpoint: 'https://push.example/dad' });
+    assert.ok(none.ok);
+    const r2 = await f.dad.ok('POST', '/api/push/test');
+    assert.equal(r2.ok, false); assert.equal(r2.reason, 'no_sub');
+    // 푸시 서비스가 만료(410)라고 하면 구독을 지우고 실패로 알린다
+    const old = f.core.pushSender;
+    f.core.pushSender = async () => { const e = new Error('gone'); e.statusCode = 410; throw e; };
+    const r3 = await f.gma.ok('POST', '/api/push/test');
+    f.core.pushSender = old;
+    assert.equal(r3.ok, false); assert.deepEqual(r3.failed, [410]);
+    assert.equal(f.core.get('SELECT COUNT(*) c FROM push_subs WHERE endpoint = ?', 'https://push.example/gma').c, 0, '만료된 구독은 지운다');
+  } finally { await f.close(); }
+});
