@@ -3,9 +3,23 @@ import { S, hooks, post, ApiError } from './api.js';
 
 const layer = () => document.getElementById('layer');
 
-export const avatar = (m, cls = '') => (m.avatarUrl
-  ? `<span class="avatar photo ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true"><img src="${esc(m.avatarUrl)}" alt=""></span>`
-  : `<span class="avatar ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true">${esc(m.avatar)}</span>`);
+// 프로필 얼굴: 올린 사진 > 가족 캐릭터 얼굴(기본 이모지를 쓰는 경우) > 이모지
+const DEFAULT_AVATARS = new Set(['🐰', '🐱', '👩', '👨', '👵', '🙂']);
+const ROLE_FACE = { grandma: 'gma', mom: 'mom', dad: 'dad' };
+function cartoonFace(m) {
+  if (!DEFAULT_AVATARS.has(m.avatar)) return null; // 직접 고른 이모지는 그대로 존중
+  const info = S.info; if (!info) return null;
+  const ki = m.id ? info.kids.findIndex((k) => k.id === Number(m.id)) : -1;
+  if (ki >= 0) return ['yuel', 'yuha'][ki] ? `/assets/chars/face-${['yuel', 'yuha'][ki]}.webp` : null;
+  const role = m.role || info.adults.find((a) => a.id === Number(m.id))?.role;
+  return ROLE_FACE[role] ? `/assets/chars/face-${ROLE_FACE[role]}.webp` : null;
+}
+export const avatar = (m, cls = '') => {
+  const url = m.avatarUrl || cartoonFace(m);
+  return url
+    ? `<span class="avatar photo ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true"><img src="${esc(url)}" alt=""></span>`
+    : `<span class="avatar ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true">${esc(m.avatar)}</span>`;
+};
 
 // ---- 토스트 / 팝업 ----
 export function toast(msg, kind = '') {
