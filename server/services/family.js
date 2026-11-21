@@ -162,7 +162,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, code: adult ? fam.code : undefined },
+    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -201,6 +201,25 @@ export function updateMember(core, ctx, memberId, b) {
   return publicMember(core.member(m.id), ctx);
 }
 
+// 화면 배열(어른이 끌어서 바꾼 순서): { 칸이름: [항목이름, …] }. 가족 모두에게 같게 보인다.
+export function parseLayout(v) { try { const o = JSON.parse(v || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch { return {}; } }
+export function setLayout(core, ctx, b) {
+  ctx.adult();
+  const raw = b?.layout;
+  if (raw === null || (raw && typeof raw === 'object' && !Object.keys(raw).length)) { core.run('UPDATE families SET layout = NULL WHERE id = ?', ctx.familyId); core.refresh(ctx.familyId, 'family', 'home'); return { layout: {} }; }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw err(400, 'bad_layout', '배열 정보가 올바르지 않아요.');
+  const out = {};
+  const keys = Object.keys(raw);
+  if (keys.length > 60) throw err(400, 'bad_layout', '배열 정보가 너무 많아요.');
+  for (const k of keys) {
+    const v = raw[k];
+    if (!/^[\w.:\-가-힣]{1,60}$/u.test(k) || !Array.isArray(v) || v.length > 60 || !v.every((x) => typeof x === 'string' && /^[\w.:\-가-힣]{1,60}$/u.test(x))) throw err(400, 'bad_layout', '배열 정보가 올바르지 않아요.');
+    out[k] = [...new Set(v)];
+  }
+  core.run('UPDATE families SET layout = ? WHERE id = ?', JSON.stringify(out), ctx.familyId);
+  core.refresh(ctx.familyId, 'family', 'home');
+  return { layout: out };
+}
 export function updateFamily(core, ctx, b) {
   const adult = ctx.adult();
   const fam = core.get('SELECT * FROM families WHERE id = ?', ctx.familyId);

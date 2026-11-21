@@ -164,6 +164,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id I
 
 // 이미 만들어진 개발/운영 DB 를 위한 컬럼 추가
 const COLUMNS = [
+  ['families', 'layout TEXT'],
   ['money_requests', 'pieces TEXT'],
   ['ledger', 'voided INTEGER NOT NULL DEFAULT 0'], ['ledger', 'voided_at INTEGER'], ['ledger', 'voided_by INTEGER'],
   ['families', 'timer_sound INTEGER NOT NULL DEFAULT 1'], ['push_subs', 'device INTEGER NOT NULL DEFAULT 0'],

@@ -615,3 +615,19 @@ input:not([type]), input[inputmode], input[type=date], input[type=number], input
 
 /* 캐릭터 얼굴(엄마·아빠·할머니)은 머리 끝까지 동그라미 안에 들어오게 줄여서 보여 준다(진짜 사진은 그대로) */
 .avatar.photo.cartoon img { transform: scale(.74); object-fit: contain; }
+
+/* ===== 화면 배열 바꾸기 (어른: 칸을 꾹 눌러 끌어서 순서 변경) ===== */
+[data-rk] { -webkit-touch-callout: none; }
+.layout-edit [data-rk], .layout-edit [data-rk] * { -webkit-user-select: none; user-select: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+.layout-edit [data-rk]:not([data-section]) { touch-action: none; cursor: grab; animation: rkwiggle .35s ease-in-out infinite alternate; outline: 2px dashed var(--mint); outline-offset: 2px; }
+.layout-edit [data-rk][data-section] { position: relative; outline: 2px dotted rgba(152, 204, 200, .7); outline-offset: 3px; }
+.layout-edit [data-rk][data-section]::before { content: '⠿'; position: absolute; left: 4px; top: 4px; z-index: 30; width: 38px; height: 38px; display: grid; place-items: center; border-radius: var(--r-s); background: var(--mint); color: #fff; font-size: 1.4rem; font-weight: 900; touch-action: none; cursor: grab; }
+.layout-edit [data-rk][data-section] > * { pointer-events: auto; }
+@keyframes rkwiggle { from { transform: rotate(-.35deg); } to { transform: rotate(.35deg); } }
+.rk-dragging { z-index: 60 !important; opacity: .92; box-shadow: 0 14px 34px rgba(0, 0, 0, .35); animation: none !important; transition: none !important; pointer-events: none; position: relative; }
+.layout-edit .tabs .tab { touch-action: none; }
+.layout-bar { position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 200; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--r-l); background: var(--card); color: var(--ink); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); font-weight: 800; white-space: nowrap; }
+.layout-bar .btn { min-height: 38px; }
+@media (prefers-reduced-motion: reduce) { .layout-edit [data-rk]:not([data-section]) { animation: none; } }
+[data-rk] a, [data-rk] img, a[data-rk] { -webkit-user-drag: none; user-drag: none; }

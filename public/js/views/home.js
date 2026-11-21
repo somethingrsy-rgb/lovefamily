@@ -24,7 +24,7 @@ const dayBadge = (k) => {
 function kidCard(k) {
   const pct = k.day.total ? Math.round((k.day.done / k.day.total) * 100) : 0;
   const rem = k.day.remaining;
-  return `<article class="kid-card" style="--kc:${esc(k.color)}"><a class="kid-main" href="#/kid/${k.id}" aria-label="${esc(k.name)} 카드 열기">
+  return `<article class="kid-card" data-rk="k${k.id}" style="--kc:${esc(k.color)}"><a class="kid-main" href="#/kid/${k.id}" aria-label="${esc(k.name)} 카드 열기">
     <div class="kid-top">${avatar(k, 'xl')}<div class="kid-name"><h2>${esc(k.name)}</h2>${k.hasPin ? '<span class="lock" title="비밀번호가 있어요">🔒</span>' : ''}</div></div>
     <div class="kid-progress" role="img" aria-label="오늘 루틴 ${k.day.done}/${k.day.total}"><div class="bar"><i style="width:${pct}%"></i></div><b>${k.day.total ? `${k.day.done}/${k.day.total}` : '–'}</b></div>
     ${dayBadge(k)}
@@ -35,7 +35,7 @@ function kidCard(k) {
 
 function adultCard(a, meId, canEdit) {
   const mine = canEdit;
-  return `<div class="adult-card" style="--kc:${esc(a.color)}">${avatar(a, 'md')}<div class="adult-info"><b>${esc(a.name)}</b><div class="adult-status">${statusLine(a.status)}</div>
+  return `<div class="adult-card" data-rk="a${a.id}" style="--kc:${esc(a.color)}">${avatar(a, 'md')}<div class="adult-info"><b>${esc(a.name)}</b><div class="adult-status">${statusLine(a.status)}</div>
     </div></div>`;
 }
 
@@ -168,23 +168,23 @@ export async function mount(el) {
     const dev = isDevice() || kidPhone;
     el.innerHTML = `<div class="home ${dev ? 'is-device' : ''}">
       <aside class="house-col">${houseHtml(h)}</aside>
-      <div class="home-main">
-      <header class="topbar">
+      <div class="home-main" data-rc="home.sections">
+      <header class="topbar" data-rk="topbar" data-section="1">
         <div class="clock"><div class="date">${dateLabel(h.today)}</div><div class="time" id="clock">${timeLabel(Date.now())}</div><div class="fam">${esc(h.family.name)}</div></div>
         ${isDevice() ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
       </header>
-      <section class="adult-row" aria-label="부모님 상태"><div class="adult-cards">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>
-      ${ah ? `<section class="adult-panel card" aria-label="내 할 일">${adultPanelHtml(ah)}</section>` : ''}
-      <section class="kids" aria-label="아이들">${h.kids.map(kidCard).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
-      <section class="lower">
-        <div class="panel card"><h3>📅 오늘 일정</h3>${scheduleHtml(h.schedule)}</div>
-        <div class="panel card"><h3>💬 가족 한마디</h3><ul class="notes">${h.notes.map((n) => `<li><span class="n-av">${memberAvatar(n.authorId, 'sm', { avatar: n.authorAvatar || '🙂', color: '#e8e0f5' })}</span><div><b>${esc(n.authorName)}</b> ${esc(n.text)}</div></li>`).join('') || '<li class="muted">첫 한마디를 남겨 보세요</li>'}</ul>
+      <section class="adult-row" aria-label="부모님 상태" data-rk="adults" data-section="1"><div class="adult-cards" data-rc="home.adults">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>
+      ${ah ? `<section class="adult-panel card" aria-label="내 할 일" data-rk="panel" data-section="1">${adultPanelHtml(ah)}</section>` : ''}
+      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${h.kids.map(kidCard).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
+      <section class="lower" data-rk="lower" data-section="1" data-rc="home.lower">
+        <div class="panel card" data-rk="schedule"><h3>📅 오늘 일정</h3>${scheduleHtml(h.schedule)}</div>
+        <div class="panel card" data-rk="notes"><h3>💬 가족 한마디</h3><ul class="notes">${h.notes.map((n) => `<li><span class="n-av">${memberAvatar(n.authorId, 'sm', { avatar: n.authorAvatar || '🙂', color: '#e8e0f5' })}</span><div><b>${esc(n.authorName)}</b> ${esc(n.text)}</div></li>`).join('') || '<li class="muted">첫 한마디를 남겨 보세요</li>'}</ul>
           <form class="note-form" novalidate><input name="text" maxlength="100" placeholder="${dev ? '아이를 고른 뒤 쓸 수 있어요' : '가족에게 한마디…'}" aria-label="가족 한마디" ${dev ? 'disabled' : ''}><button class="btn primary small" ${dev ? 'disabled' : ''}>남기기</button></form></div>
-        <a class="panel card link" href="#/notebook"><h3>📒 사진 알림장</h3><ul class="posts">${h.posts.map((x) => `<li>${x.pinned ? '📌 ' : ''}<b>${esc(x.title)}</b> <span class="tag">${esc(x.tag)}</span><span class="small muted"> ${shortDate(new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10))}</span></li>`).join('') || '<li class="muted">아직 글이 없어요</li>'}</ul></a>
+        <a class="panel card link" href="#/notebook" data-rk="notebook"><h3>📒 사진 알림장</h3><ul class="posts">${h.posts.map((x) => `<li>${x.pinned ? '📌 ' : ''}<b>${esc(x.title)}</b> <span class="tag">${esc(x.tag)}</span><span class="small muted"> ${shortDate(new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10))}</span></li>`).join('') || '<li class="muted">아직 글이 없어요</li>'}</ul></a>
       </section>
-      <section class="lower2">
-        <div class="panel card supplies"><h3>🎒 챙길 것</h3>${suppliesHtml(h.supplies)}</div>
-        <div class="panel card famact"><h3>🎈 이번 주 가족 활동 <a class="small" href="#/family-activity">어른 관리</a></h3>${h.famActivity.kids.map((k) => `<a class="pick-line" href="#/kid/${k.kidId}/family">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></a>`).join('')}</div>
+      <section class="lower2" data-rk="lower2" data-section="1" data-rc="home.lower2">
+        <div class="panel card supplies" data-rk="supplies"><h3>🎒 챙길 것</h3>${suppliesHtml(h.supplies)}</div>
+        <div class="panel card famact" data-rk="famact"><h3>🎈 이번 주 가족 활동 <a class="small" href="#/family-activity">어른 관리</a></h3>${h.famActivity.kids.map((k) => `<a class="pick-line" href="#/kid/${k.kidId}/family">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></a>`).join('')}</div>
       </section></div></div>`;
     bindHouse($('.house-col', el), load, h);
     const col = $('.house-col', el);

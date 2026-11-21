@@ -163,3 +163,20 @@ test('가족 연결: 초대 코드, 이름·아바타 변경, 상태·알림장�
     assert.ok((await f.gma.ok('GET', '/api/notifications')).items.some((n) => n.title.includes('또')));
   } finally { await f.close(); }
 });
+
+test('화면 배열: 어른만 바꿀 수 있고(거실 기기는 어른 확인), 가족 모두에게 같게 보이며, 잘못된 값은 거절한다', async () => {
+  const f = await setup();
+  try {
+    const layout = { 'home.kids': ['k2', 'k1'], tabs: ['family', 'today'] };
+    assert.equal((await f.device.put('/api/layout', { layout })).status, 401, '어른 확인 전에는 못 바꾼다');
+    const r = await f.mom.ok('PUT', '/api/layout', { layout });
+    assert.deepEqual(r.layout, layout);
+    assert.deepEqual((await f.dad.ok('GET', '/api/me')).family.layout, layout, '다른 어른에게도 같은 배열');
+    assert.deepEqual((await f.device.ok('GET', '/api/me')).family.layout, layout, '거실 기기에도 같은 배열');
+    assert.equal((await f.mom.put('/api/layout', { layout: { 'x y': ['a'] } })).status, 400);
+    assert.equal((await f.mom.put('/api/layout', { layout: { ok: 'a' } })).status, 400);
+    assert.equal((await f.mom.put('/api/layout', { layout: { ok: ['<script>'] } })).status, 400);
+    assert.deepEqual((await f.mom.ok('PUT', '/api/layout', { layout: {} })).layout, {}, '처음 배열로');
+    assert.deepEqual((await f.mom.ok('GET', '/api/me')).family.layout, {});
+  } finally { await f.close(); }
+});

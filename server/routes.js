@@ -28,6 +28,7 @@ export function buildRoutes(app) {
   add('POST', '/api/auth/logout', (c, h) => { F.logout(h.core, c); return { $clear: true, ok: true }; });
   add('POST', '/api/auth/reauth', (c, h) => F.reauth(h.core, c, h.body, h.ip));
   add('GET', '/api/me', (c, h) => F.me(h.core, c));
+  add('PUT', '/api/layout', (c, h) => F.setLayout(h.core, c, h.body));
   add('PATCH', '/api/family', (c, h) => F.updateFamily(h.core, c, h.body));
   add('POST', '/api/family/code/rotate', (c, h) => F.rotateCode(h.core, c));
   add('PATCH', '/api/members/:id', (c, h) => F.updateMember(h.core, c, P(h), h.body));

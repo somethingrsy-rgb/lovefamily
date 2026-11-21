@@ -20,6 +20,7 @@ import * as supplies from './views/supplies.js';
 import * as plan from './views/plan.js';
 import { startTimerManager } from './timers.js';
 import { syncPush } from './views/family.js';
+import { initReorder, decoratePage, applyLayout } from './reorder.js';
 
 const app = document.getElementById('app');
 const routes = [];
@@ -87,7 +88,7 @@ function shell() {
   app.innerHTML = `<div class="shell ${dev ? 'device' : ''}">
     <div class="conn-banner" id="conn" hidden></div>
     <main id="main" tabindex="-1"></main>
-    <nav class="tabs" aria-label="주요 메뉴">${tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join('')}</nav></div>`;
+    <nav class="tabs" aria-label="주요 메뉴" data-rc="tabs">${tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}" data-rk="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join('')}</nav></div>`;
   updateConn();
 }
 function updateConn() {
@@ -136,6 +137,8 @@ async function render() {
   try {
     const view = match.view.mount || match.view;
     const ctl = await view(main, params);
+    decoratePage(main, path.replace(/\/\d+/g, '/:id'));
+    applyLayout();
     if (token !== navToken) { ctl?.destroy?.(); return; }
     current = ctl || null;
     main.focus({ preventScroll: true });
@@ -196,6 +199,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { bu
 hooks.loginRequired = () => { S.info = null; disconnectStream(); go('/login'); };
 
 export async function boot() {
+  initReorder();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   if (await loadInfo()) { connectStream(); startTimerManager(); syncPush(); }
   if (!location.hash || location.hash === '#') { if (!S.info) go('/login'); }
