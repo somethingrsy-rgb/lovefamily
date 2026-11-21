@@ -44,3 +44,13 @@ test('앱 자바스크립트는 모두 문법 오류가 없다(문법 하나가 
     assert.equal(r.status, 0, `${f}: ${r.stderr}`);
   }
 });
+
+test('알림 아이콘: 서비스 워커가 쓰는 하트 배지/아이콘 파일이 실제로 있고, 배지는 흰색 하트(투명 배경)다', () => {
+  const sw = fs.readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8');
+  for (const f of ['/icons/badge-heart.png', '/icons/heart-pink.png']) {
+    assert.ok(sw.includes(f), `${f} 을(를) 알림에서 쓴다`);
+    assert.ok(fs.existsSync(new URL(`../public${f}`, import.meta.url)), `${f} 파일이 있다`);
+  }
+  const png = fs.readFileSync(new URL('../public/icons/badge-heart.png', import.meta.url));
+  assert.equal(png.readUInt32BE(16), 96); assert.equal(png.readUInt32BE(20), 96); assert.equal(png[25], 6, 'RGBA(투명 배경)');
+});
