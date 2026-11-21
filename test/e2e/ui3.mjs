@@ -55,7 +55,7 @@ async function open(ctxOpts, tag) {
 const ipad = await open({ viewport: { width: 1180, height: 820 }, hasTouch: true }, 'iPad');
 const phone = await open({ ...devices['iPhone 14'] }, 'iPhone');
 
-const pos = (p, id) => p.evaluate((i) => { const e = document.querySelector(`[data-walker="${i}"]`); return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top), moving: e.classList.contains('moving'), face: e.querySelector('.wk-sprite')?.style.transform || '' } : null; }, id);
+const pos = (p, id) => p.evaluate((i) => { const e = document.querySelector(`[data-walker="${i}"]`); return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top), moving: e.classList.contains('moving'), face: e.querySelector('.wk-sprite')?.style.transform || '', frame: (() => { const sp = e.querySelector('.wk-sprite'); return sp ? getComputedStyle(sp).backgroundPositionX : ''; })() } : null; }, id);
 const houseBox = async (p) => { await p.evaluate(() => document.querySelector('.house').scrollIntoView({ block: 'center' })); return p.$eval('.house', (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }); };
 const select = async (p, id) => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click(`[data-walker="${id}"]`); await p.waitForSelector('.pad-head'); };
 // 집 그림 위의 칸을 실제로 눌러 본다(칸의 위쪽 빈 곳: 사람이 서 있지 않은 높이)
@@ -92,6 +92,7 @@ assert.equal(await ipad.$$eval('.pad-btn', (e) => e.length), 0, '방향 패드 �
 const up = await walk(ipad, ids.dad, 0, 1);
 console.log(`아빠 거실로: 걷는 중 샘플 ${up.length}개`);
 assert.ok(up.length > 20, '걷는 모습이 충분히 샘플링돼야 한다');
+assert.ok(new Set(up.map((s) => s.frame).filter(Boolean)).size >= 6, `걷는 동안 12컷이 바뀌어야 한다(한 동작 고정 금지): ${[...new Set(up.map((s) => s.frame))].join(',')}`);
 assert.equal(up.filter((s) => !onSkeleton(s)).length, 0, `뼈대를 벗어난 위치: ${JSON.stringify(up.filter((s) => !onSkeleton(s)).slice(0, 3))}`);
 assert.ok(up.some((s) => PILLAR_X.some((px) => Math.abs(s.x - px) < 0.5) && s.y > FLOOR_Y[0] + 3 && s.y < FLOOR_Y[2] - 3), '기둥 통로로 오르내림');
 assert.ok(Math.abs((await pos(ipad, ids.dad)).y - FLOOR_Y[0]) < 0.5);
