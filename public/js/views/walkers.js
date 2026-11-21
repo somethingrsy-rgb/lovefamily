@@ -16,7 +16,7 @@ const PEOPLE = [
   { key: 'yuel', home: '10', kind: 'kid', idx: 0 }, { key: 'yuha', home: '11', kind: 'kid', idx: 1 },
   { key: 'gma', home: '20', kind: 'adult', role: 'grandma' }, { key: 'mom', home: '21', kind: 'adult', role: 'mom' }, { key: 'dad', home: '22', kind: 'adult', role: 'dad' },
 ];
-const SPRITE = { gma: 146, dad: 150, yuel: 146, yuha: 166, mom: 156 }; // 걷기 시트 프레임 폭(높이는 280)
+const SPRITE = { gma: 149, dad: 152, yuel: 147, yuha: 166, mom: 156 }; // 걷기 시트 프레임 폭(높이는 280)
 const rc = (cell) => [Number(cell[0]), Number(cell[1])];
 const cellOf = (r, c) => `${r}${c}`;
 
