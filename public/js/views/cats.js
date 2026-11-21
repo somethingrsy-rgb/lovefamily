@@ -19,6 +19,7 @@ const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groo
 // 그림 파일 경로: 고양이는 cats/, 강아지(연이)는 dog/dog-이름.webp, 오르내리기는 dog-jump 하나
 const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' || name === 'down' ? 'jump' : name}.webp` : `/assets/cats/${id}-${name}.webp`);
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
+const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(연이는 15% 크게)
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
 const MIN_X = 9, MAX_X = 91;     // 방 안쪽 범위
@@ -40,7 +41,8 @@ const floorIdx = (y) => FLOOR_Y.reduce((b, f, i) => (Math.abs(f - y) < Math.abs(
 function spriteHtml(c, name, anim) {
   const [w, h, n] = SHEET[`${c.id}-${name}`];
   const flip = c.face < 0 && !/walk[LR]$/.test(name) ? ' transform:scaleX(-1);' : '';
-  const style = `width:${(w * U).toFixed(2)}cqw;height:${(h * U).toFixed(2)}cqw;background-image:url(${fileOf(c.id, name)});background-size:${n * 100}% 100%;${flip}`;
+  const k = U * (SCALE[c.id] || 1);
+  const style = `width:${(w * k).toFixed(2)}cqw;height:${(h * k).toFixed(2)}cqw;background-image:url(${fileOf(c.id, name)});background-size:${n * 100}% 100%;${flip}`;
   if (n === 1) return `<div class="pet-sp" style="${style}"></div>`;
   return `<div class="pet-sp anim" style="${style}animation-timing-function:steps(${n},jump-none);animation-duration:${anim === 'jump' ? '.9s' : '1.5s'};"></div>`;
 }

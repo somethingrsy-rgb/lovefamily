@@ -35,6 +35,12 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.ok(await page.evaluate(() => Number(getComputedStyle(document.querySelector('.pets')).zIndex) > Number(getComputedStyle(document.querySelector('.walkers')).zIndex)), '고양이·강아지가 사람보다 앞에 그려진다');
   assert.deepEqual(await page.$$eval('.house .pets .pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal', 'yeoni'], '루비·크리스탈·연이');
   const snap = () => page.$$eval('.pet', (e) => e.map((x) => `${x.style.left}|${x.style.top}|${x.querySelector('.pet-sp')?.style.backgroundImage}`).join(','));
+  // 연이는 같은 그림 기준으로 15% 크게 그려진다(그림 크기 비율로 확인)
+  const sizeOf = () => page.$eval('.pet[data-pet=yeoni] .pet-sp', (e) => ({ w: parseFloat(e.style.width), h: parseFloat(e.style.height), img: e.style.backgroundImage }));
+  const ys = await sizeOf();
+  const dogDims = { 'dog-sit': [102, 135], 'dog-stand': [124, 131], 'dog-sleep': [125, 97], 'dog-groom': [107, 132], 'dog-aegyo': [114, 127], 'dog-roll': [145, 114], 'dog-walkR': [140, 121], 'dog-walkL': [140, 121], 'dog-jump': [137, 121] };
+  const key = Object.keys(dogDims).find((k) => ys.img.includes(k + '.webp'));
+  assert.ok(key && Math.abs(ys.w / (dogDims[key][0] * 0.07) - 1.15) < 0.01, `연이 크기 = 기본의 1.15배 (${ys.w})`);
   const first = await snap(); let moved = false;
   for (let i = 0; i < 30 && !moved; i++) { await page.waitForTimeout(500); moved = (await snap()) !== first; }
   assert.ok(moved, '고양이가 움직인다');
