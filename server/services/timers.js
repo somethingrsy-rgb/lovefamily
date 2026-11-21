@@ -184,9 +184,10 @@ export function dismissTimer(core, ctx, tid) {
   if (cur.status === 'ended') { core.run("UPDATE timers SET status = 'dismissed' WHERE id = ?", t.id); core.refresh(ctx.familyId, 'timers', 'home'); }
   return { ok: true };
 }
+// 아이도 자기 활동은 직접 중단할 수 있다(어른 확인 불필요). 중단은 시간 연장이나 루틴 체크와 무관하다.
 export function cancelTimer(core, ctx, tid) {
-  ctx.adult();
   const t = loadTimer(core, ctx, tid);
+  ctx.kid(t.kid_id);
   if (['running', 'ended'].includes(t.status)) core.run("UPDATE timers SET status = 'canceled' WHERE id = ?", t.id);
   core.refresh(ctx.familyId, 'timers', 'home');
   return { ok: true };

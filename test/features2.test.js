@@ -393,3 +393,22 @@ test('활동 기본 순서: 씻기 → 숙제 → 식사 → 게임 → TV → �
     assert.equal((await f.mom.ok('GET', '/api/activities'))[0].name, '피아노');
   } finally { await f.close(); }
 });
+
+test('활동 중단: 아이가 직접 자기 활동을 멈출 수 있고, 루틴 체크·도장·연장은 일어나지 않으며 새 활동을 바로 시작할 수 있다', async () => {
+  const f = await setup();
+  try {
+    const a = Object.fromEntries((await f.mom.ok('GET', '/api/activities')).map((x) => [x.kind, x]));
+    const t = await f.device.ok('POST', `/api/kids/${f.ids.yuha}/timers`, { activityId: a.meal.id });
+    await f.device.ok('POST', `/api/timers/${t.id}/cancel`); // 어른 확인 없이
+    assert.equal((await f.device.ok('GET', '/api/timers')).timers.length, 0);
+    assert.ok((await f.day(f.ids.yuha)).items.every((i) => !i.done));
+    assert.equal((await f.mom.ok('GET', '/api/approvals')).pending.length, 0);
+    await f.device.ok('POST', `/api/timers/${t.id}/cancel`); // 재시도해도 안전
+    await f.device.ok('POST', `/api/kids/${f.ids.yuha}/timers`, { activityId: a.tv.id });
+    assert.equal(f.core.get("SELECT COUNT(*) c FROM timers WHERE kid_id = ? AND status = 'running'", f.ids.yuha).c, 1);
+    // 다른 가족은 멈출 수 없다
+    const { Client } = await import('./helpers.js');
+    const other = new Client(f.base); await other.ok('POST', '/api/auth/register', { loginId: 'oo@t', password: 'secret9', role: 'mom' });
+    assert.equal((await other.post(`/api/timers/${t.id}/cancel`)).status, 404);
+  } finally { await f.close(); }
+});

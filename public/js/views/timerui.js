@@ -97,7 +97,7 @@ export async function timerPage(el, { id }) {
         <p class="tp-text">${ended ? esc(t.texts.end) : remaining(t) <= 300000 && t.warnAt ? esc(t.texts.warn) : t.next ? `다음 활동: ${esc(t.next.name)}` : '시간이 다 되면 알려 줄게요.'}</p>
         ${ended && t.texts.nextEnd ? `<p class="tp-next">${esc(t.texts.nextEnd)}</p>` : ''}
         <div class="row gap wrap center">${ended ? `${t.next?.type === 'routine' && !t.next.done ? `<a class="btn big" href="#/kid/${id}/today">${esc(t.next.name)} 루틴 열기</a>` : ''}<button class="btn primary big" data-dismiss="${t.id}">확인했어요</button>` : ''}
-        ${!ended ? '<button class="btn ghost" id="new">다른 활동 시작</button>' : ''}</div>
+        ${!ended ? '<button class="btn ghost" id="new">다른 활동 시작</button><button class="btn stop-btn" id="stop">⏹ 중단하기</button>' : ''}</div>
         ${T.sound && !audioReady() ? '<p class="small muted center">🔇 알람 소리를 들으려면 이 화면을 한 번 눌러 주세요.</p>' : ''}
       </section>
       <section class="card page-card"><h3>🔑 어른 설정 <small class="muted">${isDevice() && !adult ? '(누르면 어른 확인이 필요해요)' : ''}</small></h3><div class="row gap wrap">
@@ -108,6 +108,7 @@ export async function timerPage(el, { id }) {
         if (d) { await post(`/api/timers/${d.dataset.dismiss}/dismiss`); await loadTimers(); draw(); }
         if (x) { await post(`/api/timers/${t.id}/extend`, { minutes: Number(x.dataset.ext) }); toast(`${x.dataset.ext}분 늘렸어요`); await load(); }
         if (e.target.id === 'new') { if (await confirmDialog('진행 중인 활동은 그만하고 새로 고를까요?', { yes: '새로 고르기' })) { await post(`/api/timers/${t.id}/cancel`); await load(); } }
+        if (e.target.closest('#stop')) { if (await confirmDialog('활동을 중단할까요?', { yes: '중단하기', no: '계속 하기', danger: true })) { await post(`/api/timers/${t.id}/cancel`); toast('활동을 중단했어요'); await load(); } }
         if (e.target.id === 'cancel') { if (await confirmDialog('활동을 끝낼까요?', { danger: true })) { await post(`/api/timers/${t.id}/cancel`); await load(); } }
         if (e.target.id === 'setnext') { const n = await nextPicker(id); if (n !== undefined) { await fetchPut(t.id, n); await load(); } }
         if (e.target.id === 'test') { if (!chime('warn')) toast('소리가 꺼져 있거나 화면을 한 번 눌러야 해요'); }
