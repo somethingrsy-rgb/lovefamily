@@ -546,3 +546,5 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .timer-big:not(.ended) .tp-text { font-size: 1.05rem; margin: 6px 0; }
 .timer-big:not(.ended) .row { margin-top: 4px; }
 .timer-big:not(.ended) .btn.big { min-height: 46px; padding: 8px 16px; }
+
+.push-help { margin-top: 8px; font-size: .95rem; } .push-help summary { cursor: pointer; font-weight: 800; } .push-help ol { padding-left: 20px; margin: 6px 0; display: grid; gap: 4px; }

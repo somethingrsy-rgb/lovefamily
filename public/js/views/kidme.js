@@ -11,7 +11,7 @@ export async function mount(el) {
     const theme = lsGet('theme', 'auto');
     el.innerHTML = `<header class="page-head"><h1>${avatar(kid, 'sm')} ${esc(kid.name)}의 설정</h1></header>
       <section class="card page-card"><h3>🔔 알림</h3>
-        ${ps.s === 'on' ? '<p class="ok">✅ 이 폰에서 알림을 받고 있어요</p><div class="row gap wrap"><button class="btn" id="ptest">🔔 테스트 알림</button><button class="btn ghost" id="poff">알림 끄기</button></div>'
+        ${ps.s === 'on' ? '<p class="ok">✅ 이 폰에서 알림을 받고 있어요</p><div class="row gap wrap"><button class="btn" id="ptest">🔔 테스트 알림</button><button class="btn ghost" id="poff">알림 끄기</button></div><details class="push-help"><summary>🔒 잠금 화면에 알림이 안 보여요</summary><ol class="small"><li>설정 → 알림 → <b>우리집</b>을 엽니다. (목록에 없으면 홈 화면 앱에서 먼저 알림을 켜 주세요)</li><li><b>알림 허용</b>을 켭니다.</li><li>알림 표시에서 <b>잠금 화면</b>, 알림 센터, 배너를 모두 체크합니다.</li><li>방해 금지·집중 모드가 켜져 있으면 알림이 숨겨져요. 이 앱을 허용 앱에 넣어 주세요.</li><li>위의 <b>테스트 알림</b> 버튼을 눌러 잠금 화면에 오는지 확인해요.</li></ol></details>'
           : ps.s === 'off' ? '<p class="muted">도장을 받거나 답장이 오면 알려 줘요.</p><button class="btn primary big" id="pon">🔔 알림 받기</button>'
             : ps.s === 'noserver' ? '<p class="muted">알림은 아직 준비 중이에요. 어른에게 물어봐요.</p>'
               : ps.s === 'denied' ? '<p class="muted">알림이 꺼져 있어요. 폰 설정에서 이 앱의 알림을 허용해 주세요.</p>'
