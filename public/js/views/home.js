@@ -176,7 +176,7 @@ export async function mount(el) {
     const col = $('.house-col', el);
     mountWalkers(col, h, {
       onOpen: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)),
-      onDouble: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}/timer`) : openAdultSheet(p.id, h, load)), // 두 번 누르면 활동창
+      onDouble: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)), // 두 번 누르면 활동창
       onArrive: () => { if (deferred) { deferred = false; load(); } else syncBankReq(col, h, load); },
     });
     syncBankReq(col, h, load);

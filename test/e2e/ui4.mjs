@@ -48,9 +48,10 @@ await page.click(`[data-walker="${yuel}"]`);
 assert.ok(await page.$eval(`[data-walker="${yuel}"]`, (e) => e.classList.contains('sel')), '한 번 누르면 선택(이동 활성화)');
 await page.waitForTimeout(600); // 더블클릭으로 보지 않을 만큼 기다린 뒤
 await page.dblclick(`[data-walker="${yuel}"]`, { force: true }); // 선택 중 흔들리는 캐릭터라 force
-await page.waitForFunction((id) => location.hash === `#/kid/${id}/timer`, yuel, { timeout: 4000 });
-console.log('✓ 캐릭터를 두 번 누르면 활동창으로');
-await page.goto(base + '/#/'); await page.waitForSelector('.walker'); await page.waitForTimeout(400);
+await page.waitForFunction((id) => location.hash === `#/kid/${id}`, yuel, { timeout: 4000 });
+await page.waitForSelector('.kid-hub', { timeout: 8000 }); // 화면이 완전히 뜬 뒤에 홈으로 돌아간다
+console.log('✓ 캐릭터를 두 번 누르면 그 아이 화면(허브)으로');
+await page.goto(base + '/#/'); await page.waitForSelector('.walker', { timeout: 8000 }).catch(async () => { console.log('DBG', page.url(), (await page.textContent('body')).slice(0, 200)); throw new Error('home not shown'); }); await page.waitForTimeout(400);
 
 // 2) 루틴을 다 하면 아이가 도장 방으로 걸어가고, 어른에게는 아직 알림이 가지 않는다
 const kidHdr = { 'X-Act-Kid': String(yuel) };
