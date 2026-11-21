@@ -175,6 +175,7 @@ bus.on('coins', (ev) => {
   coinSeen.add(ev.key); coinsSeen.set(ev.kidId, Date.now());
   playCoins(ev.dir === 'out' ? 'out' : 'in', ev.amount, { hideAmount: !boundKid(), pieces: ev.pieces });
 });
+const INFO_KINDS = new Set(['money_approved', 'money_done', 'money_rejected', 'stamp_approved', 'board_complete', 'praise', 'mission_done', 'mission_reward']);
 bus.on('notify', async (ev) => {
   if (seen.has(ev.id)) return;
   markSeen(ev.id);
@@ -183,7 +184,8 @@ bus.on('notify', async (ev) => {
     bus.emit('notified', n);
     if (ev.popup === false) return;
     if (document.hidden && 'Notification' in window && Notification.permission === 'granted') return; // 백그라운드는 시스템 푸시가 처리
-    popup({ title: n.title, body: n.body, onAction: () => { post(`/api/notifications/${n.id}/read`, {}, { noPrompt: true }).catch(() => {}); openNotification(n); }, kind: n.kind });
+    const info = INFO_KINDS.has(n.kind); // 결과만 알려 주는 소식(승인됐어요·입금됐어요 등)은 [확인]으로 닫기만 한다. 눌러서 처리할 요청은 [열기].
+    popup({ title: n.title, body: n.body, actionLabel: info ? '확인' : '열기', onAction: () => { post(`/api/notifications/${n.id}/read`, {}, { noPrompt: true }).catch(() => {}); if (!info) openNotification(n); }, kind: n.kind });
   } catch {}
 });
 navigator.serviceWorker?.addEventListener('message', (e) => {
