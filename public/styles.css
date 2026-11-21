@@ -317,7 +317,7 @@ textarea { min-height: 90px; resize: vertical; }
 
 /* 얼굴 사진은 원형 메달로 (투명 배경이 아닌 사진도 깔끔하게) */
 .room-face { width: 17cqw; height: 17cqw; bottom: 16cqw; object-fit: cover; object-position: 50% 35%; border-radius: 50%; background: #fff; border: .9cqw solid #fff; box-shadow: 0 2px 8px rgba(90, 60, 140, .35); filter: none; }
-.avatar.photo img { object-fit: cover; object-position: 50% 35%; }
+.avatar.photo img { object-fit: contain; object-position: 50% 50%; transform: scale(1.06); }
 .room-label.top { left: 11cqw; top: 13cqw; transform: none; }
 /* 보드 오른쪽 칸: 부모 상태 카드를 작게, 아이 카드는 2열 유지 */
 .home-main .adult-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
