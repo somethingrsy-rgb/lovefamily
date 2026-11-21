@@ -1,3 +1,4 @@
+import './emo.js';
 import { $, $$, esc, lsGet, lsSet, kstParts } from './util.js';
 import { S, get, post, bus, connectStream, disconnectStream, onStatus, outboxCount, isDevice, hooks, flushOutbox, ApiError } from './api.js';
 import { popup, toast, sheetOpen, openSheet, needAdult, avatar } from './ui.js';
