@@ -500,3 +500,9 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .icon-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 0 0 8px; padding: 8px; border-radius: 16px; background: var(--card2); border: 1.5px solid var(--line); }
 .icon-opt { min-height: 48px; border: 2px solid transparent; border-radius: 12px; background: var(--card); display: grid; place-items: center; padding: 0; cursor: pointer; }
 .icon-opt.on { border-color: var(--brand, #8a6cf0); background: rgba(138, 108, 240, .12); } .icon-opt .emo { width: 32px; height: 32px; }
+
+/* 걷는 동안은 무거운 그림자 필터를 끄고(매 프레임 다시 그려 지글거림) 바닥 그림자 타원만 쓴다 */
+.walker.moving, .walker.moving.sel { filter: none; will-change: left, top; }
+.walker.moving .wk-sprite { filter: none; backface-visibility: hidden; transform-style: flat; }
+.walker.moving .wk-shadow { background: rgba(70, 40, 110, .28); }
+.walker.moving.sel .wk-shadow { box-shadow: 0 0 1.2cqw .6cqw rgba(141, 111, 220, .55); }

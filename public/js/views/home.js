@@ -9,7 +9,7 @@ import { T, timerOf, fmt, remaining } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
-import { mountWalkers, walkPadHtml, walkerCell } from './walkers.js';
+import { mountWalkers, walkPadHtml, walkerCell, anyMoving } from './walkers.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -135,6 +135,7 @@ function scheduleHtml(sch) {
 
 export async function mount(el) {
   let timer;
+  let deferred = false; // 누군가 걷는 중이면 화면을 다시 그리지 않고, 도착한 뒤에 한 번만 갱신(걷는 그림이 끊기거나 깜박이지 않게)
   const adultUser = !isDevice();
   async function load() {
     S.info = await get('/api/me').catch(() => S.info); // 올린 얼굴 사진이 바로 반영되도록 가족 정보를 새로 읽는다
@@ -170,7 +171,7 @@ export async function mount(el) {
     mountWalkers(col, h, {
       onOpen: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)),
       onDouble: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}/timer`) : openAdultSheet(p.id, h, load)), // 두 번 누르면 활동창
-      onArrive: () => syncBankReq(col, h, load),
+      onArrive: () => { if (deferred) { deferred = false; load(); } else syncBankReq(col, h, load); },
     });
     syncBankReq(col, h, load);
     bindDismiss($('.kids', el), load);
@@ -185,5 +186,5 @@ export async function mount(el) {
   }
   await load();
   timer = setInterval(() => { const c = $('#clock', el); if (c) c.textContent = timeLabel(Date.now()); }, 15000);
-  return { refresh: load, topics: ['home', 'status', 'family', 'approvals', 'requests', 'messages', 'posts', 'notes', 'calendar', 'day', 'stamps', 'timers', 'supplies', 'famact', 'walkers'], destroy: () => clearInterval(timer) };
+  return { refresh: () => { if (anyMoving()) { deferred = true; return Promise.resolve(); } return load(); }, topics: ['home', 'status', 'family', 'approvals', 'requests', 'messages', 'posts', 'notes', 'calendar', 'day', 'stamps', 'timers', 'supplies', 'famact', 'walkers'], destroy: () => clearInterval(timer) };
 }

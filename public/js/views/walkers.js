@@ -86,6 +86,16 @@ function walkerHtml(p) {
   return `<button class="walker ${w.moving ? 'moving' : 'idle'} ${selected === p.id ? 'sel' : ''}" data-walker="${p.id}" style="left:${x}%;top:${y}%" aria-label="${esc(p.name)} ${selected === p.id ? '선택됨' : '선택하기'}" aria-pressed="${selected === p.id}">${inner}<i class="wk-shadow"></i></button>`;
 }
 export const walkersLayerHtml = () => `<div class="walkers" aria-label="집 안을 걷는 가족">${P.map(walkerHtml).join('')}</div>`;
+export const anyMoving = () => [...W.values()].some((w) => w.moving);
+// 걷는 그림의 크기를 '정수 픽셀'로 맞춘다: 12컷 시트를 소수점 픽셀로 넘기면 컷 사이 경계가 번져서 지글거려 보인다
+function snapSprites(root = document) {
+  root.querySelectorAll('.wk-sprite').forEach((sp) => {
+    const key = (sp.style.backgroundImage.match(/walk\/(\w+)\.webp/) || [])[1]; const fw = SPRITE[key]; if (!fw) return;
+    const h = Math.round(sp.parentElement.getBoundingClientRect().height) || Math.round(sp.getBoundingClientRect().height); if (!h) return;
+    const w = Math.max(1, Math.round((h * fw) / 280));
+    sp.style.width = `${w}px`; sp.style.height = `${h}px`; sp.style.backgroundSize = `${w * 12}px ${h}px`;
+  });
+}
 export const walkerCell = (id) => { const w = W.get(id); return w ? { cell: w.cell, moving: w.moving } : null; };
 export const walkPadHtml = () => ''; // 선택 안내창은 쓰지 않는다(캐릭터를 다시 누르면 선택 해제)
 
@@ -134,9 +144,9 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
 }
 function refreshOne(p) {
   const old = document.querySelector(`[data-walker="${p.id}"]`); if (!old) return;
-  const tmp = document.createElement('div'); tmp.innerHTML = walkerHtml(p); old.replaceWith(tmp.firstElementChild);
+  const tmp = document.createElement('div'); tmp.innerHTML = walkerHtml(p); const nw = tmp.firstElementChild; old.replaceWith(nw); snapSprites(nw);
 }
-function render() { const layer = document.querySelector('.walkers'); if (layer) layer.outerHTML = walkersLayerHtml(); updatePad(); }
+function render() { const layer = document.querySelector('.walkers'); if (layer) { layer.outerHTML = walkersLayerHtml(); snapSprites(); } updatePad(); }
 
 // ===== 방향 패드 =====
 function updatePad() {
@@ -176,7 +186,7 @@ export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
   const toMove = [];
   for (const p of P) { const w = W.get(p.id); const target = server[p.id] || p.home; if (!w.moving && !PENDING.has(p.id) && w.cell !== target) toMove.push([p.id, target]); }
   const layerHost = houseEl.querySelector('.house');
-  if (layerHost) { layerHost.querySelector('.walkers')?.remove(); layerHost.insertAdjacentHTML('beforeend', walkersLayerHtml()); }
+  if (layerHost) { layerHost.querySelector('.walkers')?.remove(); layerHost.insertAdjacentHTML('beforeend', walkersLayerHtml()); snapSprites(layerHost); }
   updatePad();
   houseEl.addEventListener('click', (e) => {
     const wk = e.target.closest('[data-walker]');
