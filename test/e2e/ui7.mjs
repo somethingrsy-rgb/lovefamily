@@ -45,7 +45,7 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   for (let i = 0; i < 30 && !moved; i++) { await page.waitForTimeout(500); moved = (await snap()) !== first; }
   assert.ok(moved, '고양이가 움직인다');
   // 같은 층에서 마주치면 장난을 친다(고양이끼리, 연이와도)
-  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 52.4; } r.x = 40; c.x = 50; Math.random = () => 0; });
+  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 54.2; } r.x = 40; c.x = 50; Math.random = () => 0; });
   await page.waitForFunction(() => window.__pets[0].mode === 'play' && window.__pets[1].mode === 'play', null, { timeout: 4000 });
   const pl = await page.evaluate(() => window.__pets.slice(0, 2).map((p) => [p.face, p.playKind]));
   assert.equal(pl[0][0], 1); assert.equal(pl[1][0], -1, '서로 마주 본다');
