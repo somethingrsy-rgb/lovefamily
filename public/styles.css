@@ -612,3 +612,6 @@ input:not([type]), input[inputmode], input[type=date], input[type=number], input
 .home-main .adult-row .adult-card { min-width: 0; }
 @media (max-width: 520px) { .home-main .adult-row .adult-cards { grid-template-columns: 1fr; } }
 @media (min-width: 700px) { .home-main .kids { grid-template-columns: 1fr 1fr; align-items: stretch; } }
+
+/* 캐릭터 얼굴(엄마·아빠·할머니)은 머리 끝까지 동그라미 안에 들어오게 줄여서 보여 준다(진짜 사진은 그대로) */
+.avatar.photo.cartoon img { transform: scale(.74); object-fit: contain; }

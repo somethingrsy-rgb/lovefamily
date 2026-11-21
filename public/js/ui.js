@@ -22,7 +22,7 @@ export const memberAvatar = (id, cls = '', fallback = { avatar: '🙂', color: '
 export const avatar = (m, cls = '') => {
   const url = m.avatarUrl || cartoonFace(m); // 올린 진짜 사진이 항상 우선
   return url
-    ? `<span class="avatar photo ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true"><img src="${esc(url)}" alt=""></span>`
+    ? `<span class="avatar photo ${m.avatarUrl ? '' : 'cartoon'} ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true"><img src="${esc(url)}" alt=""></span>`
     : `<span class="avatar ${cls}" style="--kc:${esc(m.color)}" aria-hidden="true">${esc(m.avatar)}</span>`;
 };
 
