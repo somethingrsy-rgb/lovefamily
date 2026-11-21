@@ -72,6 +72,27 @@ await page.waitForSelector('.act-card', { timeout: 8000 });
 assert.match(await page.textContent('.act-card:has-text("게임하기") small'), /오늘 .*남음|하루 30분/, '오늘 남은 시간');
 await page.screenshot({ path: path.join(shots, '71-budget-cards.png') });
 console.log('✓ 이어서 하기 · 그만하기 후 오늘 남은 시간 표시');
+
+// 대화 화면이 끝없이 다시 그려지지 않는다(읽음 요청이 반복되지 않음)
+{
+  await fetch(base + '/api/auth/login', { method: 'POST', headers: { 'X-Requested-With': 'lovefamily', 'Content-Type': 'application/json' }, body: JSON.stringify({ loginId: 'mom@t', password: 'secret1' }) }).then(async (r) => {
+    const ck = r.headers.get('set-cookie').split(';')[0];
+    const me = await (await fetch(base + '/api/me', { headers: { cookie: ck } })).json();
+    const dv = await fetch(base + '/api/auth/login', { method: 'POST', headers: { 'X-Requested-With': 'lovefamily', 'Content-Type': 'application/json' }, body: JSON.stringify({ loginId: 'mom@t', password: 'secret1', device: true }) });
+    const dck = dv.headers.get('set-cookie').split(';')[0];
+    await fetch(base + '/api/messages', { method: 'POST', headers: { 'X-Requested-With': 'lovefamily', 'Content-Type': 'application/json', cookie: dck, 'X-Act-Kid': String(kid) }, body: JSON.stringify({ kidId: kid, adultId: me.me.id, body: '배고파요' }) });
+    const ap = await (await browser.newContext({ viewport: { width: 420, height: 900 } })).newPage();
+    let reads = 0; ap.on('request', (q) => { if (q.url().includes('/read')) reads++; });
+    await ap.goto(base + '/#/login'); await ap.fill('input[name=loginId]', 'mom@t'); await ap.fill('input[name=password]', 'secret1'); await ap.click('button[type=submit]'); await ap.waitForSelector('.walker');
+    await ap.goto(base + `/#/messages/${kid}/${me.me.id}`); await ap.waitForSelector('.bubbles li.other');
+    await ap.fill('.chat-form input', '쓰는 중인 글'); // 입력 중인 글은 화면이 갱신돼도 남아 있어야 한다
+    await ap.waitForTimeout(3500);
+    assert.ok(reads <= 2, `읽음 요청이 반복되면 안 된다(3.5초 동안 ${reads}번)`);
+    assert.equal(await ap.inputValue('.chat-form input'), '쓰는 중인 글', '입력 중인 글이 유지된다');
+    await ap.close();
+  });
+  console.log('✓ 대화 화면: 읽음 요청이 반복되지 않고, 입력 중인 글이 유지됨');
+}
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 5 통과 · 스크린샷:', shots);

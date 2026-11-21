@@ -247,9 +247,9 @@ export function getThread(core, ctx, kidId, adultId) {
 }
 export function readThread(core, ctx, kidId, adultId) {
   const { me } = threadAccess(core, ctx, kidId, adultId);
-  core.run('UPDATE messages SET read_at = ? WHERE kid_id = ? AND adult_id = ? AND sender_id != ? AND read_at IS NULL', core.now(), kidId, adultId, me.id);
-  core.run("UPDATE notifications SET read_at = ? WHERE member_id = ? AND kind = 'message' AND read_at IS NULL AND url IN (?, ?)", core.now(), me.id, `/#/messages/${kidId}/${adultId}`, '/#/kid/inbox');
-  core.refresh(ctx.familyId, 'messages');
+  const a = core.run('UPDATE messages SET read_at = ? WHERE kid_id = ? AND adult_id = ? AND sender_id != ? AND read_at IS NULL', core.now(), kidId, adultId, me.id);
+  const b = core.run("UPDATE notifications SET read_at = ? WHERE member_id = ? AND kind = 'message' AND read_at IS NULL AND url IN (?, ?)", core.now(), me.id, `/#/messages/${kidId}/${adultId}`, '/#/kid/inbox');
+  if (a.changes || b.changes) core.refresh(ctx.familyId, 'messages'); // 바뀐 게 없으면 신호를 보내지 않는다
   return { ok: true };
 }
 // 내 대화 목록 (어른: 자기에게 온 대화, 아이: 자기 대화)
