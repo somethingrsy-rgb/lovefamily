@@ -177,3 +177,56 @@ test('일회성 미션: 세 분 중 한 분 확인으로 보상이 한 번만 �
     assert.equal(f.core.get("SELECT COUNT(*) c FROM ledger WHERE kind = 'mission_reward'").c, 1);
   } finally { await f.close(); }
 });
+
+test('어른은 장부 기록을 지울 수 있다: 잔액·월 합계가 다시 계산되고, 아이·다른 가족은 못 하며, 도장 보상과 잔액이 모자라게 되는 삭제는 막는다', async () => {
+  const f = await setup();
+  try {
+    const kid = f.ids.yuel;
+    await f.addMoney(kid, 500, '용돈'); await f.addMoney(kid, 10000, '22'); await f.addMoney(kid, 1000, '용돈');
+    const month = f.core.today().slice(0, 7);
+    let led = await f.mom.ok('GET', `/api/kids/${kid}/ledger?month=${month}`);
+    assert.equal(led.entries.length, 3); assert.equal(led.summary.remaining, 11500);
+    assert.ok(led.entries.every((e) => e.deletable));
+    const mid = led.entries.find((e) => e.in === 10000);
+    // 아이(공용 기기)는 지울 수 없다
+    assert.equal((await f.device.del(`/api/ledger/${mid.id}`)).status, 401);
+    const r = await f.mom.ok('DELETE', `/api/ledger/${mid.id}`);
+    assert.equal(r.wallet.balance, 1500);
+    led = await f.mom.ok('GET', `/api/kids/${kid}/ledger?month=${month}`);
+    assert.deepEqual(led.entries.map((e) => [e.in, e.balanceAfter]), [[500, 500], [1000, 1500]], '남은 기록의 잔액이 다시 계산된다');
+    assert.equal(led.summary.received, 1500);
+    assert.equal((await f.mom.ok('GET', `/api/kids/${kid}/wallet`)).balance, 1500);
+    assert.equal((await f.mom.del(`/api/ledger/${mid.id}`)).status, 404, '이미 지운 기록');
+    // 잔액이 모자라게 되는 삭제는 막는다: 1,000원 출금 후 입금 기록 삭제 시 마이너스
+    const dep = led.entries.find((e) => e.in === 1000);
+    await f.core.run("INSERT INTO ledger (family_id, kid_id, kind, amount, affects, memo, date, balance_after, idem_key, created_at) VALUES (?,?,'withdraw',-1400,1,'x',?,100,'t:w',1)", f.core.get('SELECT family_id FROM members WHERE id = ?', kid).family_id, kid, f.core.today());
+    const bad = await f.mom.del(`/api/ledger/${dep.id}`);
+    assert.equal(bad.status, 409); assert.equal(bad.json.error, 'balance_negative');
+    assert.equal((await f.mom.ok('GET', `/api/kids/${kid}/wallet`)).balance, 100, '막힌 삭제는 아무것도 바꾸지 않는다');
+    // 이 달 기록 모두 지우기(출금을 먼저 지워야 잔액이 모자라지 않는다 → 전체 삭제는 가능)
+    const all = await f.mom.ok('POST', `/api/kids/${kid}/ledger/clear`, { month });
+    assert.equal(all.removed, 3); assert.equal(all.wallet.balance, 0);
+    assert.equal((await f.mom.ok('GET', `/api/kids/${kid}/ledger?month=${month}`)).entries.length, 0);
+    assert.equal((await f.device.post(`/api/kids/${kid}/ledger/clear`, { month })).status, 401);
+    // 시작 잔액은 지운 뒤 다시 등록할 수 있다
+    await f.mom.ok('POST', `/api/kids/${kid}/opening-balance`, { amount: 2000 });
+    const o = (await f.mom.ok('GET', `/api/kids/${kid}/ledger?month=${month}`)).entries[0];
+    await f.mom.ok('DELETE', `/api/ledger/${o.id}`);
+    assert.ok([200, 201].includes((await f.mom.post(`/api/kids/${kid}/opening-balance`, { amount: 3000 })).status), '지운 뒤 시작 잔액 다시 등록');
+  } finally { await f.close(); }
+});
+
+test('도장판 보상 기록은 지울 수 없다(도장 기록 정정으로만)', async () => {
+  const f = await setup({ withRoutines: true });
+  try {
+    const kid = f.ids.yuha;
+    f.core.run("INSERT INTO ledger (family_id, kid_id, kind, amount, affects, memo, date, balance_after, idem_key, created_at) VALUES (?,?,'stamp_reward',5000,1,'보상',?,5000,'t:sr',1)", f.core.get('SELECT family_id FROM members WHERE id = ?', kid).family_id, kid, f.core.today());
+    const month = f.core.today().slice(0, 7);
+    const e = (await f.mom.ok('GET', `/api/kids/${kid}/ledger?month=${month}`)).entries[0];
+    assert.equal(e.deletable, false);
+    const r = await f.mom.del(`/api/ledger/${e.id}`);
+    assert.equal(r.status, 409); assert.equal(r.json.error, 'protected');
+    const all = await f.mom.ok('POST', `/api/kids/${kid}/ledger/clear`, { month });
+    assert.equal(all.removed, 0, '이 달 모두 지우기에서도 도장 보상은 남는다');
+  } finally { await f.close(); }
+});

@@ -72,6 +72,8 @@ export function buildRoutes(app) {
   add('GET', '/api/kids/:id/requests', (c, h) => M.listRequests(h.core, c, P(h)));
   add('POST', '/api/kids/:id/requests', (c, h) => ({ status: 201, body: M.createRequest(h.core, c, P(h), h.body) }));
   add('GET', '/api/money/requests/:id', (c, h) => M.getRequest(h.core, c, P(h)));
+  add('DELETE', '/api/ledger/:id', (c, h) => M.deleteLedger(h.core, c, P(h)));
+  add('POST', '/api/kids/:id/ledger/clear', (c, h) => M.clearLedgerMonth(h.core, c, P(h), h.body.month));
   add('POST', '/api/money/requests/:id/approve', (c, h) => M.approveRequest(h.core, c, P(h)));
   add('POST', '/api/money/requests/:id/reject', (c, h) => M.rejectRequest(h.core, c, P(h), h.body));
   add('POST', '/api/money/requests/:id/cancel', (c, h) => M.cancelRequest(h.core, c, P(h)));

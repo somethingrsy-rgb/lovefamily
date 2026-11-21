@@ -159,7 +159,7 @@ export function listMissions(core, ctx, kidId) {
   const today = core.today();
   const ws = weekStart(today);
   const net = core.get("SELECT COALESCE(SUM(CASE kind WHEN 'add' THEN amount WHEN 'remove' THEN -amount ELSE 0 END),0) s FROM goal_moves WHERE kid_id = ? AND date >= ? AND date <= ?", kidId, ws, addDays(ws, 6)).s;
-  const dep = core.get("SELECT COUNT(*) c FROM ledger WHERE kid_id = ? AND kind = 'deposit' AND date = ?", kidId, today).c;
+  const dep = core.get("SELECT COUNT(*) c FROM ledger WHERE kid_id = ? AND voided = 0 AND kind = 'deposit' AND date = ?", kidId, today).c;
   const sys = [
     { key: 'weekly_goal', title: '이번 주에 목표에 1,000원 담기', target: 1000, progress: Math.max(0, Math.min(1000, net)), achieved: net >= 1000, period: ws },
     { key: 'deposit_day', title: '용돈 받은 날 저금통에 기록하기', target: 1, progress: dep ? 1 : 0, achieved: dep > 0, period: today },

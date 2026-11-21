@@ -92,6 +92,23 @@ await page.click('[data-reason="친구랑 간식"]');
 assert.equal(await page.inputValue('input[name=purpose]'), '친구랑 간식', '쓸 곳도 버튼으로 고른다');
 console.log('✓ 돈 꺼내기: 어디에 쓸지 버튼으로 선택');
 console.log('✓ 엄마·아빠 얼굴 그림, 입금 이유 버튼');
+// 어른은 저금통 기록을 지울 수 있다(아이 폰에는 지우기 버튼이 없다)
+assert.equal(await page.$$eval('[data-delled]', (e) => e.length), 0, '아이 폰에는 지우기 버튼이 없다');
+{
+  const ap = await (await browser.newContext({ viewport: { width: 420, height: 900 } })).newPage();
+  ap.on('pageerror', (e) => errors.push(e.message));
+  await ap.goto(base + '/#/login'); await ap.fill('input[name=loginId]', 'mom@t'); await ap.fill('input[name=password]', 'secret1'); await ap.click('button[type=submit]'); await ap.waitForSelector('.walker');
+  await ap.goto(base + `/#/kid/${yuel}/wallet`); await ap.waitForSelector('[data-delled]');
+  const before = await ap.$$eval('[data-delled]', (e) => e.length);
+  assert.equal(before, 3, '입금 3건 모두 지우기 버튼이 있다');
+  await ap.screenshot({ path: path.join(shots, '85-ledger-delete.png') });
+  await ap.click('[data-delled] >> nth=0'); await ap.click('[data-yes]');
+  await ap.waitForFunction((n) => document.querySelectorAll('[data-delled]').length === n - 1, before, { timeout: 5000 });
+  await ap.click('#clearmonth'); await ap.click('[data-yes]');
+  await ap.waitForFunction(() => document.querySelectorAll('[data-delled]').length === 0, null, { timeout: 5000 });
+  console.log('✓ 어른: 기록 하나 지우기 · 이 달 모두 지우기');
+  await ap.close();
+}
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 6 통과 · 스크린샷:', shots);

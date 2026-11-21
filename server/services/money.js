@@ -4,11 +4,13 @@ const KIND_LABEL = {
   opening: '시작 잔액', deposit: '입금', stamp_reward: '도장판 보상', mission_reward: '미션 보상', withdraw: '출금',
   purchase: '구매', adjust: '잔액 정정', stamp_reward_adjust: '도장 보상 조정', cash_spent: '내가 쓴 현금',
 };
+// 도장판 보상 기록은 도장 개수와 묶여 있어서 따로 지울 수 없다(도장 기록 정정으로 바꾼다)
+const PROTECTED = new Set(['stamp_reward', 'stamp_reward_adjust']);
 const GOAL_ACTIVE = "('goal','ready','purchasing')";
 
 // ---------- 잔액 계산 (사용 가능 = 확정 잔액 − 목표 배정액 − 승인된 출금 잠금) ----------
 export function balance(core, kidId) {
-  return core.get('SELECT COALESCE(SUM(amount), 0) s FROM ledger WHERE kid_id = ? AND affects = 1', kidId).s;
+  return core.get('SELECT COALESCE(SUM(amount), 0) s FROM ledger WHERE kid_id = ? AND affects = 1 AND voided = 0', kidId).s;
 }
 export function goalSaved(core, kidId) {
   return core.get(`SELECT COALESCE(SUM(allocated), 0) s FROM wishes WHERE kid_id = ? AND status IN ${GOAL_ACTIVE}`, kidId).s;
@@ -42,7 +44,7 @@ const ledgerOut = (core, r) => {
   const actor = r.actor_id ? core.member(r.actor_id) : null;
   const req = r.request_id ? core.get('SELECT status, type FROM money_requests WHERE id = ?', r.request_id) : null;
   return {
-    id: r.id, date: r.date, kind: r.kind, kindLabel: KIND_LABEL[r.kind] || r.kind, memo: r.memo,
+    id: r.id, date: r.date, kind: r.kind, kindLabel: KIND_LABEL[r.kind] || r.kind, memo: r.memo, deletable: !PROTECTED.has(r.kind),
     in: r.affects && r.amount > 0 ? r.amount : 0, out: r.affects && r.amount < 0 ? -r.amount : 0,
     note: !r.affects ? Math.abs(r.amount) : 0,
     balanceAfter: r.affects ? r.balance_after : null, actorName: actor?.name || null, requestStatus: req?.status || null, createdAt: r.created_at,
@@ -59,12 +61,48 @@ export function getLedger(core, ctx, kidId, month) {
   month = month || core.today().slice(0, 7);
   if (!isMonth(month)) throw err(400, 'bad_month', '월 형식은 YYYY-MM 이에요.');
   const { first, next } = monthRange(month);
-  const rows = core.all('SELECT * FROM ledger WHERE kid_id = ? AND date >= ? AND date < ? ORDER BY date, id', kidId, first, next).map((r) => ledgerOut(core, r));
-  const spent = core.get('SELECT COALESCE(SUM(-amount),0) s FROM ledger WHERE kid_id = ? AND affects = 1 AND amount < 0 AND date >= ? AND date < ?', kidId, first, next).s;
-  const received = core.get('SELECT COALESCE(SUM(amount),0) s FROM ledger WHERE kid_id = ? AND affects = 1 AND amount > 0 AND date >= ? AND date < ?', kidId, first, next).s;
-  const endBal = core.get('SELECT COALESCE(SUM(amount),0) s FROM ledger WHERE kid_id = ? AND affects = 1 AND date < ?', kidId, next).s;
-  const cash = core.get('SELECT COALESCE(SUM(-amount),0) s FROM ledger WHERE kid_id = ? AND affects = 0 AND date >= ? AND date < ?', kidId, first, next).s;
+  const rows = core.all('SELECT * FROM ledger WHERE kid_id = ? AND voided = 0 AND date >= ? AND date < ? ORDER BY date, id', kidId, first, next).map((r) => ledgerOut(core, r));
+  const spent = core.get('SELECT COALESCE(SUM(-amount),0) s FROM ledger WHERE kid_id = ? AND voided = 0 AND affects = 1 AND amount < 0 AND date >= ? AND date < ?', kidId, first, next).s;
+  const received = core.get('SELECT COALESCE(SUM(amount),0) s FROM ledger WHERE kid_id = ? AND voided = 0 AND affects = 1 AND amount > 0 AND date >= ? AND date < ?', kidId, first, next).s;
+  const endBal = core.get('SELECT COALESCE(SUM(amount),0) s FROM ledger WHERE kid_id = ? AND voided = 0 AND affects = 1 AND date < ?', kidId, next).s;
+  const cash = core.get('SELECT COALESCE(SUM(-amount),0) s FROM ledger WHERE kid_id = ? AND voided = 0 AND affects = 0 AND date >= ? AND date < ?', kidId, first, next).s;
   return { month, entries: rows, summary: { received, spent, remaining: endBal, cashSpentNote: cash } };
+}
+
+// ---------- 기록 지우기 (어른) ----------
+// 지운 기록은 화면·잔액·월 합계에서 빠진다. 안전을 위해 DB 에는 '지움' 표시로 남겨 두고(복구 가능), 뒤 기록의 잔액을 다시 계산한다.
+function renumber(core, kidId) {
+  let bal = 0;
+  for (const r of core.all('SELECT id, amount, affects FROM ledger WHERE kid_id = ? AND voided = 0 ORDER BY id', kidId)) {
+    if (r.affects) bal += r.amount;
+    core.run('UPDATE ledger SET balance_after = ? WHERE id = ?', bal, r.id);
+  }
+}
+function voidRows(core, adult, kidId, rows) {
+  const now = core.now();
+  for (const r of rows) {
+    // 시작 잔액은 다시 등록할 수 있도록 중복 방지 키를 풀어 준다
+    core.run('UPDATE ledger SET voided = 1, voided_at = ?, voided_by = ?, idem_key = CASE WHEN kind = ? THEN idem_key || ? ELSE idem_key END WHERE id = ?', now, adult.id, 'opening', `:voided:${r.id}`, r.id);
+  }
+  renumber(core, kidId);
+  const w = wallet(core, kidId);
+  if (w.balance < 0 || w.available < 0) throw err(409, 'balance_negative', '이 기록을 지우면 잔액이 모자라요. 목표에 담아 둔 돈이나 꺼내기 요청을 먼저 정리해 주세요.');
+}
+export function deleteLedger(core, ctx, ledgerId) {
+  const adult = ctx.adult();
+  const r = core.get('SELECT * FROM ledger WHERE id = ? AND voided = 0', vid(ledgerId, '기록'));
+  if (!r || r.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 기록이에요.');
+  if (PROTECTED.has(r.kind)) throw err(409, 'protected', '도장판 보상 기록은 도장 기록 정정으로만 바꿀 수 있어요.');
+  return core.tx(() => { voidRows(core, adult, r.kid_id, [r]); core.refresh(ctx.familyId, 'wallet', 'home'); return { ok: true, wallet: wallet(core, r.kid_id) }; });
+}
+export function clearLedgerMonth(core, ctx, kidId, month) {
+  const adult = ctx.adult();
+  ctx.kidRow(kidId);
+  if (!isMonth(month)) throw err(400, 'bad_month', '월 형식은 YYYY-MM 이에요.');
+  const { first, next } = monthRange(month);
+  const rows = core.all("SELECT * FROM ledger WHERE kid_id = ? AND voided = 0 AND date >= ? AND date < ? AND kind NOT IN ('stamp_reward', 'stamp_reward_adjust')", kidId, first, next);
+  if (!rows.length) return { ok: true, removed: 0, wallet: wallet(core, kidId) };
+  return core.tx(() => { voidRows(core, adult, Number(kidId), rows); core.refresh(ctx.familyId, 'wallet', 'home'); return { ok: true, removed: rows.length, wallet: wallet(core, Number(kidId)) }; });
 }
 
 // ---------- 어른이 직접 하는 장부 작업 ----------
@@ -73,7 +111,7 @@ export function setOpening(core, ctx, kidId, amount) {
   ctx.kid(kidId);
   const a = money(amount, '시작 잔액', { min: 0 });
   return core.tx(() => {
-    if (core.get("SELECT 1 FROM ledger WHERE idem_key = ?", `opening:${kidId}`)) throw err(409, 'opening_exists', '시작 잔액은 한 번만 등록할 수 있어요. 틀렸다면 잔액 정정을 써 주세요.');
+    if (core.get("SELECT 1 FROM ledger WHERE idem_key = ? AND voided = 0", `opening:${kidId}`)) throw err(409, 'opening_exists', '시작 잔액은 한 번만 등록할 수 있어요. 틀렸다면 잔액 정정을 써 주세요.');
     ledgerAdd(core, { familyId: ctx.familyId, kidId, kind: 'opening', amount: a, memo: '맡아 둔 현금', actorId: adult.id, idemKey: `opening:${kidId}` });
     core.refresh(ctx.familyId, 'wallet');
     return wallet(core, kidId);

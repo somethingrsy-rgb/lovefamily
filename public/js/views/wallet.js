@@ -1,6 +1,6 @@
 import { $, $$, esc, won, shortDate, lsGet, lsSet, ago } from '../util.js';
-import { S, get, post, isDevice, isAdultNow, kidById } from '../api.js';
-import { avatar, toast, errToast, formSheet, playCoins, needAdult, coinsSeen } from '../ui.js';
+import { S, get, post, del, isDevice, isAdultNow, kidById } from '../api.js';
+import { avatar, toast, errToast, formSheet, playCoins, needAdult, coinsSeen, confirmDialog } from '../ui.js';
 import { back, amountSheet } from '../common.js';
 
 const REASONS = ['용돈', '도장 30개', '문제집 1권', '세뱃돈'];
@@ -44,8 +44,8 @@ export async function mount(el, { id }) {
       <section class="card page-card"><div class="month-nav"><button class="btn ghost" id="pm" aria-label="이전 달">‹</button><h3>${month.replace('-', '년 ')}월</h3><button class="btn ghost" id="nm" aria-label="다음 달">›</button></div>
         <div class="stats"><div><span>받은 돈</span><b class="in">${won(led.summary.received)}</b></div><div><span>쓴 돈</span><b class="out">${won(led.summary.spent)}</b></div><div><span>남은 돈</span><b>${won(led.summary.remaining)}</b></div></div>
         ${led.summary.cashSpentNote ? `<p class="small muted">🧾 이미 꺼낸 돈을 쓴 기록 ${won(led.summary.cashSpentNote)} (잔액·쓴 돈에는 다시 넣지 않아요)</p>` : ''}
-        ${led.entries.length ? `<div class="table-wrap"><table class="ledger"><thead><tr><th>날짜</th><th>내용</th><th>들어온 돈</th><th>나간 돈</th><th>잔액</th><th>처리</th></tr></thead><tbody>${led.entries.map((e) => `<tr class="${e.kind === 'cash_spent' ? 'note' : ''}"><td data-l="날짜">${shortDate(e.date)}</td><td data-l="내용"><b>${esc(e.kindLabel)}</b> <span class="muted">${esc(e.memo)}</span>${e.requestStatus ? ` <small class="tag">${esc(({ paid: '받았어요', confirmed: '확인', completed: '샀어요' })[e.requestStatus] || e.requestStatus)}</small>` : ''}</td>
-          <td data-l="들어온 돈" class="in">${e.in ? '+' + won(e.in) : ''}</td><td data-l="나간 돈" class="out">${e.out ? '−' + won(e.out) : e.note ? `<span class="muted">(${won(e.note)} 메모)</span>` : ''}</td><td data-l="잔액">${e.balanceAfter == null ? '' : won(e.balanceAfter)}</td><td data-l="처리" class="muted small">${esc(e.actorName || '')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">이 달에는 기록이 없어요</p>'}</section>`;
+        ${led.entries.length ? `<div class="table-wrap"><table class="ledger"><thead><tr><th>날짜</th><th>내용</th><th>들어온 돈</th><th>나간 돈</th><th>잔액</th><th>처리</th>${adult ? '<th></th>' : ''}</tr></thead><tbody>${led.entries.map((e) => `<tr class="${e.kind === 'cash_spent' ? 'note' : ''}"><td data-l="날짜">${shortDate(e.date)}</td><td data-l="내용"><b>${esc(e.kindLabel)}</b> <span class="muted">${esc(e.memo)}</span>${e.requestStatus ? ` <small class="tag">${esc(({ paid: '받았어요', confirmed: '확인', completed: '샀어요' })[e.requestStatus] || e.requestStatus)}</small>` : ''}</td>
+          <td data-l="들어온 돈" class="in">${e.in ? '+' + won(e.in) : ''}</td><td data-l="나간 돈" class="out">${e.out ? '−' + won(e.out) : e.note ? `<span class="muted">(${won(e.note)} 메모)</span>` : ''}</td><td data-l="잔액">${e.balanceAfter == null ? '' : won(e.balanceAfter)}</td><td data-l="처리" class="muted small">${esc(e.actorName || '')}</td>${adult ? `<td>${e.deletable ? `<button class="btn ghost small" data-delled="${e.id}" aria-label="이 기록 지우기">🗑 지우기</button>` : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>${adult && led.entries.some((e) => e.deletable) ? '<div class="row end"><button class="btn ghost small danger-text" id="clearmonth">🗑 이 달 기록 모두 지우기</button></div>' : ''}` : '<p class="muted">이 달에는 기록이 없어요</p>'}</section>`;
     const [y, m] = month.split('-').map(Number);
     const shift = (d) => { const n = new Date(Date.UTC(y, m - 1 + d, 1)); month = `${n.getUTCFullYear()}-${String(n.getUTCMonth() + 1).padStart(2, '0')}`; load().catch(errToast); };
     $('#pm', el).onclick = () => shift(-1); $('#nm', el).onclick = () => shift(1);
@@ -57,6 +57,14 @@ export async function mount(el, { id }) {
     $('#adep', el)?.addEventListener('click', wrap(() => amountSheet({ title: '입금 등록', submit: '등록', intro: '<p class="muted">현금을 실제로 받은 뒤에 등록해 주세요.</p>', extra: '<label class="field">내용<input name="memo" maxlength="60" value="용돈"></label>', onSubmit: async (v) => { await post(`/api/kids/${id}/deposits`, { amount: v.amount, memo: v.memo }); toast('저금통에 넣었어요'); } })));
     $('#open', el)?.addEventListener('click', wrap(() => amountSheet({ title: '시작 잔액 등록', submit: '등록', intro: '<p class="muted">지금 맡아 둔 현금을 세어 한 번만 등록해요.</p>', onSubmit: (v) => post(`/api/kids/${id}/opening-balance`, { amount: v.amount }) })));
     $('#adj', el)?.addEventListener('click', wrap(() => formSheet({ title: '잔액 정정', submit: '정정하기', danger: true, html: `<p class="muted">실제 현금과 달라졌을 때만 써요. 늘리면 +, 줄이면 −로 입력하고 사유를 남겨요.</p><label class="field">정정 금액(원, 예: -500)<input name="amount" inputmode="text" required></label><label class="field">사유<input name="reason" maxlength="100" required></label>`, onSubmit: (v) => post(`/api/kids/${id}/adjust`, { amount: Number(v.amount), reason: v.reason }) })));
+    $$('[data-delled]', el).forEach((b) => b.addEventListener('click', wrap(async () => {
+      if (!(await confirmDialog('이 기록을 지울까요? 잔액도 그만큼 다시 계산돼요.', { yes: '지우기', no: '아니요', danger: true }))) return;
+      await del(`/api/ledger/${b.dataset.delled}`); toast('기록을 지웠어요');
+    })));
+    $('#clearmonth', el)?.addEventListener('click', wrap(async () => {
+      if (!(await confirmDialog(`${month.replace('-', '년 ')}월 기록을 모두 지울까요? 잔액이 다시 계산되고, 도장판 보상 기록은 남아요.`, { yes: '모두 지우기', no: '아니요', danger: true }))) return;
+      const r = await post(`/api/kids/${id}/ledger/clear`, { month }); toast(`${r.removed}개 기록을 지웠어요`);
+    }));
     $$('[data-cancel]', el).forEach((b) => b.addEventListener('click', wrap(() => post(`/api/money/requests/${b.dataset.cancel}/cancel`))));
   }
   await load();
