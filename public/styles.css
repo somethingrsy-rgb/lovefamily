@@ -444,7 +444,7 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .wk-img { display: block; height: 20cqw; width: auto; max-width: none; pointer-events: none; filter: drop-shadow(0 1cqw .8cqw rgba(70, 40, 110, .25)); }
 .wk-img.act { height: auto; max-width: 21cqw; max-height: 15.5cqw; }
 .wk-img.wide { height: auto; width: 25cqw; } .wk-img.wide.car { width: 22.5cqw; }
-.wk-sprite { width: calc(var(--fw) * 20cqw / 280); height: 20cqw; background-size: 1200% 100%; background-repeat: no-repeat; background-position: 0 0; animation: wkwalk .8s steps(12, jump-none) infinite; filter: drop-shadow(0 1cqw .8cqw rgba(70, 40, 110, .25)); pointer-events: none; }
+.wk-sprite { width: calc(var(--fw) * 20cqw / 280); height: 20cqw; background-size: 1200% 100%; background-repeat: no-repeat; background-position: 0 0; animation: wkwalk 1.2s steps(12, jump-none) infinite; filter: drop-shadow(0 1cqw .8cqw rgba(70, 40, 110, .25)); pointer-events: none; }
 .wk-shadow { position: absolute; left: 50%; bottom: -.6cqw; width: 70%; height: 2cqw; transform: translateX(-50%); border-radius: 50%; background: rgba(70, 40, 110, .18); pointer-events: none; z-index: -1; }
 @keyframes wkwalk { to { background-position: 100% 0; } }
 @keyframes wkbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.8cqw); } }

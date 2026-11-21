@@ -10,7 +10,7 @@ import { actImgUrl } from '../actimg.js';
 export const FLOOR_Y = [30.0, 52.4, 73.9];       // 각 층 바닥선(발이 닿는 높이)
 export const COL_X = [19.6, 50.2, 80.3];          // 각 칸의 가운데
 export const PILLAR_X = [35.2, 64.9];             // 층과 층 사이를 오르내리는 기둥 통로
-const SPEED = 30;                                  // 초당 이동량(가로 % 기준, 세로는 화면 비율 보정)
+const SPEED = 16;                                  // 초당 이동량(가로 % 기준, 세로는 화면 비율 보정)
 const V_SCALE = 1448 / 1086;
 const PEOPLE = [
   { key: 'yuel', home: '10', kind: 'kid', idx: 0 }, { key: 'yuha', home: '11', kind: 'kid', idx: 1 },
