@@ -12,8 +12,8 @@ const SHEET = {
 };
 const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groom', 'stand'] };
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
-const H_SPEED = 6.5;             // 가로 이동(집 너비 %/초)
-const V_SPEED = 13;              // 기둥을 오르내리는 속도(%/초)
+const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
+const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
 const MIN_X = 9, MAX_X = 91;     // 방 안쪽 범위
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -33,7 +33,7 @@ function spriteHtml(c, name, anim) {
   const flip = c.face < 0 && !/walk[LR]$/.test(name) ? ' transform:scaleX(-1);' : '';
   const style = `width:${(w * U).toFixed(2)}cqw;height:${(h * U).toFixed(2)}cqw;background-image:url(/assets/cats/${c.id}-${name}.webp);background-size:${n * 100}% 100%;${flip}`;
   if (n === 1) return `<div class="pet-sp" style="${style}"></div>`;
-  return `<div class="pet-sp anim" style="${style}animation-timing-function:steps(${n},jump-none);animation-duration:${anim === 'jump' ? '.7s' : '.85s'};"></div>`;
+  return `<div class="pet-sp anim" style="${style}animation-timing-function:steps(${n},jump-none);animation-duration:${anim === 'jump' ? '.9s' : '1.5s'};"></div>`;
 }
 function setLook(c, el, name, anim = 'walk') {
   const key = `${name}|${c.face}`;
