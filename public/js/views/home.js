@@ -9,7 +9,7 @@ import { T, timerOf, fmt, remaining } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
-import { mountWalkers, walkPadHtml, walkerCell, anyMoving } from './walkers.js';
+import { mountWalkers, walkPadHtml, walkerCell, anyMoving, cheer } from './walkers.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -135,6 +135,7 @@ function scheduleHtml(sch) {
 
 export async function mount(el) {
   let timer;
+  const lastDay = new Map(); // 아이별 직전 하루 상태: 도장을 '방금' 받았는지 알아내기 위함
   let deferred = false; // 누군가 걷는 중이면 화면을 다시 그리지 않고, 도착한 뒤에 한 번만 갱신(걷는 그림이 끊기거나 깜박이지 않게)
   const adultUser = !isDevice();
   async function load() {
@@ -174,6 +175,10 @@ export async function mount(el) {
       onArrive: () => { if (deferred) { deferred = false; load(); } else syncBankReq(col, h, load); },
     });
     syncBankReq(col, h, load);
+    for (const k of h.kids) {
+      if (lastDay.has(k.id) && lastDay.get(k.id) !== 'approved' && k.day.status === 'approved') cheer(k.id, { delay: isDevice() ? 3200 : 0 });
+      lastDay.set(k.id, k.day.status);
+    }
     bindDismiss($('.kids', el), load);
     $('.supplies', el)?.addEventListener('click', supplyClick);
     if (ah) bindAdultPanel($('.adult-panel', el), load);

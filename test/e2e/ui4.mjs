@@ -76,7 +76,9 @@ await page.waitForSelector(`[data-walker="${yuel}"] img.cheer`, { timeout: 8000 
 await page.waitForTimeout(3600); // 쾅 애니메이션이 끝난 뒤
 await page.evaluate(() => document.querySelector('.house').scrollIntoView({ block: 'center' }));
 await page.screenshot({ path: path.join(shots, '61-cheer.png') });
-console.log('✓ 도장을 받으면 신나는 모습');
+await page.waitForFunction((id) => !document.querySelector(`[data-walker="${id}"] img.cheer`), yuel, { timeout: 5000 });
+assert.ok(await page.$(`[data-walker="${yuel}"] img.wk-img`), '5초 뒤에는 기본 자세로 돌아온다');
+console.log('✓ 도장을 받으면 신나는 모습 → 5초 뒤 기본 자세');
 
 // 4) 준비물 아이콘: 글자 목록이 아니라 그림으로 고른다
 const mp = await (await browser.newContext({ viewport: { width: 420, height: 900 }, hasTouch: true })).newPage(); // 어른 본인 폰

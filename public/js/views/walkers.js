@@ -35,6 +35,8 @@ export function buildPath(fromCell, toCell, startX = null) {
 const segLen = (a, b) => Math.hypot(b[0] - a[0], (b[1] - a[1]) * V_SCALE);
 
 // ===== 상태(화면을 다시 그려도 유지) =====
+const CHEER = new Map();              // 아이 id → 신나는 모습이 끝나는 시각(ms)
+export const CHEER_MS = 5000;
 const PENDING = new Map();            // 내가 보냈지만 서버가 아직 확인하지 않은 이동: memberId → 칸
 const W = new Map();                   // memberId → { id, key, home, cell, x, y, face, moving }
 let selected = null;                   // 선택된 사람 id
@@ -64,6 +66,8 @@ const baseY = (w) => FLOOR_Y[rc(w.cell)[0]];
 // ===== 그리기 =====
 function idleImg(p, w) {
   const atHome = w.cell === p.home;
+  // 도장을 받은 순간부터 5초 동안은 두 팔을 번쩍 든 '신나는 모습'. 끝나면 기본 자세(활동 중이면 활동 모습)로 돌아온다
+  if (p.kind === 'kid' && (CHEER.get(p.id) || 0) > Date.now()) return `<img class="wk-img cheer" src="/assets/chars/${p.key}-cheer.webp" alt="" draggable="false">`;
   if (p.kind === 'kid' && atHome) {
     const t = timerOf(p.id); const url = t && t.state !== 'ended' && actImgUrl(t.kind, p.id);
     if (url) return `<img class="wk-img act" src="${url}" alt="" draggable="false">`;
@@ -72,8 +76,6 @@ function idleImg(p, w) {
     if (p.status === 'working') return `<img class="wk-img wide" src="/assets/chars/${p.role}-work.webp" alt="" draggable="false">`;
     if (p.status === 'heading_home' || p.status === 'picking_up') return `<img class="wk-img wide car" src="/assets/chars/${p.role}-car.webp" alt="" draggable="false">`;
   }
-  // 오늘 도장을 받은 아이는 두 팔을 번쩍 든 '신나는 모습'(활동 그림이 있을 땐 활동이 먼저)
-  if (p.kind === 'kid' && p.member?.day?.status === 'approved') return `<img class="wk-img cheer" src="/assets/chars/${p.key}-cheer.webp" alt="" draggable="false">`;
   return `<img class="wk-img" src="/assets/chars/${p.key}.webp" alt="" draggable="false">`;
 }
 function walkerHtml(p) {
@@ -86,6 +88,14 @@ function walkerHtml(p) {
   return `<button class="walker ${w.moving ? 'moving' : 'idle'} ${selected === p.id ? 'sel' : ''}" data-walker="${p.id}" style="left:${x}%;top:${y}%" aria-label="${esc(p.name)} ${selected === p.id ? '선택됨' : '선택하기'}" aria-pressed="${selected === p.id}">${inner}<i class="wk-shadow"></i></button>`;
 }
 export const walkersLayerHtml = () => `<div class="walkers" aria-label="집 안을 걷는 가족">${P.map(walkerHtml).join('')}</div>`;
+// 도장을 받은 아이를 5초 동안 신나는 모습으로(delay: 도장 쾅 애니메이션이 끝난 뒤부터 보이게 미룰 때)
+export function cheer(id, { delay = 0 } = {}) {
+  setTimeout(() => {
+    CHEER.set(id, Date.now() + CHEER_MS);
+    const redo = () => { const p = P.find((x) => x.id === id); const w = W.get(id); if (p && w && !w.moving) refreshOne(p); };
+    redo(); setTimeout(redo, CHEER_MS + 30);
+  }, delay);
+}
 export const anyMoving = () => [...W.values()].some((w) => w.moving);
 // 걷는 그림의 크기를 '정수 픽셀'로 맞춘다: 12컷 시트를 소수점 픽셀로 넘기면 컷 사이 경계가 번져서 지글거려 보인다
 function snapSprites(root = document) {
