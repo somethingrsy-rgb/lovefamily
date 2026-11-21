@@ -101,6 +101,7 @@ export function dayState(core, kidId, date) {
 export function setItemDone(core, ctx, itemId, done) {
   const item = core.get('SELECT i.*, d.kid_id, d.family_id, d.date, d.id AS did FROM day_items i JOIN days d ON d.id = i.day_id WHERE i.id = ?', itemId);
   if (!item || item.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 항목이에요.');
+  ctx.ownOnly(item.kid_id);
   if (typeof done !== 'boolean') throw err(400, 'bad_value', 'done 값이 필요해요.');
   return core.tx(() => {
     if (activeStamp(core, item.kid_id, item.date)) throw err(409, 'locked', '도장을 받은 날은 바꿀 수 없어요.');
@@ -115,6 +116,7 @@ export function setItemDone(core, ctx, itemId, done) {
 
 // 완료 상태인데 요청이 없을 때(다시 확인 이후 등) 아이가 직접 다시 요청
 export function requestStamp(core, ctx, kidId, date) {
+  ctx.ownOnly(kidId);
   if (!isDate(date)) throw err(400, 'bad_date', '날짜가 올바르지 않아요.');
   const st = dayState(core, kidId, date);
   if (!st.exists) throw err(404, 'no_day', '그날의 루틴 기록이 없어요.');

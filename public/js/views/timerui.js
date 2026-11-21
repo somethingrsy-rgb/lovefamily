@@ -100,7 +100,7 @@ export async function timerPage(el, { id }) {
         ${!ended ? '<button class="btn ghost" id="new">다른 활동 시작</button><button class="btn stop-btn" id="stop">⏹ 중단하기</button>' : ''}</div>
         ${T.sound && !audioReady() ? '<p class="small muted center">🔇 알람 소리를 들으려면 이 화면을 한 번 눌러 주세요.</p>' : ''}
       </section>
-      <section class="card page-card"><h3>🔑 어른 설정 <small class="muted">${isDevice() && !adult ? '(누르면 어른 확인이 필요해요)' : ''}</small></h3><div class="row gap wrap">
+      <section class="card page-card adult-set"><h3>🔑 어른 설정 <small class="muted">${isDevice() && !adult ? '(누르면 어른 확인이 필요해요)' : ''}</small></h3><div class="row gap wrap">
         <button class="btn" data-ext="5">+5분</button><button class="btn" data-ext="10">+10분</button><button class="btn" data-ext="30">+30분</button><button class="btn ghost" id="setnext">➡️ 다음 활동 바꾸기</button><button class="btn ghost" id="cancel">활동 끝내기</button><button class="btn ghost" id="test">🔔 소리 확인</button></div></section>`;
     el.onclick = async (e) => {
       const d = e.target.closest('[data-dismiss]'); const x = e.target.closest('[data-ext]');

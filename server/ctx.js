@@ -14,12 +14,14 @@ export class Ctx {
     this.headers = headers;
     this.familyId = session.family_id;
     this.isDevice = session.kind === 'device';
+    this.boundKid = session.bound_kid_id || null; // 아이 휴대폰: 그 아이 한 명에게만 묶인 기기
     this._adult = undefined;
   }
   get now() { return this.core.now(); }
 
   // 현재 요청을 수행하는 어른 (없으면 null)
   adultOrNull() {
+    if (this.boundKid) return null; // 아이 폰에서는 어떤 경우에도 어른 권한이 없다
     if (this._adult !== undefined) return this._adult;
     let a = null;
     if (!this.isDevice) {
@@ -37,6 +39,7 @@ export class Ctx {
   }
   adult() {
     const a = this.adultOrNull();
+    if (!a && this.boundKid) throw err(403, 'adult_only', '어른만 할 수 있어요.');
     if (!a) {
       throw err(401, this.isDevice ? 'reauth_required' : 'login_required',
         this.isDevice ? '어른 확인이 필요해요. 비밀번호를 다시 입력해 주세요.' : '로그인이 필요해요.');
@@ -51,11 +54,13 @@ export class Ctx {
 
   // 공용 기기에서 현재 선택된 아이 (X-Act-Kid)
   actKidId() {
+    if (this.boundKid) return this.boundKid;
     if (!this.isDevice) return null;
     const v = Number(this.headers['x-act-kid']);
     return Number.isSafeInteger(v) && v > 0 ? v : null;
   }
   kidUnlocked(kid) {
+    if (this.boundKid) return kid.id === this.boundKid; // 연결된 아이 폰은 비밀번호 없이 자기 것만
     if (!kid.pin_hash) return true;
     return !!this.core.get('SELECT 1 FROM kid_unlocks WHERE session_id = ? AND kid_id = ? AND expires_at > ?', this.session.id, kid.id, this.now);
   }
@@ -69,8 +74,12 @@ export class Ctx {
   // 아이 공개 정보(루틴, 도장 현황 등): 같은 가족 세션이면 접근 가능
   kid(kidId) { return this.kidRow(kidId); }
   // 아이 비공개 정보(장부·사고 싶은 것·받은 편지함): 어른, 또는 해당 아이로 전환한(PIN 해제된) 공용 기기만
+  ownOnly(kidId) {
+    if (this.boundKid && Number(kidId) !== this.boundKid) throw err(403, 'forbidden', '내 것만 할 수 있어요.');
+  }
   kidPrivate(kidId) {
     const kid = this.kidRow(kidId);
+    if (this.boundKid) { if (kid.id !== this.boundKid) throw err(403, 'forbidden', '볼 수 없는 정보예요.'); return kid; }
     if (this.adultOrNull()) return kid;
     if (this.isDevice && this.actKidId() === kid.id) {
       if (!this.kidUnlocked(kid)) throw err(403, 'kid_locked', '이 친구의 비밀번호를 먼저 눌러 주세요.');
@@ -81,6 +90,7 @@ export class Ctx {
   // 아이 본인이 하는 요청(출금 요청·메시지·미션 완료 등)
   asKid(kidId) {
     const kid = this.kidRow(kidId);
+    if (this.boundKid) { if (kid.id !== this.boundKid) throw err(403, 'forbidden', '내 것만 할 수 있어요.'); return kid; }
     if (this.isDevice && this.actKidId() === kid.id) {
       if (!this.kidUnlocked(kid)) throw err(403, 'kid_locked', '이 친구의 비밀번호를 먼저 눌러 주세요.');
       return kid;

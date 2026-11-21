@@ -21,6 +21,10 @@ export function buildRoutes(app) {
   add('POST', '/api/auth/register', (c, h) => ({ $session: F.register(h.core, h.body).session, status: 201 }), { auth: false, session: true });
   add('POST', '/api/auth/join', (c, h) => ({ $session: F.join(h.core, h.body).session, status: 201 }), { auth: false, session: true });
   add('POST', '/api/auth/login', (c, h) => ({ $session: F.login(h.core, h.body, h.ip).session }), { auth: false, session: true });
+  add('POST', '/api/auth/kid-pair', (c, h) => ({ $session: F.kidPair(h.core, h.body, h.ip).session, status: 201 }), { auth: false, session: true });
+  add('POST', '/api/kids/:id/pair-code', (c, h) => ({ status: 201, body: F.createPairCode(h.core, c, P(h)) }));
+  add('GET', '/api/kids/:id/devices', (c, h) => F.listKidDevices(h.core, c, P(h)));
+  add('DELETE', '/api/kid-devices/:id', (c, h) => F.revokeKidDevice(h.core, c, P(h)));
   add('POST', '/api/auth/logout', (c, h) => { F.logout(h.core, c); return { $clear: true, ok: true }; });
   add('POST', '/api/auth/reauth', (c, h) => F.reauth(h.core, c, h.body, h.ip));
   add('GET', '/api/me', (c, h) => F.me(h.core, c));

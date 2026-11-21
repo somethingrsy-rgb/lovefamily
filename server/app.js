@@ -84,7 +84,7 @@ export function createApp(opts = {}) {
         const ctx = new Ctx(core, s, { ...req.headers, 'x-act-kid': url.searchParams.get('kid') || '' });
         const kid = ctx.actKidId();
         const valid = kid && core.member(kid)?.family_id === s.family_id && core.member(kid)?.kind === 'kid' ? kid : null;
-        core.hub.add(res, { familyId: s.family_id, memberId: s.kind === 'user' ? s.member_id : null, kidId: valid, device: s.kind === 'device' });
+        core.hub.add(res, { familyId: s.family_id, memberId: s.kind === 'user' ? s.member_id : null, kidId: valid, device: s.kind === 'device', bound: s.bound_kid_id || null });
         const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch {} }, 25000);
         res.on('close', () => clearInterval(ping));
         return;

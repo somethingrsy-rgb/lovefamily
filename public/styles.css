@@ -428,3 +428,7 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 @keyframes bang { 0%, 33% { transform: translateX(-50%) scale(0) rotate(-8deg); opacity: 0; } 38% { transform: translateX(-50%) scale(1.3) rotate(-8deg); opacity: 1; } 50% { transform: translateX(-50%) scale(1) rotate(-8deg); } 80% { opacity: 1; } 100% { transform: translateX(-50%) scale(1) rotate(-8deg); opacity: 0; } }
 @keyframes shake { 0%, 33% { transform: none; } 35% { transform: translate(-7px, 6px); } 37% { transform: translate(7px, -5px); } 40% { transform: translate(-5px, 4px); } 43% { transform: translate(4px, -3px); } 47%, 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .stamp-overlay { animation: fade .1s; } .stamp-tool { animation-duration: .01s; opacity: 0; } .stamp-mark { transform: scale(1) rotate(-14deg); opacity: 1; animation: none; } .stamp-bang, .stamp-flash { display: none; } }
+
+/* 아이 폰: 어른 전용 버튼은 보이지 않는다(서버도 막아 둠) */
+.kidphone .adult-set, .kidphone #adultMode, .kidphone #adm, .kidphone #next, .kidphone .adult-menu, .kidphone [data-adult-only] { display: none !important; }
+.kidphone .back[href="#/"] { visibility: hidden; }

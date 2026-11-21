@@ -18,6 +18,7 @@ export class Hub {
     const data = `data: ${JSON.stringify(event)}\n\n`;
     for (const c of this.conns) {
       if (c.familyId !== familyId) continue;
+      if (c.bound && event.t === 'timer' && event.kidId !== c.bound) continue; // 아이 폰에는 자기 활동 알림만
       if (to) {
         const okAdult = c.memberId && to.adults?.includes(c.memberId);
         const okKid = c.kidId && to.kids?.includes(c.kidId);
@@ -86,7 +87,7 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
     core.afterCommit(() => {
       const to = m.kind === 'adult' ? { adults: [memberId] } : { kids: [memberId] };
       core.hub.publish(familyId, { t: 'notify', id: nid, kind, popup }, to);
-      if (m.kind === 'adult') core.sendPush(memberId, { title: '우리집', body: lock || title, url: url || '/', tag: `n${nid}`, nid });
+      core.sendPush(memberId, { title: '우리집', body: lock || title, url: url || '/', tag: `n${nid}`, nid }); // 어른·아이 모두(잠금화면에는 짧은 문구만)
     });
     return nid;
   };

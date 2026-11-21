@@ -147,6 +147,7 @@ export function listTimers(core, ctx) {
 // 아이가 활동을 고르고 시작. 이미 진행 중이면 replace 확인 없이는 시작하지 않는다.
 export function startTimer(core, ctx, kidId, b) {
   ctx.kid(kidId);
+  ctx.ownOnly(kidId);
   const act = core.get('SELECT * FROM activities WHERE id = ? AND family_id = ? AND active = 1', vid(b.activityId, '활동'), ctx.familyId);
   if (!act) throw err(404, 'not_found', '활동을 찾을 수 없어요.');
   const adult = ctx.adultOrNull();
@@ -178,6 +179,7 @@ function loadTimer(core, ctx, tid) {
 export function dismissTimer(core, ctx, tid) {
   const t = loadTimer(core, ctx, tid);
   ctx.kid(t.kid_id);
+  ctx.ownOnly(t.kid_id);
   settleTimers(core, ctx.familyId);
   const cur = core.get('SELECT * FROM timers WHERE id = ?', t.id);
   if (cur.status === 'running') throw err(409, 'still_running', '아직 시간이 남아 있어요.');
@@ -188,6 +190,7 @@ export function dismissTimer(core, ctx, tid) {
 export function cancelTimer(core, ctx, tid) {
   const t = loadTimer(core, ctx, tid);
   ctx.kid(t.kid_id);
+  ctx.ownOnly(t.kid_id);
   if (['running', 'ended'].includes(t.status)) core.run("UPDATE timers SET status = 'canceled' WHERE id = ?", t.id);
   core.refresh(ctx.familyId, 'timers', 'home');
   return { ok: true };

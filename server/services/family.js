@@ -20,12 +20,13 @@ function throttle(core, key, { check = false, fail = false, clear = false } = {}
   if (clear) m.delete(key);
 }
 
-function newSession(core, { familyId, kind, userId, memberId }) {
+function newSession(core, { familyId, kind, userId, memberId, boundKid = null, label = null, days = null }) {
   const token = randToken();
   const now = core.now();
-  core.insert('INSERT INTO sessions (token_hash, family_id, kind, user_id, member_id, created_at, expires_at) VALUES (?,?,?,?,?,?,?)',
-    sha256(token), familyId, kind, userId, memberId, now, now + SESSION_DAYS[kind] * 864e5);
-  return { token, maxAge: SESSION_DAYS[kind] * 86400 };
+  const d = days || SESSION_DAYS[kind];
+  core.insert('INSERT INTO sessions (token_hash, family_id, kind, user_id, member_id, created_at, expires_at, bound_kid_id, label) VALUES (?,?,?,?,?,?,?,?,?)',
+    sha256(token), familyId, kind, userId, memberId, now, now + d * 864e5, boundKid, label);
+  return { token, maxAge: d * 86400 };
 }
 
 function validateCreds(loginId, password) {
@@ -95,6 +96,7 @@ export function login(core, b, ip = '') {
 }
 
 export function logout(core, ctx) {
+  core.run('DELETE FROM push_subs WHERE session_id = ?', ctx.session.id);
   core.run('DELETE FROM elevations WHERE session_id = ?', ctx.session.id);
   core.run('DELETE FROM kid_unlocks WHERE session_id = ?', ctx.session.id);
   core.run('DELETE FROM sessions WHERE id = ?', ctx.session.id);
@@ -102,6 +104,7 @@ export function logout(core, ctx) {
 
 // 공용 기기에서 어른 권한이 필요할 때: 어른 선택 + 비밀번호 → 10분짜리 elevation 토큰
 export function reauth(core, ctx, b, ip = '') {
+  if (ctx.boundKid) throw err(403, 'adult_only', '어른만 할 수 있어요.');
   const adultId = Number(b.memberId) || ctx.session.member_id;
   const adult = ctx.adultMember(adultId);
   if (!ctx.isDevice && adult.id !== ctx.session.member_id) throw err(403, 'forbidden', '본인만 확인할 수 있어요.');
@@ -158,7 +161,7 @@ export function me(core, ctx) {
   const fam = core.get('SELECT * FROM families WHERE id = ?', ctx.familyId);
   const adult = ctx.adultOrNull();
   return {
-    session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id },
+    session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
     family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, code: adult ? fam.code : undefined },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
@@ -244,4 +247,52 @@ export function removeAdult(core, ctx, memberId) {
     core.refresh(ctx.familyId, 'family', 'home', 'requests', 'wallet', 'status');
     return { ok: true };
   });
+}
+
+// ---------- 아이 휴대폰 연결 ----------
+// 어른이 아이별 일회용 코드를 만들고, 아이가 자기 폰에 입력하면 그 폰은 그 아이 한 명 전용 로그인이 된다.
+const PAIR_MS = 10 * 60 * 1000;
+export function createPairCode(core, ctx, kidId) {
+  const adult = ctx.adult();
+  const kid = ctx.kidRow(kidId);
+  const code = randCode(6);
+  core.tx(() => {
+    core.run('DELETE FROM kid_pair_codes WHERE kid_id = ? OR expires_at < ?', kid.id, core.now());
+    core.run('INSERT INTO kid_pair_codes (code_hash, kid_id, family_id, created_by, expires_at) VALUES (?,?,?,?,?)', sha256(code), kid.id, ctx.familyId, adult.id, core.now() + PAIR_MS);
+  });
+  return { code, kidId: kid.id, kidName: kid.name, expiresAt: core.now() + PAIR_MS };
+}
+export function kidPair(core, b, ip = '') {
+  const key = `pair|${ip}`;
+  throttle(core, key, { check: true });
+  const code = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const row = code.length >= 4 ? core.get('SELECT * FROM kid_pair_codes WHERE code_hash = ? AND expires_at > ?', sha256(code), core.now()) : null;
+  if (!row) { throttle(core, key, { fail: true }); throw err(404, 'bad_code', '연결 코드가 맞지 않거나 시간이 지났어요. 어른에게 새 코드를 받아 주세요.'); }
+  throttle(core, key, { clear: true });
+  return core.tx(() => {
+    if (!core.run('DELETE FROM kid_pair_codes WHERE code_hash = ?', row.code_hash).changes) throw err(404, 'bad_code', '이미 사용한 코드예요.'); // 한 번만 쓸 수 있다
+    const kid = core.member(row.kid_id);
+    const session = newSession(core, { familyId: row.family_id, kind: 'device', userId: null, memberId: null, boundKid: row.kid_id, label: `${kid.name}의 휴대폰`, days: 365 });
+    core.refresh(row.family_id, 'family');
+    return { session, kidId: row.kid_id };
+  });
+}
+export function listKidDevices(core, ctx, kidId) {
+  ctx.adult();
+  const kid = ctx.kidRow(kidId);
+  return core.all('SELECT id, label, created_at FROM sessions WHERE bound_kid_id = ? AND expires_at > ? ORDER BY id', kid.id, core.now())
+    .map((s) => ({ id: s.id, label: s.label, connectedAt: s.created_at, push: core.get('SELECT COUNT(*) c FROM push_subs WHERE session_id = ?', s.id).c > 0 }));
+}
+export function revokeKidDevice(core, ctx, sessionId) {
+  ctx.adult();
+  const s = core.get('SELECT * FROM sessions WHERE id = ? AND bound_kid_id IS NOT NULL', sessionId);
+  if (!s || s.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 기기예요.');
+  core.tx(() => {
+    core.run('DELETE FROM push_subs WHERE session_id = ?', s.id);
+    core.run('DELETE FROM elevations WHERE session_id = ?', s.id);
+    core.run('DELETE FROM kid_unlocks WHERE session_id = ?', s.id);
+    core.run('DELETE FROM sessions WHERE id = ?', s.id);
+    core.refresh(ctx.familyId, 'family');
+  });
+  return { ok: true };
 }

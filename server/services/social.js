@@ -305,15 +305,16 @@ export function getNotification(core, ctx, nid) {
 
 // ---------- 푸시 구독 ----------
 export function subscribePush(core, ctx, sub) {
-  const adult = ctx.adult();
+  const who = ctx.boundKid ? ctx.kidRow(ctx.boundKid) : ctx.adult(); // 아이 폰은 그 아이에게, 어른은 본인에게
   if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) throw err(400, 'bad_sub', '푸시 구독 정보가 올바르지 않아요.');
   if (typeof sub.endpoint !== 'string' || !/^https:\/\//.test(sub.endpoint) || sub.endpoint.length > 1000) throw err(400, 'bad_sub', '푸시 구독 정보가 올바르지 않아요.');
-  core.run('INSERT INTO push_subs (member_id, endpoint, p256dh, auth, device, created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET member_id = excluded.member_id, p256dh = excluded.p256dh, auth = excluded.auth, device = excluded.device', adult.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, ctx.isDevice ? 1 : 0, core.now());
+  const device = ctx.isDevice && !ctx.boundKid ? 1 : 0; // 거실 기기 구독만 활동(타이머) 알림 대상
+  core.run('INSERT INTO push_subs (member_id, endpoint, p256dh, auth, device, session_id, created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET member_id = excluded.member_id, p256dh = excluded.p256dh, auth = excluded.auth, device = excluded.device, session_id = excluded.session_id', who.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, device, ctx.session.id, core.now());
   return { ok: true };
 }
 export function unsubscribePush(core, ctx, endpoint) {
-  const adult = ctx.adult();
-  core.run('DELETE FROM push_subs WHERE endpoint = ? AND member_id = ?', endpoint, adult.id);
+  const who = ctx.boundKid ? ctx.kidRow(ctx.boundKid) : ctx.adult();
+  core.run('DELETE FROM push_subs WHERE endpoint = ? AND member_id = ?', endpoint, who.id);
   return { ok: true };
 }
 

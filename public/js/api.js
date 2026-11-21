@@ -8,6 +8,8 @@ export const S = {
   online: navigator.onLine,
 };
 export const isDevice = () => S.info?.session.kind === 'device';
+export const boundKid = () => S.info?.session.boundKid || null; // 아이 한 명 전용 휴대폰
+export const isKidPhone = () => !!boundKid();
 export const isAdultNow = () => (S.info && !isDevice() && !!S.info.me) || !!(S.elev && S.elev.exp > Date.now());
 export const kidById = (id) => S.info?.kids.find((k) => k.id === Number(id));
 export const adultById = (id) => S.info?.adults.find((a) => a.id === Number(id));

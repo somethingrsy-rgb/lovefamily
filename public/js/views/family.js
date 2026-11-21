@@ -1,12 +1,12 @@
 import { $, $$, esc, DOW, lsGet, lsSet, shortDate, dateLabel } from '../util.js';
 import { S, get, post, patch, del, put, bus, isDevice, isAdultNow } from '../api.js';
-import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker } from '../ui.js';
+import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker, openSheet } from '../ui.js';
 import { back } from '../common.js';
 import { supplySheet } from './supplies.js';
 
 // ---- 푸시 알림 ----
 const b64 = (s) => { const p = '='.repeat((4 - (s.length % 4)) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); };
-async function pushState() {
+export async function pushState() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     const ios = /iphone|ipad/i.test(navigator.userAgent);
     return { s: 'unsupported', msg: ios ? 'iPhone은 Safari에서 ‘홈 화면에 추가’한 앱으로 열어야 알림을 켤 수 있어요. (공유 버튼 → 홈 화면에 추가)' : '이 브라우저는 푸시 알림을 지원하지 않아요.' };
@@ -18,13 +18,13 @@ async function pushState() {
   const sub = await reg.pushManager.getSubscription();
   return { s: sub && Notification.permission === 'granted' ? 'on' : 'off', publicKey, reg, sub };
 }
-async function enablePush(st) {
+export async function enablePush(st) {
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error('알림 허용이 필요해요.');
   const sub = st.sub || await st.reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(st.publicKey) });
   await post('/api/push/subscribe', { subscription: sub.toJSON() });
 }
-async function disablePush(st) { if (st.sub) { await post('/api/push/unsubscribe', { endpoint: st.sub.endpoint }); await st.sub.unsubscribe(); } }
+export async function disablePush(st) { if (st.sub) { await post('/api/push/unsubscribe', { endpoint: st.sub.endpoint }); await st.sub.unsubscribe(); } }
 
 const AV = (S.info?.avatars) || [];
 function memberForm(m) {
@@ -44,7 +44,7 @@ export async function mount(el) {
     const code = info.family.code;
     const myId = info.me?.id || S.elev?.memberId || null;
     el.innerHTML = `<header class="page-head"><h1>👨‍👩‍👧‍👦 가족</h1></header>
-      <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? '아이' : ({ mom: '엄마', dad: '아빠', grandma: '할머니' })[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</li>`).join('')}</ul></section>
+      <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? '아이' : ({ mom: '엄마', dad: '아빠', grandma: '할머니' })[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' && adult ? `<button class="btn ghost small" data-pair="${m.id}">📱 폰 연결</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</li>`).join('')}</ul></section>
       <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a><a class="big-btn small" href="#/family-activity"><span class="bi">🎈</span><b>가족 활동</b></a><button class="big-btn small" id="addsup"><span class="bi">🎒</span><b>준비물 직접 추가</b></button></div></section>
       ${adult ? `<section class="card page-card"><h3>⏱ 활동 설정</h3><p class="muted small">활동 이름과 기본 시간을 바꿀 수 있어요. 30분 이상 활동은 5분 전에 한 번 알려 줘요.</p><ul class="rlist">${(acts || []).map((a) => `<li><span class="ri">${esc(a.icon)}</span><div class="grow"><b>${esc(a.name)}</b><div class="small muted">기본 ${a.minutes}분</div></div><button class="btn ghost small" data-act="${a.id}">수정</button><button class="btn ghost small" data-actdel="${a.id}" aria-label="삭제">🗑</button></li>`).join('')}</ul><div class="row gap wrap"><button class="btn ghost" id="addact">+ 활동 추가</button></div>
         <label class="check"><input type="checkbox" id="tsound" ${info.family.timerSound ? 'checked' : ''}> <span>활동 알람 소리 사용 <small class="muted">(거실 iPad에서 한 번 울려요)</small></span></label></section>` : ''}
@@ -86,6 +86,8 @@ export async function mount(el) {
           if (v.rmphoto === 'on') body.photoId = null; else if (picker.state.id) body.photoId = picker.state.id;
           return patch(`/api/members/${m.id}`, body);
         } }))(); }
+      const pr = e.target.closest('[data-pair]');
+      if (pr) { if (!(await needAdult())) return; await pairSheet(S.info.kids.find((x) => x.id === Number(pr.dataset.pair))); return; }
       const rm = e.target.closest('[data-rmadult]');
       if (rm) {
         if (!(await needAdult())) return;
@@ -130,3 +132,26 @@ export async function calendar(el) {
   return { refresh: load, topics: ['calendar', 'posts'] };
 }
 void AV; void dateLabel;
+
+// 아이 폰 연결: 일회용 코드 만들기 + 연결된 폰 목록/해제
+async function pairSheet(kid) {
+  const dev = await get(`/api/kids/${kid.id}/devices`);
+  const sh = openSheet(`<h2>${avatar(kid, 'sm')} ${esc(kid.name)}의 휴대폰 연결</h2>
+    <p class="muted">${esc(kid.name)}의 폰에서 앱 주소를 열고 <b>‘아이 폰 연결’</b>을 눌러 아래 코드를 입력해요. 코드는 10분 동안, 한 번만 쓸 수 있어요.</p>
+    <div class="code-box" id="pcode"><button class="btn primary big" id="mk">코드 만들기</button></div>
+    <h3>연결된 폰</h3>
+    <ul class="members" id="devs">${dev.length ? dev.map((d) => `<li><span>📱</span><div class="grow"><b>${esc(d.label)}</b><div class="small muted">${new Date(d.connectedAt + 9 * 3600e3).toISOString().slice(0, 10)} 연결${d.push ? ' · 알림 켜짐' : ''}</div></div><button class="btn ghost small" data-rev="${d.id}">연결 해제</button></li>`).join('') : '<li class="muted">아직 연결된 폰이 없어요</li>'}</ul>
+    <div class="row end"><button class="btn ghost" data-close>닫기</button></div>`);
+  sh.el.addEventListener('click', async (e) => {
+    try {
+      if (e.target.closest('#mk')) {
+        const r = await post(`/api/kids/${kid.id}/pair-code`);
+        $('#pcode', sh.el).innerHTML = `<b>${esc(r.code.slice(0, 3))} ${esc(r.code.slice(3))}</b><p class="small muted">10분 안에 입력해 주세요</p>`;
+      }
+      const rv = e.target.closest('[data-rev]');
+      if (rv && await confirmDialog('이 폰의 연결을 끊을까요? 이 폰에서는 바로 로그아웃돼요.', { danger: true, yes: '연결 해제' })) {
+        await del(`/api/kid-devices/${rv.dataset.rev}`); toast('연결을 해제했어요'); sh.close(); pairSheet(kid);
+      }
+    } catch (x) { errToast(x); }
+  });
+}

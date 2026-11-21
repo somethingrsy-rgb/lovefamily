@@ -44,6 +44,7 @@ export function createSupplies(core, ctx, b) {
 // 아이가 챙겼어요 / 되돌리기: 아이별로 따로 기록, 루틴·도장과는 무관
 export function setChecked(core, ctx, supplyId, kidId, checked) {
   ctx.kid(kidId);
+  ctx.ownOnly(kidId);
   if (typeof checked !== 'boolean') throw err(400, 'bad_value', 'checked 값이 필요해요.');
   const s = core.get('SELECT * FROM supplies WHERE id = ?', supplyId);
   if (!s || s.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 준비물이에요.');

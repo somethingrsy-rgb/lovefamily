@@ -1,6 +1,7 @@
 import './emo.js';
 import { $, $$, esc, lsGet, lsSet, kstParts } from './util.js';
-import { S, get, post, bus, connectStream, disconnectStream, onStatus, outboxCount, isDevice, hooks, flushOutbox, ApiError } from './api.js';
+import { S, get, post, bus, connectStream, disconnectStream, onStatus, outboxCount, isDevice, boundKid, hooks, flushOutbox, ApiError } from './api.js';
+import * as kidme from './views/kidme.js';
 import { popup, toast, sheetOpen, openSheet, needAdult, avatar, playStamp } from './ui.js';
 import * as auth from './views/auth.js';
 import * as home from './views/home.js';
@@ -27,7 +28,7 @@ const R = (pattern, view, opts = {}) => {
   routes.push({ re, keys, view, ...opts });
 };
 // 공개 화면(로그인 전)
-R('/login', auth.login, { pub: true }); R('/register', auth.register, { pub: true }); R('/join/:code', auth.join, { pub: true }); R('/join', auth.join, { pub: true });
+R('/login', auth.login, { pub: true }); R('/pair', auth.pair, { pub: true }); R('/register', auth.register, { pub: true }); R('/join/:code', auth.join, { pub: true }); R('/join', auth.join, { pub: true });
 // 메인 화면
 R('/', home, { tab: 'today' });
 R('/adult', adult.page, { tab: 'today', adult: true }); R('/inbox', adult.inbox, { tab: 'today', adult: true });
@@ -43,6 +44,7 @@ R('/kid/:id/wallet', wallet, { tab: 'today', kid: true }); R('/kid/:id/wishes', 
 R('/kid/:id/talk', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/talk/:adultId', talk.talk, { tab: 'today', kid: true });
 R('/kid/:id/inbox', talk.kidInbox, { tab: 'today', kid: true }); R('/kid/:id/missions', kid.missions, { tab: 'today', kid: true });
 R('/kid/:id/stamps', stamps, { tab: 'stamps', kid: true });
+R('/me', kidme, { tab: 'me' });
 R('/kid/:id/timer', timerui.timerPage, { tab: 'today', kid: true, nopin: true });
 R('/kid/:id/supplies', supplies.kidSupplies, { tab: 'today', kid: true, nopin: true });
 R('/kid/:id/family', plan.kidPick, { tab: 'today', kid: true, nopin: true });
@@ -74,12 +76,17 @@ async function loadInfo() {
 }
 bus.on('reloadInfo', async () => { await loadInfo(); });
 
+function tabsFor() {
+  const k = boundKid();
+  if (!k) return TABS;
+  return [['today', `/kid/${k}`, '🏠', '오늘'], ['stamps', `/kid/${k}/stamps`, '💮', '도장판'], ['me', '/me', '⚙️', '내 설정']];
+}
 function shell() {
   const dev = isDevice();
   app.innerHTML = `<div class="shell ${dev ? 'device' : ''}">
     <div class="conn-banner" id="conn" hidden></div>
     <main id="main" tabindex="-1"></main>
-    <nav class="tabs" aria-label="주요 메뉴">${TABS.map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join('')}</nav></div>`;
+    <nav class="tabs" aria-label="주요 메뉴">${tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join('')}</nav></div>`;
   updateConn();
 }
 function updateConn() {
@@ -98,6 +105,12 @@ async function render() {
   let match = null, params = {};
   for (const r of routes) { const m = path.match(r.re); if (m) { match = r; r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); }); break; } }
   if (!match) { go('/'); return; }
+  if (S.info && boundKid() && !match.pub) { // 아이 폰: 자기 아이 화면과 내 설정만 열린다
+    const own = boundKid();
+    S.actKid = own; document.body.classList.add('kidphone');
+    const ok = match.view === kidme || (match.kid && Number(params.id) === own);
+    if (!ok) { go(`/kid/${own}`); return; }
+  } else document.body.classList.remove('kidphone');
   if (!S.info) { if (!match.pub) { go('/login'); return; } app.innerHTML = '<div id="main" class="authwrap"></div>'; current = await match.view.mount?.($('#main'), params) || await match.view($('#main'), params); return; }
   if (match.pub) { go('/'); return; }
   // 아이 화면: 공용 기기에서는 해당 아이로 전환
@@ -106,6 +119,7 @@ async function render() {
     if (S.actKid !== want) { S.actKid = want; connectStream(); }
   }
   if (!$('.shell')) shell();
+  else if (boundKid() && $$('.tab').length !== 3) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
   $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === match.tab));
   const main = $('#main');
   main.innerHTML = '<div class="loading">불러오는 중…</div>';
@@ -175,7 +189,7 @@ export async function boot() {
   render();
 }
 export async function afterLogin() {
-  await loadInfo(); S.actKid = null; S.elev = null;
+  await loadInfo(); S.actKid = boundKid(); S.elev = null;
   app.innerHTML = '';
   connectStream(); startTimerManager();
   go('/');

@@ -17,14 +17,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS members_user_family ON members(user_id, family
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE, family_id INTEGER NOT NULL,
   kind TEXT NOT NULL CHECK (kind IN ('user','device')), user_id INTEGER, member_id INTEGER,
-  created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL);
+  created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, bound_kid_id INTEGER, label TEXT);
 CREATE TABLE IF NOT EXISTS elevations (
   token_hash TEXT PRIMARY KEY, session_id INTEGER NOT NULL, member_id INTEGER NOT NULL, expires_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS kid_unlocks (
   session_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, expires_at INTEGER NOT NULL, PRIMARY KEY (session_id, kid_id));
 CREATE TABLE IF NOT EXISTS push_subs (
   id INTEGER PRIMARY KEY, member_id INTEGER NOT NULL, endpoint TEXT NOT NULL UNIQUE,
-  p256dh TEXT NOT NULL, auth TEXT NOT NULL, device INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+  p256dh TEXT NOT NULL, auth TEXT NOT NULL, device INTEGER NOT NULL DEFAULT 0, session_id INTEGER, created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS kid_pair_codes (
+  code_hash TEXT PRIMARY KEY, kid_id INTEGER NOT NULL, family_id INTEGER NOT NULL, created_by INTEGER NOT NULL, expires_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS idempotency (
   scope TEXT NOT NULL, key TEXT NOT NULL, status INTEGER NOT NULL, response TEXT NOT NULL, created_at INTEGER NOT NULL,
   PRIMARY KEY (scope, key));
@@ -158,7 +160,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id I
 // 이미 만들어진 개발/운영 DB 를 위한 컬럼 추가
 const COLUMNS = [
   ['families', 'timer_sound INTEGER NOT NULL DEFAULT 1'], ['push_subs', 'device INTEGER NOT NULL DEFAULT 0'],
-  ['routines', 'activity_id INTEGER'], ['members', 'avatar_photo_id INTEGER'], ['members', 'removed INTEGER NOT NULL DEFAULT 0'], ['day_items', 'activity_id INTEGER'], ['events', 'plan_id INTEGER'], ['events', 'time TEXT'],
+  ['routines', 'activity_id INTEGER'], ['members', 'avatar_photo_id INTEGER'], ['members', 'removed INTEGER NOT NULL DEFAULT 0'], ['sessions', 'bound_kid_id INTEGER'], ['sessions', 'label TEXT'], ['push_subs', 'session_id INTEGER'], ['day_items', 'activity_id INTEGER'], ['events', 'plan_id INTEGER'], ['events', 'time TEXT'],
 ];
 
 export function openDb(path) {
