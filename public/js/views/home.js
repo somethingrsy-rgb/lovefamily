@@ -90,7 +90,7 @@ function houseHtml(h) {
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="/assets/house.webp" alt="" class="house-img" width="1086" height="1448">
-    <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기"></button>
+    <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기 (알림장)"></button>
     ${kidRooms}
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
     ${adults}${walkPadHtml()}</div>`;
@@ -119,7 +119,7 @@ function bindHouse(root, reload, h) {
     const t = r.dataset.room;
     if (t === 'kid') location.hash = `#/kid/${r.dataset.id}`;
     else if (t === 'bank') location.hash = '#/stamps';
-    else if (t === 'living') location.hash = '#/calendar';
+    else if (t === 'living') location.hash = '#/notebook';
     else if (t === 'adult') {
       const a = adultById(r.dataset.id); const st = h.adults.find((x) => x.id === a.id)?.status;
       const sh = openSheet(`<h2>${avatar(a, 'sm')} ${esc(a.name)}의 상태</h2><p class="adult-status">${statusLine(st)}</p>${statusButtons(a.id, st?.state)}<div class="row end"><button class="btn ghost" data-close>닫기</button></div>`);
