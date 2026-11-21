@@ -118,13 +118,14 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
   const path = buildPath(from, targetCell, slotX(from, id));
   path[path.length - 1][0] = finalX;
   w.cell = targetCell;   // 논리 위치는 바로 바꿔 둔다(다른 기기와 같은 값)
+  clearTimeout(idleTimer);
   if (!remote) {
     PENDING.set(id, targetCell);
     put(`/api/walkers/${id}`, { cell: targetCell })
       .then(() => { if (PENDING.get(id) === targetCell) PENDING.delete(id); })
       .catch((e) => { PENDING.delete(id); errToast(e); });
   }
-  if (reduce()) { w.x = finalX; w.y = FLOOR_Y[rc(targetCell)[0]]; render(); arriveCb?.(p, targetCell); return; }
+  if (reduce()) { w.x = finalX; w.y = FLOOR_Y[rc(targetCell)[0]]; render(); armIdle(); arriveCb?.(p, targetCell); return; }
   w.moving = true; w.x = path[0][0]; w.y = path[0][1];
   const lens = path.slice(1).map((pt, i) => segLen(path[i], pt)); const total = lens.reduce((a, b) => a + b, 0);
   const t0 = performance.now(); let seg = 0;
@@ -138,7 +139,7 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
     if (b[0] !== a[0]) { const face = b[0] > a[0] ? 1 : -1; if (face !== w.face) { w.face = face; const sp = document.querySelector(`[data-walker="${id}"] .wk-sprite`); if (sp) sp.style.transform = `scaleX(${face})`; } }
     const el = document.querySelector(`[data-walker="${id}"]`);
     if (el) { el.style.left = `${w.x}%`; el.style.top = `${w.y}%`; }
-    if (d < total) raf(tick); else { w.moving = false; w.face = 1; clearTarget(); refreshOne(p); relayout(); updatePad(); arriveCb?.(p, w.cell); }
+    if (d < total) raf(tick); else { w.moving = false; w.face = 1; clearTarget(); refreshOne(p); relayout(); updatePad(); armIdle(); arriveCb?.(p, w.cell); }
   };
   raf(tick);
 }
@@ -173,6 +174,20 @@ function showTarget(cell, id) {
   layer.insertAdjacentHTML('afterbegin', `<i class="walk-target" style="left:${slotX(cell, id)}%;top:${FLOOR_Y[rc(cell)[0]]}%"></i>`);
 }
 
+// ===== 선택 자동 해제: 선택한 채 한 자리에서 5초 동안 이동 요청이 없으면 이동 선택을 끈다 =====
+export const IDLE_MS = 5000;
+let idleTimer = null;
+function deselect() {
+  selected = null;
+  document.querySelectorAll('.walker.sel').forEach((x) => { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); });
+  updatePad();
+}
+function armIdle() {
+  clearTimeout(idleTimer); idleTimer = null;
+  if (selected === null) return;
+  idleTimer = setTimeout(() => { const w = W.get(selected); if (w?.moving) return armIdle(); deselect(); }, IDLE_MS);
+}
+
 // ===== 연결 =====
 export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
   P = peopleFrom(h); arriveCb = onArrive || null;
@@ -199,7 +214,7 @@ export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
       if (dbl) { const p = P.find((x) => x.id === id); if (p && onDouble) { onDouble(p); return; } }
       selected = selected === id ? null : id;
       $$('.walker', houseEl).forEach((x) => { const on = Number(x.dataset.walker) === selected; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
-      updatePad(); return;
+      updatePad(); armIdle(); return;
     }
     const a = e.target.closest('[data-act]');
     if (a) {
@@ -218,7 +233,7 @@ export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
     const r = house.getBoundingClientRect();
     const cell = cellAt(((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100);
     const w = W.get(p.id);
-    if (!cell || w.moving || w.cell === cell) return;
+    if (!cell || w.moving || w.cell === cell) { armIdle(); return; }
     moveTo(p.id, cell);
   }, true);
   for (const [id, target] of toMove) setTimeout(() => moveTo(id, target, { remote: true }), 50);
