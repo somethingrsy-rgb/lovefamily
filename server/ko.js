@@ -12,7 +12,7 @@ export function futureForm(name) {
   if (!isHangul(last)) return `${stem} `.trim();
   return hasBatchim(last) ? `${stem}을` : stem.slice(0, -1) + String.fromCharCode(code(last) + 8);
 }
-const PHRASE = { tv: 'TV 보는', meal: '식사', game: '게임하는' };
+const PHRASE = { tv: 'TV 보는', meal: '식사', game: '게임하는', brush: '양치하는', homework: '숙제하는', reading: '책 읽는', bath: '씻는' };
 export const phrase = (kind, name) => PHRASE[kind] || name;
 export function warnText(kidName, kind, name, nextName) {
   return `${vocative(kidName)}, ${phrase(kind, name)} 시간이 5분 남았어요.${nextName ? ` 다음은 ${iEyo(nextName)}.` : ''} 이제 슬슬 마무리할 준비를 해요.`;
@@ -21,6 +21,10 @@ export function endText(kind, name) {
   if (kind === 'meal') return '식사 시간이 끝났어요. 더 필요하면 어른에게 알려 주세요.';
   if (kind === 'game') return '게임 시간이 끝났어요. 저장하고 마무리해요.';
   if (kind === 'tv') return 'TV 보는 시간이 끝났어요. 이제 TV를 끄고 마무리해요.';
+  if (kind === 'brush') return '양치 시간이 끝났어요. 입을 헹구고 마무리해요.';
+  if (kind === 'homework') return '숙제 시간이 끝났어요. 책가방에 챙겨 넣어요.';
+  if (kind === 'reading') return '책 읽는 시간이 끝났어요. 읽던 곳에 책갈피를 꽂아요.';
+  if (kind === 'bath') return '씻는 시간이 끝났어요. 물기를 닦고 옷을 입어요.';
   return `${name} 시간이 끝났어요.`;
 }
 export const nextEndText = (nextName, done) => (done ? `${topic(nextName)} 이미 했어요` : `이제 ${futureForm(nextName)} 시간이에요`);

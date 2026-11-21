@@ -40,7 +40,7 @@ await login(phone, 'dad@t', 'secret2', false);
 // 아빠(어른 폰)가 유하의 TV 타이머를 '다음 활동: 잠옷 갈아입기'와 함께 시작
 await phone.goto(`${base}/#/kid/${yuha}/timer`);
 await phone.waitForSelector('.act-card');
-assert.equal((await phone.$$('.act-card')).length, 3);
+assert.equal((await phone.$$('.act-card')).length, 7);
 await phone.click('.act-card:has-text("TV 보기")');
 await phone.click('#next');
 await phone.fill('input[name=custom]', '잠옷 갈아입기');
@@ -58,7 +58,7 @@ assert.match(await ipad.textContent('.kid-card:has-text("유하") .now-next'), /
 // 유엘은 따로: 식사하기 루틴의 [타이머 시작] 버튼으로 시작
 await ipad.click('.kid-card:has-text("유엘") .kid-main'); await ipad.waitForSelector('.kid-hub');
 await ipad.click('text=오늘 루틴'); await ipad.waitForSelector('.item-timer');
-await ipad.click('.item-timer');
+await ipad.click('.checks li:has-text("식사하기") .item-timer');
 await ipad.waitForSelector('.timer-big');
 await ipad.screenshot({ path: path.join(shots, '32-ipad-timer-page.png') });
 await ipad.goto(base + '/#/'); await ipad.waitForSelector('.kid-card');
@@ -151,7 +151,7 @@ await ipad.screenshot({ path: path.join(shots, '40-ipad-home-final.png'), fullPa
 // 어른 화면(폰)
 await phone.goto(`${base}/#/family-activity`); await phone.waitForSelector('.opt-admin');
 await phone.screenshot({ path: path.join(shots, '41-phone-family-plan.png'), fullPage: true });
-await phone.goto(`${base}/#/family`); await phone.waitForSelector('text=활동 타이머 설정');
+await phone.goto(`${base}/#/family`); await phone.waitForSelector('text=활동 설정');
 await phone.screenshot({ path: path.join(shots, '42-phone-family-settings.png'), fullPage: true });
 for (const hash of [`#/kid/${yuha}/supplies`, `#/kid/${yuha}/timer`, `#/kid/${yuha}/family`]) { await phone.goto(base + '/' + hash); await phone.waitForTimeout(600); assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false, hash + ' 가로 스크롤'); }
 await browser.close(); await app.close();

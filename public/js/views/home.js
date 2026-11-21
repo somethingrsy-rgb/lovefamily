@@ -60,7 +60,13 @@ const box = (k) => { const [x1, y1, x2, y2] = ROOMS[k]; return `left:${x1}%;top:
 // 방 안에 서 있는 가족 캐릭터 (public/assets/chars/*.webp)
 const KID_CHAR = ['yuel', 'yuha'];
 const ADULT_CHAR = { grandma: 'gma', mom: 'mom', dad: 'dad' };
-const charImg = (key) => `<img class="room-char" src="/assets/chars/${key}.webp" alt="" draggable="false">`;
+const charImg = (key, cls = '') => `<img class="room-char ${cls}" src="/assets/chars/${key}.webp" alt="" draggable="false">`;
+// 엄마·아빠 방: 일하는 중 → 노트북, 집에 가는 중/데리러 가는 중 → 자동차, 그 외 → 서 있는 모습
+function adultPic(role, state) {
+  if ((role === 'mom' || role === 'dad') && state === 'working') return charImg(`${role}-work`, 'wide');
+  if ((role === 'mom' || role === 'dad') && (state === 'heading_home' || state === 'picking_up')) return charImg(`${role}-car`, 'wide car');
+  return charImg(ADULT_CHAR[role]);
+}
 function houseHtml(h) {
   const kidRooms = h.kids.slice(0, 2).map((k, i) => {
     const t = timerOf(k.id); const d = k.day;
@@ -72,7 +78,7 @@ function houseHtml(h) {
     const a = h.adults.find((x) => x.role === role) || S.info.adults.find((x) => x.role === role);
     if (!a) return `<div class="room empty" style="${box(ADULT_ROOM[role])}"><span class="room-label muted">${({ grandma: '할머니', mom: '엄마', dad: '아빠' })[role]}방</span></div>`;
     const st = a.status ? (STATUS.find((x) => x[0] === a.status.state) || [])[2] : '';
-    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${charImg(ADULT_CHAR[role])}<span class="room-label">${esc(a.name)}방</span>${a.status ? `<span class="room-chips" title="${esc(a.status.label)}"><i>${st}</i></span>` : ''}</button>`;
+    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${adultPic(role, a.status?.state)}<span class="room-label">${esc(a.name)}방</span>${a.status ? `<span class="room-chips" title="${esc(a.status.label)}"><i>${st}</i></span>` : ''}</button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="/assets/house.webp" alt="" class="house-img" width="1086" height="1448">

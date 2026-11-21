@@ -69,7 +69,7 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
       core.afterCommit(() => core.hub.publish(familyId, { t: 'refresh', topics }));
     },
     member: (id) => core.get('SELECT * FROM members WHERE id = ?', id),
-    adults: (familyId) => core.all("SELECT * FROM members WHERE family_id = ? AND kind = 'adult' ORDER BY sort, id", familyId),
+    adults: (familyId) => core.all("SELECT * FROM members WHERE family_id = ? AND kind = 'adult' AND removed = 0 ORDER BY sort, id", familyId),
     kids: (familyId) => core.all("SELECT * FROM members WHERE family_id = ? AND kind = 'kid' ORDER BY sort, id", familyId),
   };
   if (dataDir) fs.mkdirSync(path.join(dataDir, 'photos'), { recursive: true });

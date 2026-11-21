@@ -24,7 +24,7 @@ export class Ctx {
     let a = null;
     if (!this.isDevice) {
       const m = this.core.member(this.session.member_id);
-      if (m && m.family_id === this.familyId && m.kind === 'adult') a = m;
+      if (m && m.family_id === this.familyId && m.kind === 'adult' && !m.removed) a = m;
     } else {
       const tok = this.headers['x-elevation'];
       if (tok) {
@@ -96,7 +96,7 @@ export class Ctx {
   }
   adultMember(id) {
     const m = this.core.member(id);
-    if (!m || m.kind !== 'adult' || m.family_id !== this.familyId) throw err(404, 'not_found', '찾을 수 없는 어른이에요.');
+    if (!m || m.kind !== 'adult' || m.removed || m.family_id !== this.familyId) throw err(404, 'not_found', '찾을 수 없는 어른이에요.');
     return m;
   }
 }

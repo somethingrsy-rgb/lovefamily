@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS members (
   kind TEXT NOT NULL CHECK (kind IN ('kid','adult')),
   role TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL, color TEXT NOT NULL,
   user_id INTEGER REFERENCES users(id), is_guardian INTEGER NOT NULL DEFAULT 0,
-  pin_hash TEXT, avatar_photo_id INTEGER, sort INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+  pin_hash TEXT, avatar_photo_id INTEGER, removed INTEGER NOT NULL DEFAULT 0, sort INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS members_user_family ON members(user_id, family_id) WHERE user_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE, family_id INTEGER NOT NULL,
@@ -158,7 +158,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id I
 // 이미 만들어진 개발/운영 DB 를 위한 컬럼 추가
 const COLUMNS = [
   ['families', 'timer_sound INTEGER NOT NULL DEFAULT 1'], ['push_subs', 'device INTEGER NOT NULL DEFAULT 0'],
-  ['routines', 'activity_id INTEGER'], ['members', 'avatar_photo_id INTEGER'], ['day_items', 'activity_id INTEGER'], ['events', 'plan_id INTEGER'], ['events', 'time TEXT'],
+  ['routines', 'activity_id INTEGER'], ['members', 'avatar_photo_id INTEGER'], ['members', 'removed INTEGER NOT NULL DEFAULT 0'], ['day_items', 'activity_id INTEGER'], ['events', 'plan_id INTEGER'], ['events', 'time TEXT'],
 ];
 
 export function openDb(path) {

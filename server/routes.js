@@ -27,6 +27,7 @@ export function buildRoutes(app) {
   add('PATCH', '/api/family', (c, h) => F.updateFamily(h.core, c, h.body));
   add('POST', '/api/family/code/rotate', (c, h) => F.rotateCode(h.core, c));
   add('PATCH', '/api/members/:id', (c, h) => F.updateMember(h.core, c, P(h), h.body));
+  add('DELETE', '/api/members/:id', (c, h) => F.removeAdult(h.core, c, P(h)));
   add('PUT', '/api/kids/:id/pin', (c, h) => F.setKidPin(h.core, c, P(h), h.body.pin));
   add('POST', '/api/kids/:id/unlock', (c, h) => F.unlockKid(h.core, c, P(h), h.body.pin));
 

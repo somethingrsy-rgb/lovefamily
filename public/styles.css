@@ -345,3 +345,13 @@ textarea { min-height: 90px; resize: vertical; }
 }
 @container (max-width: 660px) { .home-main .kids { grid-template-columns: 1fr; } .home-main .lower, .home-main .lower2 { grid-template-columns: 1fr; } .home-main .kid-card { min-height: 0; } }
 @container (max-width: 660px) { .home-main .kid-card { padding: 12px 14px; gap: 6px; } .home-main .avatar.xl { width: 60px; height: 60px; font-size: 2.1rem; } .home-main .kid-name h2 { font-size: 1.35rem; } .home-main .kid-progress b { font-size: 1.15rem; } .home-main .bar { height: 12px; } .home-main .kid-state { padding: 3px 12px; } .home-main .rem-chips li { font-size: .8rem; padding: 1px 10px; } .home-main .kt-time { font-size: 1.6rem; } }
+
+/* ===== 활동 그림 / 부모 방 상태 그림 ===== */
+.act-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.act-card .act-pic { height: 112px; width: auto; max-width: 100%; object-fit: contain; }
+.act-card .act-emoji { font-size: 3.4rem; line-height: 1; }
+.timer-big .timer-pic { display: block; height: 150px; width: auto; max-width: 70%; margin: 0 auto 6px; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(70, 40, 110, .2)); }
+.nn-card .act-pic { height: 3.6rem; width: auto; max-width: 8rem; object-fit: contain; } .nn-card .act-emoji { font-size: 3rem; line-height: 1; }
+.now-next.small .nn-card .act-pic { height: 1.8rem; } .now-next.small .nn-card .act-emoji { font-size: 1.5rem; }
+.kt-pic { flex: none; } .kt-pic .act-pic { height: 56px; width: auto; display: block; } .kt-pic:empty { display: none; }
+.room-char.wide { height: auto; width: 25cqw; bottom: 6.8cqw; } .room-char.car { width: 22.5cqw; bottom: 6.2cqw; }

@@ -1,5 +1,6 @@
 import { esc, lsGet, lsSet } from './util.js';
 import { S, get, post, bus, isDevice } from './api.js';
+import { actPic } from './actimg.js';
 
 // ---- 상태: 서버가 알려 준 '종료 시각'과 서버-기기 시계 차이로 남은 시간을 계산한다 ----
 export const T = { timers: [], offset: 0, sound: true, loaded: false };
@@ -17,7 +18,7 @@ export function ringSvg(t, size = 120, stroke = 10) {
     <circle class="ring-fg ${t.state === 'ended' ? 'done' : remaining(t) <= 300000 ? 'soon' : ''}" data-ring="${t.id}" data-c="${c}" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" fill="none" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - frac(t))}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`;
 }
 const frac = (t) => (t.state === 'ended' ? 0 : Math.min(1, remaining(t) / t.totalMs));
-export const nextCards = (t, small = false) => `<div class="now-next ${small ? 'small' : ''}"><div class="nn-card now"><small>지금</small><span class="nn-ic">${esc(t.icon)}</span><b>${esc(t.name)}</b></div>${t.next ? `<span class="nn-arrow" aria-hidden="true">→</span><div class="nn-card next ${t.next.done ? 'done' : ''}"><small>다음</small><span class="nn-ic">${esc(t.next.icon)}</span><b>${esc(t.next.name)}</b>${t.next.done ? '<em>이미 했어요</em>' : ''}</div>` : ''}</div>`;
+export const nextCards = (t, small = false) => `<div class="now-next ${small ? 'small' : ''}"><div class="nn-card now"><small>지금</small>${actPic(t.kind, t.icon, t.kidId, 'nn')}<b>${esc(t.name)}</b></div>${t.next ? `<span class="nn-arrow" aria-hidden="true">→</span><div class="nn-card next ${t.next.done ? 'done' : ''}"><small>다음</small><span class="nn-ic">${esc(t.next.icon)}</span><b>${esc(t.next.name)}</b>${t.next.done ? '<em>이미 했어요</em>' : ''}</div>` : ''}</div>`;
 
 export async function loadTimers() {
   const r = await get('/api/timers', { noPrompt: true });
@@ -27,7 +28,7 @@ export async function loadTimers() {
   return T.timers;
 }
 
-// ---- 1초 틱: 화면에 있는 타이머 숫자/링만 갱신(재렌더 없음) ----
+// ---- 1초 틱: 화면에 있는 활동 숫자/링만 갱신(재렌더 없음) ----
 const reloaded = new Set();
 setInterval(tick, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); loadTimers().catch(() => {}); } });
@@ -65,7 +66,7 @@ export function chime(kind) {
 
 function popupHost() {
   let h = document.querySelector('.tp-wrap');
-  if (!h) { h = document.createElement('div'); h.className = 'tp-wrap'; h.setAttribute('role', 'alertdialog'); h.setAttribute('aria-label', '타이머 알림'); document.getElementById('layer').appendChild(h); }
+  if (!h) { h = document.createElement('div'); h.className = 'tp-wrap'; h.setAttribute('role', 'alertdialog'); h.setAttribute('aria-label', '활동 알림'); document.getElementById('layer').appendChild(h); }
   return h;
 }
 export function showAlert(kind, t, { quiet = false } = {}) {
@@ -97,7 +98,7 @@ function present(kind, t, quiet) {
   markSeen(key);
   showAlert(kind, t, { quiet });
 }
-// 화면이 닫혀 있다가 돌아온 경우: 이미 끝난 타이머는 종료 상태를 바로 보여 주고, 지난 5분 예고는 다시 띄우지 않는다.
+// 화면이 닫혀 있다가 돌아온 경우: 이미 끝난 활동은 종료 상태를 바로 보여 주고, 지난 5분 예고는 다시 띄우지 않는다.
 function catchUp() {
   if (!isDevice()) return;
   const now = nowMs();

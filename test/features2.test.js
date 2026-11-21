@@ -19,7 +19,8 @@ test('⑨ 30분 타이머: 25분에 예고 1회, 30분에 종료 1회 · 알겠�
   const f = await setup({ withRoutines: true });
   try {
     const a = await acts(f); const kid = f.ids.yuha;
-    assert.equal(a.tv.minutes, 30); assert.deepEqual(Object.values(a).map((x) => x.name).sort(), ['TV 보기', '게임하기', '식사하기'].sort());
+    assert.equal(a.tv.minutes, 30); assert.deepEqual(Object.values(a).map((x) => x.name).sort(), ['TV 보기', '게임하기', '식사하기', '양치하기', '숙제하기', '책 읽기', '씻기'].sort());
+    assert.deepEqual(Object.values(a).map((x) => x.minutes).sort((x, y) => x - y), [5, 20, 30, 30, 30, 30, 30]);
     // 다음 활동(어른이 선택): 오늘 루틴의 미완료 항목
     const day = await f.day(kid);
     const brush = day.items.find((i) => i.name === '양치하기');
@@ -184,11 +185,11 @@ test('식사하기 루틴에 타이머 연결: 이름이 같으면 자동 연결
   const f = await setup({ withRoutines: false });
   try {
     await f.mom.ok('POST', '/api/routines', { kidIds: [f.ids.yuel], name: '식사하기', icon: '🍽️', days: 'daily', slot: 'evening' });
-    await f.mom.ok('POST', '/api/routines', { kidIds: [f.ids.yuel], name: '숙제하기', icon: '📚', days: 'daily', slot: 'evening' });
+    await f.mom.ok('POST', '/api/routines', { kidIds: [f.ids.yuel], name: '장난감 정리', icon: '🧸', days: 'daily', slot: 'evening' });
     const day = await f.day(f.ids.yuel);
-    const meal = day.items.find((i) => i.name === '식사하기'); const hw = day.items.find((i) => i.name === '숙제하기');
+    const meal = day.items.find((i) => i.name === '식사하기'); const hw = day.items.find((i) => i.name === '장난감 정리');
     assert.ok(meal.activityId); assert.equal(hw.activityId, null);
-    const rt = (await f.mom.ok('GET', `/api/kids/${f.ids.yuel}/routines`)).find((r) => r.name === '숙제하기');
+    const rt = (await f.mom.ok('GET', `/api/kids/${f.ids.yuel}/routines`)).find((r) => r.name === '장난감 정리');
     const up = await f.mom.ok('PATCH', `/api/routines/${rt.id}`, { activityId: meal.activityId, applyToday: true });
     assert.equal(up.routine.activityId, meal.activityId);
   } finally { await f.close(); }
@@ -315,5 +316,61 @@ test('얼굴 사진(투명 PNG): 어른만 올리고, 가족 구성원 정보에
     assert.equal((await other.patch(`/api/members/${f.ids.yuha}`, { photoId: up.json.id })).status, 404);
     // 지우기
     assert.equal((await f.mom.ok('PATCH', `/api/members/${f.ids.yuha}`, { photoId: null })).avatarUrl, null);
+  } finally { await f.close(); }
+});
+
+test('기본 활동은 기존 가족에도 없는 것만 채워지고, 지운 활동은 되살아나지 않는다', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    const list = await f.mom.ok('GET', '/api/activities');
+    const reading = list.find((x) => x.kind === 'reading');
+    assert.equal(reading.name, '책 읽기');
+    await f.mom.ok('DELETE', `/api/activities/${reading.id}`);
+    // 서버가 다시 시작돼도(보충 로직 재실행) 지운 활동은 그대로
+    const { ensureDefaultActivities } = await import('../server/services/timers.js');
+    ensureDefaultActivities(f.core); ensureDefaultActivities(f.core);
+    const after = await f.mom.ok('GET', '/api/activities');
+    assert.equal(after.some((x) => x.kind === 'reading'), false);
+    assert.equal(after.length, 6);
+    // 이전 버전(3종만 있던 DB) 시뮬레이션: 새 종류가 보충된다
+    f.core.run("DELETE FROM activities WHERE kind IN ('brush','homework','bath')");
+    ensureDefaultActivities(f.core);
+    assert.equal((await f.mom.ok('GET', '/api/activities')).length, 6);
+  } finally { await f.close(); }
+});
+
+test('어른 삭제: 부모만, 본인 불가, 로그인·알림 정리, 대기 요청 취소(잠금 해제), 기록은 이름 유지', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    const { Client } = await import('./helpers.js');
+    const extra = new Client(f.base);
+    await extra.ok('POST', '/api/auth/join', { code: f.code, loginId: 'extra@test', password: 'secret7', role: 'other', name: '유하' });
+    const extraId = (await extra.ok('GET', '/api/me')).me.id;
+    await extra.ok('POST', '/api/push/subscribe', { subscription: { endpoint: 'https://push.example/extra', keys: { p256dh: 'p', auth: 'a' } } });
+    let adults = (await f.mom.ok('GET', '/api/me')).adults;
+    assert.equal(adults.length, 4);
+    // 출금 요청을 이 어른에게 보내고 승인까지 받은 상태(돈 잠금)
+    await f.addMoney(f.ids.yuel, 5000);
+    const H = { 'X-Act-Kid': String(f.ids.yuel) };
+    const rq = await f.device.ok('POST', `/api/kids/${f.ids.yuel}/requests`, { type: 'withdraw', amount: 3000, purpose: '간식', toMemberId: extraId }, H);
+    await extra.ok('POST', `/api/money/requests/${rq.id}/approve`);
+    assert.equal((await f.wallet(f.ids.yuel)).waiting, 3000);
+    // 권한: 부모 아님 ✗, 본인 ✗, 없는 사람 ✗
+    assert.equal((await f.gma.del(`/api/members/${extraId}`)).status, 403);
+    assert.equal((await f.mom.del(`/api/members/${f.ids.mom}`)).status, 409);
+    assert.equal((await f.mom.del(`/api/members/${f.ids.yuel}`)).status, 404, '아이는 여기서 삭제 불가');
+    await f.mom.ok('DELETE', `/api/members/${extraId}`);
+    adults = (await f.mom.ok('GET', '/api/me')).adults;
+    assert.deepEqual(adults.map((a) => a.id).sort(), [f.ids.mom, f.ids.dad, f.ids.gma].sort());
+    assert.equal((await extra.get('/api/me')).status, 401, '세션 종료');
+    assert.equal((await new Client(f.base).post('/api/auth/login', { loginId: 'extra@test', password: 'secret7' })).status, 401, '로그인 불가');
+    const w = await f.wallet(f.ids.yuel); assert.equal(w.waiting, 0); assert.equal(w.available, 5000);
+    // 같은 아이디로 다시 가입 가능
+    assert.equal((await new Client(f.base).post('/api/auth/join', { code: f.code, loginId: 'extra@test', password: 'secret8', role: 'other' })).status, 201);
+    // 푸시 구독도 삭제
+    assert.equal(f.core.get("SELECT COUNT(*) c FROM push_subs WHERE endpoint = 'https://push.example/extra'").c, 0);
+    // 어른 홈/요청 대상 목록에 나타나지 않음
+    assert.ok(!(await f.device.ok('GET', '/api/home')).adults.some((a) => a.id === extraId));
+    assert.equal((await f.device.post(`/api/kids/${f.ids.yuel}/requests`, { type: 'withdraw', amount: 100, purpose: 'x', toMemberId: extraId }, H)).status, 404);
   } finally { await f.close(); }
 });

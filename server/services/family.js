@@ -216,3 +216,32 @@ export function rotateCode(core, ctx) {
   core.run('UPDATE families SET code = ? WHERE id = ?', code, ctx.familyId);
   return { code };
 }
+
+// 어른 삭제(부모 권한). 기록(장부 처리자·도장 준 사람 등)은 이름이 남도록 행은 보존하고 로그인·알림·요청만 정리한다.
+export function removeAdult(core, ctx, memberId) {
+  const me = ctx.guardian();
+  const m = core.member(memberId);
+  if (!m || m.family_id !== ctx.familyId || m.kind !== 'adult' || m.removed) throw err(404, 'not_found', '찾을 수 없는 어른이에요.');
+  if (m.id === me.id) throw err(409, 'self', '내 계정은 여기서 삭제할 수 없어요.');
+  return core.tx(() => {
+    // 이 어른에게 온 대기 중 요청은 취소해서 아이의 잠긴 돈이 풀리게 한다
+    for (const r of core.all("SELECT * FROM money_requests WHERE to_member_id = ? AND status IN ('pending','approved')", m.id)) {
+      core.run("UPDATE money_requests SET status = 'canceled', updated_at = ? WHERE id = ?", core.now(), r.id);
+      if (r.type === 'purchase') {
+        const w = core.get('SELECT * FROM wishes WHERE id = ?', r.wish_id);
+        if (w && w.status === 'purchasing') core.run('UPDATE wishes SET status = ? WHERE id = ?', w.allocated >= w.price ? 'ready' : 'goal', w.id);
+      }
+    }
+    const userId = m.user_id;
+    core.run('UPDATE members SET removed = 1, user_id = NULL, is_guardian = 0 WHERE id = ?', m.id);
+    core.run('DELETE FROM push_subs WHERE member_id = ?', m.id);
+    core.run('DELETE FROM elevations WHERE member_id = ?', m.id);
+    core.run('DELETE FROM statuses WHERE member_id = ?', m.id);
+    if (userId) {
+      core.run('DELETE FROM sessions WHERE user_id = ?', userId);
+      core.run('DELETE FROM users WHERE id = ?', userId);
+    }
+    core.refresh(ctx.familyId, 'family', 'home', 'requests', 'wallet', 'status');
+    return { ok: true };
+  });
+}
