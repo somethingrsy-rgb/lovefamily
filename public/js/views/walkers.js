@@ -205,6 +205,17 @@ function armIdle() {
   idleTimer = setTimeout(() => { const w = W.get(selected); if (w?.moving) return armIdle(); deselect(); }, IDLE_MS);
 }
 
+// 홈 화면을 다시 그리지 않고, 서버에서 온 위치만 맞춘다(다른 기기에서 누가 움직였을 때 이 화면에서도 걸어서 이동)
+export function syncWalkers(h) {
+  P = peopleFrom(h);
+  const server = h.walkers || {};
+  for (const p of P) {
+    const target = server[p.id] || p.home;
+    if (!W.get(p.id)) W.set(p.id, { id: p.id, key: p.key, home: p.home, cell: target, x: COL_X[rc(target)[1]], y: FLOOR_Y[rc(target)[0]], face: 1, moving: false });
+  }
+  for (const p of P) { const w = W.get(p.id); const target = server[p.id] || p.home; if (!w.moving && !PENDING.has(p.id) && w.cell !== target) setTimeout(() => moveTo(p.id, target, { remote: true }), 30); }
+}
+
 // ===== 연결 =====
 export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
   P = peopleFrom(h); arriveCb = onArrive || null;

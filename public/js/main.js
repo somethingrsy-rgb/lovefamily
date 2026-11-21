@@ -122,6 +122,7 @@ async function render() {
   else if (boundKid() && $$('.tab').length !== 3) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
   $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === match.tab));
   const main = $('#main');
+  main.onclick = null; // 이전 화면의 눌림 처리가 새 화면에 남지 않게
   main.innerHTML = '<div class="loading">불러오는 중…</div>';
   setTimeout(() => { const l = $('.loading', main); if (l && token === navToken) l.innerHTML = '불러오는 중…<br><small>오래 걸리고 있어요. 인터넷을 확인하고 다시 시도해 주세요.</small><br><button class="btn small" id="retryLoad">다시 시도</button>', $('#retryLoad', l).onclick = () => location.reload(); }, 12000);
   if (match.adult && !(await needAdult())) { if (token === navToken) go('/'); return; }

@@ -241,11 +241,13 @@ function overlay(html, ms, cls = '') {
   setTimeout(() => el.classList.add('out'), ms - 300);
   setTimeout(() => el.remove(), ms);
 }
+// 도장 그림은 미리 읽어 둔다: 처음 찍을 때 그림을 받느라 끊기지 않게
+['/assets/stamp-tool.webp', '/assets/emoji/stamp-mark.webp'].forEach((u) => { const i = new Image(); i.decoding = 'sync'; i.src = u; i.decode?.().catch(() => {}); });
 const stampSeen = new Set();
 export function playStamp({ kidName, provider, key }) {
   if (key != null) { if (stampSeen.has(key)) return; stampSeen.add(key); }
   // 도장이 위에서 쑥 내려와 "쾅" 찍히고(화면이 살짝 흔들림), 도장이 올라가면 자국이 남는다
-  overlay(`<div class="stamp-scene"><div class="stamp-paper"></div>
+  overlay(`<div class="stamp-scene"><div class="stamp-paper"></div><div class="stamp-shadow"></div>
       <div class="stamp-ring"></div>
       <div class="stamp-mark"><img src="/assets/emoji/stamp-mark.webp" alt=""></div>
       <img class="stamp-tool" src="/assets/stamp-tool.webp" alt="" draggable="false">

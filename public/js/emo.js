@@ -115,7 +115,7 @@ function swapText(node) {
     if (!file) continue;
     if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
     const img = document.createElement('img');
-    img.className = 'emo'; img.src = `/assets/emoji/${file}.webp`; img.alt = m[1]; img.draggable = false; img.decoding = 'async';
+    img.className = 'emo'; img.src = `/assets/emoji/${file}.webp`; img.alt = m[1]; img.draggable = false; img.decoding = 'sync';
     frag.appendChild(img);
     last = m.index + m[0].length;
   }
@@ -139,6 +139,8 @@ const mo = new MutationObserver((muts) => {
   }
   if (!queued) { queued = true; queueMicrotask(flush); }
 });
+// 화면에 붙이기 전의 조각(template 내용)을 미리 그림으로 바꾼다 — 화면을 '고쳐 쓰기(morph)'할 때 새 조각과 현재 화면을 같은 모양으로 비교하기 위함
+export function emojify(root) { [...root.childNodes].forEach((n) => walk(n)); }
 export function startEmoji() {
   walk(document.body);
   mo.observe(document.body, { childList: true, subtree: true, characterData: true });

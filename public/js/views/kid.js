@@ -2,6 +2,7 @@ import { $, $$, esc, dateLabel, shortDate, addDays, won, SLOT } from '../util.js
 import { S, get, post, del, toggleItem, pendingItems, isDevice, isAdultNow, kidById, bus } from '../api.js';
 import { avatar, toast, errToast, playStamp, formSheet, confirmDialog } from '../ui.js';
 import { back } from '../common.js';
+import { morph } from '../morph.js';
 import { startFlow } from './timerui.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
@@ -52,7 +53,7 @@ export async function today(el, { id }) {
       recheck: `<div class="banner warn">🔎 다시 확인해 보래요: ${esc(d.recheck?.reason || '')}<div class="small">표시된 항목을 다시 해 보고 체크해 주세요.</div></div>`,
       none: `<div class="banner rest">😴 이 날은 예정된 루틴이 없어요</div>`,
     }[d.status] || '';
-    el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 루틴`, `<a class="btn small" href="#/kid/${id}/timer">⏱ 활동</a>`)}
+    morph(el, `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 루틴`, `<a class="btn small" href="#/kid/${id}/timer">⏱ 활동</a>`)}
       <div class="day-nav"><button class="btn ghost" id="prev" aria-label="전날">‹</button><h2>${dateLabel(date)}${isToday ? ' <span class="tag">오늘</span>' : ''}</h2><button class="btn ghost" id="next" ${isToday ? 'disabled' : ''} aria-label="다음날">›</button></div>
       ${banner}
       ${!d.exists ? '<div class="empty">이 날의 루틴 기록이 없어요</div>' : ''}
@@ -63,18 +64,25 @@ export async function today(el, { id }) {
           <span class="ci-box">${p ? (S.online ? '⏳' : '📥') : done ? '✔' : ''}</span>${p ? `<em class="ci-note">${S.online ? '저장 중' : '저장 대기'}</em>` : ''}</button>${i.activityId ? `<button class="btn small item-timer" data-tstart="${i.activityId}" aria-label="${esc(i.name)} 활동 시작">⏱ 활동 시작</button>` : ''}</li>`; }).join('')}</ul></section>`).join('')}
       ${d.status === 'recheck' && d.done === d.total ? `<button class="btn primary big wide" id="rereq">다시 확인 요청하기</button>` : ''}
       ${d.status === 'ready' ? `<button class="btn primary big wide" id="rereq">✋ 도장 요청하기</button>` : ''}
-      ${d.exists ? `<p class="progress-line">${d.done}/${d.total} 완료 · ${d.status === 'approved' ? '도장을 받아서 바꿀 수 없어요' : '어른이 확인하면 도장을 받아요'}</p>` : ''}`;
-    $('#prev', el).onclick = () => { date = addDays(date, -1); lastStatus = null; load().catch(errToast); };
-    $('#next', el).onclick = () => { date = addDays(date, 1); lastStatus = null; load().catch(errToast); };
-    $('#rereq', el)?.addEventListener('click', async () => { try { await post(`/api/kids/${id}/day/request`, { date }); toast(d.status === 'ready' ? '어른들께 도장 요청을 보냈어요! ✋' : '다시 요청했어요'); load(); } catch (e) { errToast(e); } });
-    $$('[data-tstart]', el).forEach((b) => b.addEventListener('click', async () => { try { if (await startFlow(id, Number(b.dataset.tstart))) location.hash = `#/kid/${id}/timer`; } catch (e) { errToast(e); } }));
-    $$('.check-item', el).forEach((b) => b.addEventListener('click', async () => {
+      ${d.exists ? `<p class="progress-line">${d.done}/${d.total} 완료 · ${d.status === 'approved' ? '도장을 받아서 바꿀 수 없어요' : '어른이 확인하면 도장을 받아요'}</p>` : ''}`);
+  }
+  // 눌림은 el 한 곳에서 처리한다(화면을 고쳐 쓰더라도 이벤트가 겹쳐 붙지 않는다)
+  el.onclick = async (e) => {
+    const t = e.target;
+    if (t.closest('#prev')) { date = addDays(date, -1); lastStatus = null; load().catch(errToast); return; }
+    if (t.closest('#next') && !t.closest('#next').disabled) { date = addDays(date, 1); lastStatus = null; load().catch(errToast); return; }
+    const rq = t.closest('#rereq');
+    if (rq) { try { const r = await post(`/api/kids/${id}/day/request`, { date }); toast(r.status === 'requested' ? '어른들께 도장 요청을 보냈어요! ✋' : '다시 요청했어요'); load(); } catch (x) { errToast(x); } return; }
+    const ts = t.closest('[data-tstart]');
+    if (ts) { try { if (await startFlow(id, Number(ts.dataset.tstart))) location.hash = `#/kid/${id}/timer`; } catch (x) { errToast(x); } return; }
+    const b = t.closest('.check-item');
+    if (b && !b.disabled) {
       const next = b.dataset.done !== '1';
       b.dataset.done = next ? 1 : 0; b.classList.toggle('done', next); b.classList.add('pending');
-      try { await toggleItem(Number(b.dataset.id), next); } catch (e) { errToast(e); }
+      try { await toggleItem(Number(b.dataset.id), next); } catch (x) { errToast(x); }
       load().catch(() => {});
-    }));
-  }
+    }
+  };
   await load();
   const off = bus.on('notified', (n) => { if (n.kind === 'stamp_approved') load().catch(() => {}); });
   return { refresh: load, topics: ['day', 'home'], destroy: off };

@@ -9,7 +9,7 @@ import { T, timerOf, fmt, remaining } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
-import { mountWalkers, walkPadHtml, walkerCell, anyMoving, cheer } from './walkers.js';
+import { mountWalkers, walkPadHtml, walkerCell, anyMoving, cheer, syncWalkers } from './walkers.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -135,6 +135,7 @@ function scheduleHtml(sch) {
 
 export async function mount(el) {
   let timer;
+  let lastSig = '';
   const lastDay = new Map(); // 아이별 직전 하루 상태: 도장을 '방금' 받았는지 알아내기 위함
   let deferred = false; // 누군가 걷는 중이면 화면을 다시 그리지 않고, 도착한 뒤에 한 번만 갱신(걷는 그림이 끊기거나 깜박이지 않게)
   const adultUser = !isDevice();
@@ -147,6 +148,10 @@ export async function mount(el) {
       adultUser ? get('/api/adult/home') : Promise.resolve(null),
     ]);
     S.info = info;
+    // 내용이 그대로면(위치만 달라진 알림 등) 화면을 다시 그리지 않는다 — 다시 그리면 모든 그림이 새로 만들어져 깜박인다
+    const sig = JSON.stringify([home, ah, info.kids, info.adults], (k, v) => (['now', 'walkers', 'serverNow', 'remainingMs', 'remaining'].includes(k) ? undefined : v));
+    if (sig === lastSig && el.querySelector('.house')) { syncWalkers(home); return; }
+    lastSig = sig;
     draw(home, ah);
   }
   function draw(h, ah) {

@@ -34,3 +34,13 @@ test('index.html 은 모든 앱 모듈을 미리 불러오도록 적혀 있다',
     assert.ok(html.includes(`href="${rel}"`), `${rel} 이(가) modulepreload 에 없어요 (npm run preload 로 갱신)`);
   }
 });
+
+test('앱 자바스크립트는 모두 문법 오류가 없다(문법 하나가 깨지면 화면이 통째로 안 뜬다)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  const base = new URL('../public/js', import.meta.url).pathname;
+  for (const f of walk(base).filter((x) => x.endsWith('.js'))) {
+    const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' });
+    assert.equal(r.status, 0, `${f}: ${r.stderr}`);
+  }
+});

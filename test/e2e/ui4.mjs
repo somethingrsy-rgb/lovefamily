@@ -30,6 +30,7 @@ const me = await mom.call('GET', '/api/me');
 await new C().call('POST', '/api/auth/join', { code: me.family.code, loginId: 'dad@t', password: 'secret2', role: 'dad' });
 const yuel = me.kids[0].id;
 await mom.call('POST', '/api/routines', { kidIds: [yuel], name: '양치하기', icon: '🪥', days: 'daily', slot: 'morning' });
+await mom.call('POST', '/api/routines', { kidIds: [yuel], name: '숙제하기', icon: '📚', days: 'daily', slot: 'after_school' });
 
 const browser = await chromium.launch();
 const errors = [];
@@ -51,6 +52,14 @@ await page.dblclick(`[data-walker="${yuel}"]`, { force: true }); // 선택 중 �
 await page.waitForFunction((id) => location.hash === `#/kid/${id}`, yuel, { timeout: 4000 });
 await page.waitForSelector('.kid-hub', { timeout: 8000 }); // 화면이 완전히 뜬 뒤에 홈으로 돌아간다
 console.log('✓ 캐릭터를 두 번 누르면 그 아이 화면(허브)으로');
+// 루틴을 누를 때 화면이 통째로 다시 그려지지 않는다(깜박임/지지직 방지): 누른 항목만 바뀌고 나머지 요소는 그대로
+await page.goto(base + `/#/kid/${yuel}/today`); await page.waitForSelector('.check-item');
+await page.evaluate(() => { window.__gone = 0; new MutationObserver((ms) => ms.forEach((m) => m.removedNodes.forEach((n) => { if (n.nodeType === 1 && (n.matches('.check-item, .ci-icon, .slot, img.emo') || n.querySelector('.check-item, img.emo'))) window.__gone++; }))).observe(document.querySelector('#main'), { childList: true, subtree: true }); });
+await page.click('.check-item >> nth=0');
+await page.waitForFunction(() => document.querySelector('.check-item.done') && !document.querySelector('.check-item.pending'), null, { timeout: 5000 });
+await page.waitForTimeout(800);
+assert.equal(await page.evaluate(() => window.__gone), 0, '루틴을 눌러도 항목·그림이 새로 만들어지지 않는다(깜박임 없음)');
+console.log('✓ 루틴을 눌러도 화면이 깜박이지 않음(필요한 부분만 바뀜)');
 await page.goto(base + '/#/'); await page.waitForSelector('.walker', { timeout: 8000 }).catch(async () => { console.log('DBG', page.url(), (await page.textContent('body')).slice(0, 200)); throw new Error('home not shown'); }); await page.waitForTimeout(400);
 
 // 2) 루틴을 다 하면 아이가 도장 방으로 걸어가고, 어른에게는 아직 알림이 가지 않는다
