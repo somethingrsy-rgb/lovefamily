@@ -47,8 +47,9 @@ export function activeStamp(core, kidId, date) {
   return core.get('SELECT * FROM stamps WHERE kid_id = ? AND date = ? AND voided = 0', kidId, date);
 }
 
-// 하루 상태를 항목 상태에 맞춰 정리: 미완료가 생기면 대기 요청 무효화, 모두 완료되면 요청 자동 생성
-export function reconcileRequest(core, day) {
+// 하루 상태를 항목 상태에 맞춰 정리: 미완료가 생기면 대기 요청 무효화.
+// 모두 완료되어도 요청은 자동으로 만들지 않는다 — 아이가 도장 방에서 [도장 요청]을 눌렀을 때(create: true)만 만들고 어른에게 알린다.
+export function reconcileRequest(core, day, { create = false } = {}) {
   const kid = core.member(day.kid_id);
   const total = core.get('SELECT COUNT(*) c FROM day_items WHERE day_id = ?', day.id).c;
   const undone = core.get('SELECT COUNT(*) c FROM day_items WHERE day_id = ? AND done = 0', day.id).c;
@@ -59,12 +60,12 @@ export function reconcileRequest(core, day) {
     core.refresh(day.family_id, 'approvals', 'home', 'day');
     return null;
   }
-  if (!pending && undone === 0 && total > 0) {
+  if (create && !pending && undone === 0 && total > 0) {
     const rid = core.insert("INSERT INTO stamp_requests (family_id, kid_id, day_id, date, status, created_at) VALUES (?,?,?,?, 'pending', ?)", day.family_id, day.kid_id, day.id, day.date, core.now());
     for (const a of core.adults(day.family_id)) {
       core.notify({
         familyId: day.family_id, memberId: a.id, kind: 'stamp_request', popup: true,
-        title: `${kid.name}의 도장 확인`, body: `${day.date} 루틴을 모두 했어요. 확인해 주세요.`,
+        title: `${kid.name}의 도장 확인`, body: `${day.date} 루틴을 모두 하고 도장을 요청했어요. 확인해 주세요.`,
         url: `/#/approve/${rid}`, dedupe: `stamp-req:${rid}:${a.id}`, lock: `${kid.name} · 도장 확인 요청`,
       });
     }
@@ -90,6 +91,7 @@ export function dayState(core, kidId, date) {
   else if (stamp) status = 'approved';
   else if (pending) status = 'requested';
   else if (last?.status === 'recheck') status = 'recheck';
+  else if (done === items.length) status = 'ready'; // 루틴을 다 했어요: 도장 방에서 [도장 요청]을 눌러야 어른에게 알림이 가요
   const out = { kidId, date, exists: true, dayId: day.id, status, items, total: items.length, done, editable: !stamp };
   if (stamp) { const p = core.member(stamp.provider_id); out.stamp = { id: stamp.id, providerId: stamp.provider_id, providerName: p?.name, at: stamp.approved_at }; }
   if (pending) out.requestId = pending.id;
@@ -109,8 +111,14 @@ export function setItemDone(core, ctx, itemId, done) {
       core.run('UPDATE day_items SET done = ?, done_at = ?, flag_reason = NULL WHERE id = ?', done ? 1 : 0, done ? core.now() : null, item.id);
     }
     reconcileRequest(core, core.get('SELECT * FROM days WHERE id = ?', item.did));
+    const out = dayState(core, item.kid_id, item.date);
+    // 루틴을 다 끝낸 아이는 도장 방(확인방, 1행 2열)으로 걸어간다 — 모든 기기에서 같이 보인다
+    if (done && out.status === 'ready' && item.date === core.today()) {
+      core.run("INSERT INTO walkers (member_id, family_id, cell, updated_at) VALUES (?,?,'12',?) ON CONFLICT(member_id) DO UPDATE SET cell = '12', updated_at = excluded.updated_at", item.kid_id, ctx.familyId, core.now());
+      core.refresh(ctx.familyId, 'walkers');
+    }
     core.refresh(ctx.familyId, 'home', 'day');
-    return dayState(core, item.kid_id, item.date);
+    return out;
   });
 }
 
@@ -123,7 +131,7 @@ export function requestStamp(core, ctx, kidId, date) {
   return core.tx(() => {
     if (st.status === 'approved') return st;
     if (st.done < st.total || !st.total) throw err(409, 'incomplete', '아직 끝내지 못한 루틴이 있어요.');
-    reconcileRequest(core, core.get('SELECT * FROM days WHERE id = ?', st.dayId));
+    reconcileRequest(core, core.get('SELECT * FROM days WHERE id = ?', st.dayId), { create: true });
     core.refresh(ctx.familyId, 'home', 'day');
     return dayState(core, kidId, date);
   });

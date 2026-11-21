@@ -4,13 +4,15 @@ import { avatar, toast, errToast, formSheet, openSheet, confirmDialog, needAdult
 import { back } from '../common.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
+// 아이콘 고르기: 글자 목록(select)은 이모지 그림으로 바꿀 수 없어서, 그림 버튼 + 펼침 칸으로 만든다
+const iconPick = (i, v = ICONS[0]) => `<input type="hidden" name="ic${i}" value="${v}"><button type="button" class="icon-pick" aria-label="아이콘 고르기" aria-expanded="false">${v}</button>`;
 const ICONS = ['🎒', '💧', '✂️', '🖍️', '🟥', '🧴', '👟', '🎽', '📔', '🍙', '🧻', '🎨'];
 
 // 준비물 등록 시트: 한 번에 여러 개, 대상 아이(유엘/유하/모두), 날짜(기본 내일). postId 가 있으면 원본 알림장과 연결.
 export async function supplySheet({ postId = null, postTitle = '', kidId = null, onDone } = {}) {
   if (!(await needAdult())) return;
   const kids = S.info.kids;
-  const rows = (n) => Array.from({ length: n }, (_, i) => `<div class="sup-row"><select name="ic${i}" aria-label="아이콘">${ICONS.map((x) => `<option>${x}</option>`).join('')}</select><input name="nm${i}" maxlength="30" placeholder="${['물통', '색종이', '체육복', '풀'][i] || '준비물'}" aria-label="준비물 이름"></div>`).join('');
+  const rows = (n) => Array.from({ length: n }, (_, i) => `<div class="sup-row">${iconPick(i)}<input name="nm${i}" maxlength="30" placeholder="${['물통', '색종이', '체육복', '풀'][i] || '준비물'}" aria-label="준비물 이름"></div>`).join('');
   const tomorrow = addDays(S.info.today, 1);
   await formSheet({
     title: postTitle ? `준비물 추가 · ${postTitle}` : '준비물 직접 추가', submit: '등록', cls: 'tall',
@@ -31,10 +33,27 @@ export async function supplySheet({ postId = null, postTitle = '', kidId = null,
 }
 // 시트가 열린 뒤 '한 줄 더' 버튼 동작은 위임으로 처리
 document.addEventListener('click', (e) => {
+  const pick = e.target.closest('.icon-pick'); const opt = e.target.closest('.icon-opt');
+  if (pick) {
+    const row = pick.closest('.sup-row'); const open = row.nextElementSibling?.classList.contains('icon-grid');
+    document.querySelectorAll('.icon-grid').forEach((g) => g.remove());
+    document.querySelectorAll('.icon-pick[aria-expanded=true]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    if (!open) {
+      row.insertAdjacentHTML('afterend', `<div class="icon-grid" role="listbox" aria-label="아이콘">${ICONS.map((x) => `<button type="button" class="icon-opt ${row.querySelector('input[type=hidden]').value === x ? 'on' : ''}" role="option" data-ic="${x}" aria-label="아이콘">${x}</button>`).join('')}</div>`);
+      pick.setAttribute('aria-expanded', 'true');
+    }
+    return;
+  }
+  if (opt) {
+    const grid = opt.closest('.icon-grid'); const row = grid.previousElementSibling;
+    row.querySelector('input[type=hidden]').value = opt.dataset.ic;
+    const b = row.querySelector('.icon-pick'); b.textContent = opt.dataset.ic; b.setAttribute('aria-expanded', 'false');
+    grid.remove(); return;
+  }
   if (e.target.id !== 'moreRow') return;
   const wrap = document.getElementById('srows'); const i = wrap.children.length;
   const d = document.createElement('div'); d.className = 'sup-row';
-  d.innerHTML = `<select name="ic${i}" aria-label="아이콘">${ICONS.map((x) => `<option>${x}</option>`).join('')}</select><input name="nm${i}" maxlength="30" placeholder="준비물" aria-label="준비물 이름">`;
+  d.innerHTML = `${iconPick(i)}<input name="nm${i}" maxlength="30" placeholder="준비물" aria-label="준비물 이름">`;
   wrap.appendChild(d);
 });
 

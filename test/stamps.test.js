@@ -5,7 +5,7 @@ import { setup } from './helpers.js';
 test('① 세 어른이 동시에 같은 도장을 눌러도 1개만 기록되고 나머지는 처리 결과만 본다', async () => {
   const f = await setup();
   try {
-    const st = await f.completeDay(f.ids.yuel);
+    const st = await f.completeAndRequest(f.ids.yuel);
     assert.equal(st.status, 'requested');
     const { pending } = await f.mom.ok('GET', '/api/approvals');
     assert.equal(pending.length, 1);
@@ -29,7 +29,7 @@ test('① 세 어른이 동시에 같은 도장을 눌러도 1개만 기록되�
 test('DB 제약: 같은 아이·같은 날짜 도장은 서버 DB가 하나로 보장한다', async () => {
   const f = await setup();
   try {
-    await f.completeDay(f.ids.yuel);
+    await f.completeAndRequest(f.ids.yuel);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     await f.mom.post(`/api/stamp-requests/${rid}/approve`);
     const s = f.core.get('SELECT * FROM stamps');
@@ -42,7 +42,7 @@ async function stampDays(f, kid, n, startDate = '2026-11-20') {
   for (let i = 0; i < n; i++) {
     const d = new Date(Date.parse(startDate + 'T03:00:00Z') + i * 864e5);
     f.clock.t = d.getTime();
-    await f.completeDay(kid);
+    await f.completeAndRequest(kid);
     const { pending } = await f.mom.ok('GET', '/api/approvals');
     const req = pending.find((p) => p.kidId === kid);
     const r = await f.mom.post(`/api/stamp-requests/${req.id}/approve`);
@@ -57,7 +57,7 @@ test('② 30번째 도장: 5,000원은 1회만 적립 (재시도·재접속·장
     assert.equal((await f.wallet(f.ids.yuha)).balance, 0);
     // 장애 주입: 도장 INSERT 직후 보상 적립 전에 실패 → 전체 롤백
     f.clock.t = Date.parse('2026-11-20T03:00:00Z') + 29 * 864e5;
-    await f.completeDay(f.ids.yuha);
+    await f.completeAndRequest(f.ids.yuha);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     f.core.hooks.afterStampInsert = () => { throw new Error('boom'); };
     const bad = await f.mom.post(`/api/stamp-requests/${rid}/approve`);
@@ -86,7 +86,7 @@ test('③ 전날 요청은 원래 루틴 날짜로 승인되고, 예정 루틴�
   const f = await setup();
   try {
     // 금요일 완료 → 승인 안 한 채로 토요일이 됨
-    await f.completeDay(f.ids.yuel);
+    await f.completeAndRequest(f.ids.yuel);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     f.clock.t = Date.parse('2026-11-21T03:00:00Z');
     const r = await f.mom.post(`/api/stamp-requests/${rid}/approve`);
@@ -111,7 +111,7 @@ test('④ 루틴 이름·요일을 고쳐도 과거 기록은 당시 그대로, 
   try {
     const rts = await f.mom.ok('GET', `/api/kids/${f.ids.yuel}/routines`);
     const homework = rts.find((r) => r.name === '숙제하기');
-    await f.completeDay(f.ids.yuel); // 금요일 기록(승인 대기)
+    await f.completeAndRequest(f.ids.yuel); // 금요일 기록(승인 대기)
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     await f.mom.post(`/api/stamp-requests/${rid}/approve`);
     // 이름·요일 변경 (오늘은 금요일): 오늘/과거 목록은 그대로
@@ -139,7 +139,7 @@ test('④ 루틴 이름·요일을 고쳐도 과거 기록은 당시 그대로, 
     assert.ok((await f.day(f.ids.yuel)).items.some((i) => i.name === '양치 3분'));
     void today;
     // 승인 후에는 오늘 예외가 적용되지 않는다
-    await f.completeDay(f.ids.yuel);
+    await f.completeAndRequest(f.ids.yuel);
     const rid2 = (await f.mom.ok('GET', '/api/approvals')).pending.find((p) => p.kidId === f.ids.yuel).id;
     await f.mom.post(`/api/stamp-requests/${rid2}/approve`);
     const ex2 = await f.mom.ok('PATCH', `/api/routines/${brush.id}`, { name: '양치 5분', applyToday: true });
@@ -154,7 +154,7 @@ test('④ 루틴 이름·요일을 고쳐도 과거 기록은 당시 그대로, 
 test('요청 대기 중 체크가 취소되면 기존 요청은 승인할 수 없고, 다시 모두 하면 새 요청이 생긴다', async () => {
   const f = await setup();
   try {
-    const st = await f.completeDay(f.ids.yuha);
+    const st = await f.completeAndRequest(f.ids.yuha);
     assert.equal(st.status, 'requested');
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     const it = st.items[0];
@@ -163,7 +163,9 @@ test('요청 대기 중 체크가 취소되면 기존 요청은 승인할 수 �
     const r = await f.mom.post(`/api/stamp-requests/${rid}/approve`);
     assert.equal(r.json.result, 'closed');
     assert.equal(f.core.get('SELECT COUNT(*) c FROM stamps').c, 0);
-    const again = await f.device.ok('PUT', `/api/day-items/${it.id}`, { done: true });
+    const ready = await f.device.ok('PUT', `/api/day-items/${it.id}`, { done: true });
+    assert.equal(ready.status, 'ready', '다 해도 요청은 아직 안 만들어진다(도장 방에서 [도장 요청]을 눌러야 함)');
+    const again = await f.device.ok('POST', `/api/kids/${f.ids.yuha}/day/request`, {});
     assert.equal(again.status, 'requested');
     assert.notEqual(again.requestId, rid);
     // 완료 요청은 어른 세 분 모두에게 앱 알림과 푸시(잠금화면엔 이름+종류만)
@@ -178,7 +180,7 @@ test('요청 대기 중 체크가 취소되면 기존 요청은 승인할 수 �
 test('다시 확인: 항목·이유를 남기고 아이가 보완 후 다시 요청하면 새 요청이 생긴다', async () => {
   const f = await setup();
   try {
-    const st = await f.completeDay(f.ids.yuel);
+    const st = await f.completeAndRequest(f.ids.yuel);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     const r = await f.dad.post(`/api/stamp-requests/${rid}/recheck`, { itemIds: [st.items[0].id], reason: '양치 안 한 것 같아요' });
     assert.equal(r.json.result, 'recheck');
@@ -189,8 +191,10 @@ test('다시 확인: 항목·이유를 남기고 아이가 보완 후 다시 요
     assert.equal((await f.mom.post(`/api/stamp-requests/${rid}/approve`)).json.result, 'closed');
     await f.device.ok('PUT', `/api/day-items/${st.items[0].id}`, { done: false });
     const back = await f.device.ok('PUT', `/api/day-items/${st.items[0].id}`, { done: true });
-    assert.equal(back.status, 'requested');
+    assert.equal(back.status, 'recheck');
     assert.equal(back.items[0].flag, null);
+    const re = await f.device.ok('POST', `/api/kids/${f.ids.yuel}/day/request`, {});
+    assert.equal(re.status, 'requested');
   } finally { await f.close(); }
 });
 
@@ -217,5 +221,25 @@ test('도장 정정(부모 권한+사유): 보상 조건이 바뀌면 조정 내
     assert.equal(b.total, 29);
     f.app.tick(); // 반복해도 중복 조정 없음
     assert.equal(f.core.get('SELECT COUNT(*) c FROM settlements').c, 1);
+  } finally { await f.close(); }
+});
+
+test('루틴을 다 해도 어른에게 알림이 가지 않고, 아이가 도장을 요청하면 그때 알림이 간다. 아이는 도장 방으로 걸어간다', async () => {
+  const f = await setup();
+  try {
+    const st = await f.completeDay(f.ids.yuel);
+    assert.equal(st.status, 'ready');
+    assert.equal((await f.mom.ok('GET', '/api/approvals')).pending.length, 0, '요청 전에는 어른 확인 목록에 없다');
+    await f.flush();
+    assert.equal(f.pushes.filter((p) => p.payload.body?.includes('도장')).length, 0, '요청 전에는 푸시가 없다');
+    assert.equal((await f.mom.ok('GET', '/api/home')).walkers[f.ids.yuel], '12', '루틴을 다 한 아이는 도장 방으로 이동');
+    const rq = await f.device.ok('POST', `/api/kids/${f.ids.yuel}/day/request`, {});
+    assert.equal(rq.status, 'requested');
+    await f.flush();
+    assert.ok(f.pushes.filter((p) => p.payload.body?.includes('도장')).length >= 3, '요청하면 어른 세 분께 알림');
+    assert.equal((await f.mom.ok('GET', '/api/approvals')).pending.length, 1);
+    // 같은 요청을 다시 눌러도 하나만
+    await f.device.ok('POST', `/api/kids/${f.ids.yuel}/day/request`, {});
+    assert.equal((await f.mom.ok('GET', '/api/approvals')).pending.length, 1);
   } finally { await f.close(); }
 });

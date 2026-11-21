@@ -69,6 +69,11 @@ export async function setup({ withRoutines = true } = {}) {
     for (const it of d.items) last = await device.ok('PUT', `/api/day-items/${it.id}`, { done: true });
     return last;
   };
+  // 루틴을 다 한 뒤 도장 방에서 [도장 요청]까지 누른 상태(어른에게 알림이 가는 시점)
+  f.completeAndRequest = async (kid, date) => {
+    await f.completeDay(kid, date);
+    return device.ok('POST', `/api/kids/${kid}/day/request`, date ? { date } : {});
+  };
   f.elevate = async (who, pw) => (await device.ok('POST', '/api/auth/reauth', { memberId: ids[who], password: pw })).token;
   f.pw = { mom: 'secret1', dad: 'secret2', gma: 'secret3' };
   f.wallet = async (kid) => mom.ok('GET', `/api/kids/${kid}/wallet`);

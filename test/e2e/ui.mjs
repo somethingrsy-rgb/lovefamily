@@ -63,6 +63,11 @@ await ipad.waitForSelector('.check-item');
 for (const t of ['양치하기', '책가방 싸기']) { await ipad.click(`.check-item:has-text("${t}")`); await ipad.waitForTimeout(250); }
 await ipad.screenshot({ path: path.join(shots, '04-ipad-today-partial.png') });
 await ipad.click('.check-item:has-text("숙제하기")');
+// 다 해도 어른에게 바로 알리지 않는다: [도장 요청하기]를 눌러야 요청이 간다
+await ipad.waitForSelector('#rereq', { timeout: 5000 });
+await phone.waitForTimeout(1200);
+assert.equal(await phone.$$eval('.popup', (e) => e.length), 0, '요청 전에는 어른 폰에 팝업이 없다');
+await ipad.click('#rereq');
 await ipad.waitForSelector('.banner.wait', { timeout: 5000 });
 // 실시간: 아빠 폰에 요청 팝업/대기 목록이 뜬다 (재접속 없이)
 await phone.waitForSelector('.popup', { timeout: 8000 });

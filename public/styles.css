@@ -485,3 +485,18 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 /* 도장 도구(기울어진 그림): 분홍 도장 면의 중심(그림의 30%,76%)이 자국 위치(장면 가운데)에 내려앉도록 맞춘다 */
 .stamp-tool { width: 190px; margin-left: 0; left: calc(50% - 57px); bottom: 130px; transform-origin: 30% 96%; }
 @keyframes stampslam { 0% { transform: translateY(-330px) rotate(-10deg); opacity: 0; } 8% { opacity: 1; } 20% { transform: translateY(-90px) rotate(-3deg); } 34% { transform: translateY(10px) rotate(0) scale(1.04, .94); opacity: 1; } 38% { transform: translateY(0) rotate(0) scale(.98, 1.03); } 46% { transform: translateY(5px) scale(1); } 50% { transform: translateY(6px); opacity: 1; } 58% { transform: translateY(-40px) rotate(-3deg); opacity: 1; } 72% { transform: translateY(-240px) rotate(-6deg); opacity: 1; } 82%, 100% { transform: translateY(-330px) rotate(-10deg); opacity: 0; } }
+
+/* 도장 방 [도장 요청] 버튼 · 도장 받은 아이의 신나는 모습 */
+.bank-req { position: absolute; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 1cqw; padding-bottom: 1cqw; pointer-events: none; }
+.bank-req .btn { pointer-events: auto; font-size: 2.6cqw; padding: 1cqw 2.6cqw; min-height: 0; border-radius: 999px; box-shadow: 0 .6cqw 2cqw rgba(120, 60, 160, .35); animation: reqpulse 1.2s ease-in-out infinite; white-space: nowrap; }
+@keyframes reqpulse { 0%, 100% { box-shadow: 0 .6cqw 2cqw rgba(120, 60, 160, .35), 0 0 0 0 rgba(255, 95, 155, .55); } 50% { box-shadow: 0 .6cqw 2cqw rgba(120, 60, 160, .35), 0 0 0 1.4cqw rgba(255, 95, 155, 0); } }
+.kid-state.ready { background: #e7f8e3; color: #1d6b2a; font-weight: 800; }
+.wk-img.cheer { height: 22cqw; animation: cheerjump .9s ease-in-out infinite; }
+@keyframes cheerjump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.4cqw); } }
+@media (prefers-reduced-motion: reduce) { .wk-img.cheer, .bank-req .btn { animation: none; } }
+
+.sup-row { grid-template-columns: 64px 1fr; } .sup-row .icon-pick { min-height: 50px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card2); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.sup-row .icon-pick .emo { width: 34px; height: 34px; }
+.icon-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 0 0 8px; padding: 8px; border-radius: 16px; background: var(--card2); border: 1.5px solid var(--line); }
+.icon-opt { min-height: 48px; border: 2px solid transparent; border-radius: 12px; background: var(--card); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.icon-opt.on { border-color: var(--brand, #8a6cf0); background: rgba(138, 108, 240, .12); } .icon-opt .emo { width: 32px; height: 32px; }

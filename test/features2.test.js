@@ -425,7 +425,7 @@ test('도장 승인 순간 모든 아이용 기기(거실 iPad·아이 휴대폰
     const { Client } = await import('./helpers.js');
     const kidPhone = new Client(f.base); await kidPhone.ok('POST', '/api/auth/login', { loginId: 'mom@test', password: 'secret1', device: true });
     const a = await listen(f.device, `?kid=${f.ids.yuel}`); const b = await listen(kidPhone, `?kid=${f.ids.yuha}`); const adultPhone = await listen(f.dad);
-    await f.completeDay(f.ids.yuel);
+    await f.completeAndRequest(f.ids.yuel);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     await Promise.all([f.mom, f.dad, f.gma].map((c) => c.post(`/api/stamp-requests/${rid}/approve`)));
     await new Promise((r) => setTimeout(r, 150));

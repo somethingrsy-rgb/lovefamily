@@ -38,6 +38,8 @@ const segLen = (a, b) => Math.hypot(b[0] - a[0], (b[1] - a[1]) * V_SCALE);
 const PENDING = new Map();            // 내가 보냈지만 서버가 아직 확인하지 않은 이동: memberId → 칸
 const W = new Map();                   // memberId → { id, key, home, cell, x, y, face, moving }
 let selected = null;                   // 선택된 사람 id
+let arriveCb = null;                   // 걸어서 도착했을 때 알림(도장 방에 도착하면 [도장 요청] 버튼을 보여 주기 위함)
+let lastTap = { id: null, t: 0 };      // 같은 캐릭터를 빠르게 두 번 누르면(더블클릭/더블탭) 활동창을 연다
 let P = [];                            // 현재 화면에 그릴 사람 정보
 const reduce = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -70,6 +72,8 @@ function idleImg(p, w) {
     if (p.status === 'working') return `<img class="wk-img wide" src="/assets/chars/${p.role}-work.webp" alt="" draggable="false">`;
     if (p.status === 'heading_home' || p.status === 'picking_up') return `<img class="wk-img wide car" src="/assets/chars/${p.role}-car.webp" alt="" draggable="false">`;
   }
+  // 오늘 도장을 받은 아이는 두 팔을 번쩍 든 '신나는 모습'(활동 그림이 있을 땐 활동이 먼저)
+  if (p.kind === 'kid' && p.member?.day?.status === 'approved') return `<img class="wk-img cheer" src="/assets/chars/${p.key}-cheer.webp" alt="" draggable="false">`;
   return `<img class="wk-img" src="/assets/chars/${p.key}.webp" alt="" draggable="false">`;
 }
 function walkerHtml(p) {
@@ -82,6 +86,7 @@ function walkerHtml(p) {
   return `<button class="walker ${w.moving ? 'moving' : 'idle'} ${selected === p.id ? 'sel' : ''}" data-walker="${p.id}" style="left:${x}%;top:${y}%" aria-label="${esc(p.name)} ${selected === p.id ? '선택됨' : '선택하기'}" aria-pressed="${selected === p.id}">${inner}<i class="wk-shadow"></i></button>`;
 }
 export const walkersLayerHtml = () => `<div class="walkers" aria-label="집 안을 걷는 가족">${P.map(walkerHtml).join('')}</div>`;
+export const walkerCell = (id) => { const w = W.get(id); return w ? { cell: w.cell, moving: w.moving } : null; };
 export const walkPadHtml = () => '<div class="walk-pad" id="walkpad"></div>';
 
 function relayout() { // 서 있는 사람들의 자리를 다시 나눈다(CSS 전환으로 부드럽게)
@@ -109,7 +114,7 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
       .then(() => { if (PENDING.get(id) === targetCell) PENDING.delete(id); })
       .catch((e) => { PENDING.delete(id); errToast(e); });
   }
-  if (reduce()) { w.x = finalX; w.y = FLOOR_Y[rc(targetCell)[0]]; render(); return; }
+  if (reduce()) { w.x = finalX; w.y = FLOOR_Y[rc(targetCell)[0]]; render(); arriveCb?.(p, targetCell); return; }
   w.moving = true; w.x = path[0][0]; w.y = path[0][1];
   const lens = path.slice(1).map((pt, i) => segLen(path[i], pt)); const total = lens.reduce((a, b) => a + b, 0);
   const t0 = performance.now(); let seg = 0;
@@ -123,7 +128,7 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
     if (b[0] !== a[0]) { const face = b[0] > a[0] ? 1 : -1; if (face !== w.face) { w.face = face; const sp = document.querySelector(`[data-walker="${id}"] .wk-sprite`); if (sp) sp.style.transform = `scaleX(${face})`; } }
     const el = document.querySelector(`[data-walker="${id}"]`);
     if (el) { el.style.left = `${w.x}%`; el.style.top = `${w.y}%`; }
-    if (d < total) raf(tick); else { w.moving = false; w.face = 1; clearTarget(); refreshOne(p); relayout(); updatePad(); }
+    if (d < total) raf(tick); else { w.moving = false; w.face = 1; clearTarget(); refreshOne(p); relayout(); updatePad(); arriveCb?.(p, w.cell); }
   };
   raf(tick);
 }
@@ -159,8 +164,8 @@ function showTarget(cell, id) {
 }
 
 // ===== 연결 =====
-export function mountWalkers(houseEl, h, { onOpen } = {}) {
-  P = peopleFrom(h);
+export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
+  P = peopleFrom(h); arriveCb = onArrive || null;
   const server = h.walkers || {};
   for (const p of P) {
     const target = server[p.id] || p.home;
@@ -179,7 +184,10 @@ export function mountWalkers(houseEl, h, { onOpen } = {}) {
     // (같은 사람을 다시 누르면 선택 해제). 그래서 누가 서 있는 칸의 한가운데도 목적지로 고를 수 있다.
     if (wk && !(selected !== null && Number(wk.dataset.walker) !== selected)) { // 캐릭터 누르기 = 선택/해제
       e.stopPropagation();
-      const id = Number(wk.dataset.walker); selected = selected === id ? null : id;
+      const id = Number(wk.dataset.walker);
+      const now = Date.now(); const dbl = lastTap.id === id && now - lastTap.t < 420; lastTap = { id: dbl ? null : id, t: now };
+      if (dbl) { const p = P.find((x) => x.id === id); if (p && onDouble) { onDouble(p); return; } }
+      selected = selected === id ? null : id;
       $$('.walker', houseEl).forEach((x) => { const on = Number(x.dataset.walker) === selected; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
       updatePad(); return;
     }

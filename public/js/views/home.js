@@ -9,11 +9,12 @@ import { T, timerOf, fmt, remaining } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
-import { mountWalkers, walkPadHtml } from './walkers.js';
+import { mountWalkers, walkPadHtml, walkerCell } from './walkers.js';
 
 const dayBadge = (k) => {
   const d = k.day;
   if (d.status === 'requested') return `<div class="kid-state wait">✋ 다 했어요 · 어른 확인 중</div>`;
+  if (d.status === 'ready') return `<div class="kid-state ready">🎉 다 했어요 · 도장 방에서 도장 요청!</div>`;
   if (d.status === 'approved') return `<div class="kid-state ok">💮 도장 받았어요${d.stampBy ? ` <small>(${esc(d.stampBy)})</small>` : ''}</div>`;
   if (d.status === 'recheck') return `<div class="kid-state warn">🔎 다시 확인해 보래요</div>`;
   if (d.status === 'none') return `<div class="kid-state rest">😴 오늘은 쉬는 날이에요</div>`;
@@ -72,7 +73,7 @@ function adultPic(role, state) {
 function houseHtml(h) {
   const kidRooms = h.kids.slice(0, 2).map((k, i) => {
     const t = timerOf(k.id); const d = k.day;
-    const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : ''].filter(Boolean);
+    const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : d.status === 'ready' ? '🎉' : ''].filter(Boolean);
     // 활동 중이면 방 안의 캐릭터가 그 활동 그림으로 바뀌고(그림이 없으면 서 있는 모습 유지), 지난 시간·남은 시간·진행 막대를 보여 준다
     const total = t ? t.totalMs : 1; const rem = t ? remaining(t) : 0;
     // 지나간 시간만 그림 바로 아래에 표시(남은 시간·막대는 보여 주지 않는다)
@@ -93,6 +94,19 @@ function houseHtml(h) {
     ${kidRooms}
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
     ${adults}${walkPadHtml()}</div>`;
+}
+// 루틴을 다 한 아이가 도장 방(확인방)까지 걸어오면, 그 방에 [도장 요청] 버튼이 나타난다. 누르면 그때 어른들께 알림이 간다.
+function syncBankReq(col, h, reload) {
+  const house = col.querySelector('.house'); if (!house) return;
+  house.querySelectorAll('.bank-req').forEach((b) => b.remove());
+  const ready = h.kids.filter((k) => { const w = walkerCell(k.id); return k.day.status === 'ready' && w && w.cell === '12' && !w.moving; });
+  if (!ready.length) return;
+  house.insertAdjacentHTML('beforeend', `<div class="bank-req" style="${box('bank')}">${ready.map((k) => `<button class="btn primary bank-req-btn" data-reqstamp="${k.id}">✋ ${esc(k.name)} 도장 요청</button>`).join('')}</div>`);
+  house.querySelector('.bank-req').onclick = async (e) => {
+    const b = e.target.closest('[data-reqstamp]'); if (!b) return;
+    e.stopPropagation(); b.disabled = true;
+    try { await post(`/api/kids/${b.dataset.reqstamp}/day/request`, { date: h.today }); toast('어른들께 도장 요청을 보냈어요! ✋'); reload(); } catch (x) { b.disabled = false; errToast(x); }
+  };
 }
 function openAdultSheet(id, h, reload) {
   const a = adultById(id); const st = h.adults.find((x) => x.id === a.id)?.status;
@@ -152,7 +166,13 @@ export async function mount(el) {
         <div class="panel card famact"><h3>🎈 이번 주 가족 활동 <a class="small" href="#/family-activity">어른 관리</a></h3>${h.famActivity.kids.map((k) => `<a class="pick-line" href="#/kid/${k.kidId}/family">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></a>`).join('')}</div>
       </section></div></div>`;
     bindHouse($('.house-col', el), load, h);
-    mountWalkers($('.house-col', el), h, { onOpen: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)) });
+    const col = $('.house-col', el);
+    mountWalkers(col, h, {
+      onOpen: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)),
+      onDouble: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}/timer`) : openAdultSheet(p.id, h, load)), // 두 번 누르면 활동창
+      onArrive: () => syncBankReq(col, h, load),
+    });
+    syncBankReq(col, h, load);
     bindDismiss($('.kids', el), load);
     $('.supplies', el)?.addEventListener('click', supplyClick);
     if (ah) bindAdultPanel($('.adult-panel', el), load);

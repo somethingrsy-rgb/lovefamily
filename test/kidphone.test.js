@@ -73,7 +73,7 @@ test('아이 폰은 자기 것만: 비밀번호 없이 내 저금통·메시지,
     assert.equal((await phone.post(`/api/timers/${t.id}/extend`, { minutes: 5 })).status, 403);
     assert.equal((await phone.post(`/api/timers/${t.id}/cancel`)).status, 200);
     // 도장 승인 불가
-    await f.completeDay(f.ids.yuha);
+    await f.completeAndRequest(f.ids.yuha);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     assert.equal((await phone.post(`/api/stamp-requests/${rid}/approve`)).status, 403);
   } finally { await f.close(); }
@@ -86,7 +86,7 @@ test('아이 폰 푸시: 그 아이에게 온 알림만 그 폰으로(잠금화�
     await A.phone.ok('POST', '/api/push/subscribe', { subscription: { endpoint: 'https://push.example/yuel-phone', keys: { p256dh: 'p', auth: 'a' } } });
     await B.phone.ok('POST', '/api/push/subscribe', { subscription: { endpoint: 'https://push.example/yuha-phone', keys: { p256dh: 'p', auth: 'a' } } });
     f.pushes.length = 0;
-    await f.completeDay(f.ids.yuel);
+    await f.completeAndRequest(f.ids.yuel);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     await f.mom.post(`/api/stamp-requests/${rid}/approve`);
     await f.flush();
@@ -137,7 +137,7 @@ test('아이 폰은 실시간 도장 쾅 신호와 자기 알림 팝업을 받�
     const a = Object.fromEntries((await f.mom.ok('GET', '/api/activities')).map((x) => [x.kind, x]));
     await f.mom.ok('POST', `/api/kids/${f.ids.yuel}/timers`, { activityId: a.brush.id });
     f.clock.t += 5 * 60000 + 1000; f.app.settle();
-    await f.completeDay(f.ids.yuel);
+    await f.completeAndRequest(f.ids.yuel);
     const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
     await f.mom.post(`/api/stamp-requests/${rid}/approve`);
     await new Promise((r) => setTimeout(r, 150));
