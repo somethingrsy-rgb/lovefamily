@@ -242,8 +242,12 @@ function overlay(html, ms, cls = '') {
   setTimeout(() => el.remove(), ms);
 }
 export function playStamp({ kidName, provider }) {
-  overlay(`<div class="stamp-anim"><div class="stamp-paper"></div><div class="stamp-hand">🖐️</div><div class="stamp-mark">도장<br>꾹!</div></div>
-    <div class="anim-text">${esc(provider ? `${provider}이(가) 도장을 줬어요!` : '도장을 받았어요!')}</div>${'<i class="confetti"></i>'.repeat(14)}`, 2600, 'stamp-overlay');
+  // 도장이 위에서 쑥 내려와 "쾅" 찍히고(화면이 살짝 흔들림), 도장이 올라가면 자국이 남는다
+  overlay(`<div class="stamp-scene"><div class="stamp-paper"></div>
+      <div class="stamp-mark"><img src="/assets/emoji/stamp-mark.webp" alt=""></div>
+      <img class="stamp-tool" src="/assets/stamp-tool.webp" alt="" draggable="false">
+      <div class="stamp-flash"></div><div class="stamp-bang">쾅!</div></div>
+    <div class="anim-text">${esc(provider ? `${provider}${/[가-힣]$/.test(provider) && (provider.charCodeAt(provider.length - 1) - 0xac00) % 28 ? '이' : '가'} 도장을 줬어요!` : '도장을 받았어요!')}</div>${'<i class="confetti"></i>'.repeat(14)}`, 3200, 'stamp-overlay');
 }
 export function playCoins(dir, amount) {
   const bill = amount >= 50000 ? 'b50000' : amount >= 10000 ? 'b10000' : amount >= 1000 ? 'b1000' : null;
