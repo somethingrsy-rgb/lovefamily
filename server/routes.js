@@ -129,6 +129,9 @@ export function buildRoutes(app) {
   add('GET', '/api/timers', (c, h) => T.listTimers(h.core, c));
   add('POST', '/api/kids/:id/timers', (c, h) => ({ status: 201, body: T.startTimer(h.core, c, P(h), h.body) }));
   add('POST', '/api/timers/:id/dismiss', (c, h) => T.dismissTimer(h.core, c, P(h)));
+  add('GET', '/api/kids/:id/activity-budget', (c, h) => T.listBudgets(h.core, c, P(h)));
+  add('POST', '/api/timers/:id/pause', (c, h) => T.pauseTimer(h.core, c, P(h)));
+  add('POST', '/api/timers/:id/resume', (c, h) => T.resumeTimer(h.core, c, P(h)));
   add('POST', '/api/timers/:id/cancel', (c, h) => T.cancelTimer(h.core, c, P(h)));
   add('POST', '/api/timers/:id/extend', (c, h) => T.extendTimer(h.core, c, P(h), h.body));
   add('PUT', '/api/timers/:id/next', (c, h) => T.setNext(h.core, c, P(h), h.body));

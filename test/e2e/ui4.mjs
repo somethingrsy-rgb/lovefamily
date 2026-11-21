@@ -54,7 +54,7 @@ await page.waitForSelector('.kid-hub', { timeout: 8000 }); // 화면이 완전�
 console.log('✓ 캐릭터를 두 번 누르면 그 아이 화면(허브)으로');
 // 루틴을 누를 때 화면이 통째로 다시 그려지지 않는다(깜박임/지지직 방지): 누른 항목만 바뀌고 나머지 요소는 그대로
 await page.goto(base + `/#/kid/${yuel}/today`); await page.waitForSelector('.check-item');
-await page.evaluate(() => { window.__gone = 0; new MutationObserver((ms) => ms.forEach((m) => m.removedNodes.forEach((n) => { if (n.nodeType === 1 && (n.matches('.check-item, .ci-icon, .slot, img.emo') || n.querySelector('.check-item, img.emo'))) window.__gone++; }))).observe(document.querySelector('#main'), { childList: true, subtree: true }); });
+await page.evaluate(() => { window.__gone = 0; new MutationObserver((ms) => ms.forEach((m) => m.removedNodes.forEach((n) => { if (n.nodeType === 1 && !['⏳', '✔', '📥'].includes(n.alt) && (n.matches('.check-item, .ci-icon, .slot, img.emo') || n.querySelector('.check-item, img.emo'))) window.__gone++; }))).observe(document.querySelector('#main'), { childList: true, subtree: true }); });
 await page.click('.check-item >> nth=0');
 await page.waitForFunction(() => document.querySelector('.check-item.done') && !document.querySelector('.check-item.pending'), null, { timeout: 5000 });
 await page.waitForTimeout(800);

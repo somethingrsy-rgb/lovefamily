@@ -77,7 +77,9 @@ function houseHtml(h) {
     // 활동 중이면 방 안의 캐릭터가 그 활동 그림으로 바뀌고(그림이 없으면 서 있는 모습 유지), 지난 시간·남은 시간·진행 막대를 보여 준다
     const total = t ? t.totalMs : 1; const rem = t ? remaining(t) : 0;
     // 지나간 시간만 그림 바로 아래에 표시(남은 시간·막대는 보여 주지 않는다)
-    const timeTag = !t ? '' : t.state === 'ended'
+    const timeTag = !t ? '' : t.state === 'paused'
+      ? `<span class="room-time paused" role="timer" aria-label="${esc(t.name)} 일시 중단, 남은 시간">⏸ 남은 <span data-timer="${t.id}">${fmt(remaining(t))}</span></span>`
+      : t.state === 'ended'
       ? `<span class="room-time ended" role="timer" aria-label="${esc(t.name)} 끝남">⏰ 끝났어요</span>`
       : `<span class="room-time" role="timer" aria-label="${esc(t.name)} 지난 시간">⏱ <span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span></span>`;
     return `<button class="room kid ${t ? 'has-time' : ''}" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;

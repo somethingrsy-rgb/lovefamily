@@ -531,3 +531,10 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 }
 @keyframes scenequake { 0%, 32% { transform: none; } 34% { transform: translate3d(-5px, 5px, 0); } 36% { transform: translate3d(5px, -4px, 0); } 39% { transform: translate3d(-3px, 3px, 0); } 42% { transform: translate3d(2px, -2px, 0); } 46%, 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .stamp-scene { animation: none; } .stamp-shadow { display: none; } }
+
+/* 일시 중단(남은 시간 표시) */
+.kid-timer.paused { background: #fff6dc; color: #6b4a00; border-radius: 16px; padding: 6px 10px; }
+.kid-timer.paused .kt-time { font-size: 1.1rem; font-weight: 900; }
+.timer-big.paused .ring-fg { stroke: #f0b429; }
+.timer-big.paused .big-digits { color: #b07a00; }
+.room-time.paused { background: #fff1cf; color: #6b4a00; }

@@ -136,8 +136,9 @@ CREATE TABLE IF NOT EXISTS activities (
 CREATE TABLE IF NOT EXISTS timers (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, activity_id INTEGER, name TEXT NOT NULL, icon TEXT NOT NULL, kind TEXT NOT NULL,
   duration_ms INTEGER NOT NULL, extended_ms INTEGER NOT NULL DEFAULT 0, started_at INTEGER NOT NULL, ends_at INTEGER NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('running','ended','dismissed','canceled')),
-  warn_sent_for INTEGER, end_sent_for INTEGER, next_type TEXT, next_item_id INTEGER, next_name TEXT, next_icon TEXT, ended_at INTEGER, created_at INTEGER NOT NULL);
+  status TEXT NOT NULL CHECK (status IN ('running','ended','dismissed','canceled','paused')),
+  warn_sent_for INTEGER, end_sent_for INTEGER, next_type TEXT, next_item_id INTEGER, next_name TEXT, next_icon TEXT, ended_at INTEGER, created_at INTEGER NOT NULL,
+  remain_ms INTEGER, paused_at INTEGER);
 CREATE UNIQUE INDEX IF NOT EXISTS one_running_timer ON timers(kid_id) WHERE status = 'running';
 
 -- 내일 준비물 (루틴·도장과 완전히 별개)
@@ -167,9 +168,27 @@ const COLUMNS = [
   ['routines', 'activity_id INTEGER'], ['members', 'avatar_photo_id INTEGER'], ['members', 'removed INTEGER NOT NULL DEFAULT 0'], ['sessions', 'bound_kid_id INTEGER'], ['sessions', 'label TEXT'], ['push_subs', 'session_id INTEGER'], ['day_items', 'activity_id INTEGER'], ['events', 'plan_id INTEGER'], ['events', 'time TEXT'],
 ];
 
+// 예전 DB 의 timers 표는 status 에 'paused'(일시 중단)가 허용되지 않아서, 새 표로 옮겨 담는다(한 번만).
+function migrateTimers(db) {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'timers'").get();
+  if (!row || row.sql.includes("'paused'")) return;
+  const ddl = new_timers_ddl();
+  const cols = db.prepare('PRAGMA table_info(timers)').all().map((c) => c.name).join(', ');
+  db.exec('BEGIN');
+  try {
+    db.exec('DROP INDEX IF EXISTS one_running_timer; ALTER TABLE timers RENAME TO timers_old;');
+    db.exec(ddl);
+    db.exec(`INSERT INTO timers (${cols}) SELECT ${cols} FROM timers_old; DROP TABLE timers_old;`);
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS one_running_timer ON timers(kid_id) WHERE status = \'running\';');
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+}
+const new_timers_ddl = () => SCHEMA.slice(SCHEMA.indexOf('CREATE TABLE IF NOT EXISTS timers ('), SCHEMA.indexOf('CREATE UNIQUE INDEX IF NOT EXISTS one_running_timer'));
+
 export function openDb(path) {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
+  migrateTimers(db); // 표를 만들기 전에: 예전 표가 있으면 먼저 새 모양으로
   db.exec(SCHEMA.replace(/CREATE UNIQUE INDEX IF NOT EXISTS events_plan[^;]*;/, ''));
   for (const [table, ddl] of COLUMNS) {
     const col = ddl.split(' ')[0];

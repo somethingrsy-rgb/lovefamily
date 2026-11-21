@@ -1,4 +1,4 @@
-import { err, text, money, id as vid, oneOf } from '../util.js';
+import { err, text, money, id as vid, oneOf, kstDate } from '../util.js';
 import { warnText, endText, nextEndText } from '../ko.js';
 
 export const WARN_MS = 5 * 60 * 1000;
@@ -64,6 +64,32 @@ export function deleteActivity(core, ctx, aid) {
   return { ok: true };
 }
 
+// ---------- 하루 총 시간(예산) ----------
+// 활동에 정해 둔 시간(예: 게임 30분)은 '하루에 쓸 수 있는 총 시간'이다. 나눠서 해도 되고, 쓴 만큼만 줄어든다.
+// 쓴 시간 = 그날 시작한 같은 활동의 (전체 − 남은 시간). 일시 중단·중단하면 그때 남은 시간(remain_ms)이 기록돼 다음에 이어 쓸 수 있다.
+const DAY_MS = 864e5;
+const dayStartMs = (core) => Date.parse(`${core.today()}T00:00:00+09:00`);
+export function consumedMs(t, now) {
+  const total = t.duration_ms + t.extended_ms;
+  if (t.status === 'running') return Math.min(total, Math.max(0, total - Math.max(0, t.ends_at - now)));
+  if (t.status === 'paused' || (t.status === 'canceled' && t.remain_ms != null)) return Math.max(0, total - (t.remain_ms ?? 0));
+  if (t.status === 'canceled') return 0; // 예전에 중단된 기록은 남은 시간을 알 수 없어 쓴 것으로 치지 않는다
+  return total; // 끝난(ended)·확인한(dismissed) 활동은 다 쓴 것
+}
+export function budgetFor(core, kidId, act, now = core.now()) {
+  const from = dayStartMs(core);
+  const rows = core.all('SELECT * FROM timers WHERE kid_id = ? AND activity_id = ? AND started_at >= ? AND started_at < ?', kidId, act.id, from, from + DAY_MS);
+  const used = rows.reduce((n, t) => n + consumedMs(t, now), 0);
+  const allowance = act.minutes * 60000;
+  return { activityId: act.id, allowanceMs: allowance, usedMs: Math.min(allowance, used), leftMs: Math.max(0, allowance - used) };
+}
+export function listBudgets(core, ctx, kidId) {
+  ctx.kid(kidId);
+  settleTimers(core, ctx.familyId);
+  const now = core.now();
+  return core.all('SELECT * FROM activities WHERE family_id = ? AND active = 1 ORDER BY sort, id', ctx.familyId).map((a) => budgetFor(core, Number(kidId), a, now));
+}
+
 // ---------- 활동 ----------
 // 남은 시간은 항상 ends_at − 현재 시각으로 계산한다. (화면 이동·새로고침·잠금 해제 후에도 동일)
 export function timerOut(core, t, now = core.now()) {
@@ -73,11 +99,15 @@ export function timerOut(core, t, now = core.now()) {
     const it = core.get('SELECT * FROM day_items WHERE id = ?', t.next_item_id);
     if (it) next = { type: 'routine', itemId: it.id, name: it.name, icon: it.icon, done: !!it.done, activityId: it.activity_id || null };
   } else if (t.next_type === 'custom') next = { type: 'custom', name: t.next_name, icon: t.next_icon, done: false };
-  const ended = now >= t.ends_at;
+  const paused = t.status === 'paused';
+  const ended = !paused && now >= t.ends_at;
   const total = t.duration_ms + t.extended_ms;
+  const act = t.activity_id ? core.get('SELECT * FROM activities WHERE id = ?', t.activity_id) : null;
+  const bud = act ? budgetFor(core, t.kid_id, act, now) : null;
   return {
     id: t.id, kidId: t.kid_id, kidName: kid.name, kidAvatar: kid.avatar, kidColor: kid.color, activityId: t.activity_id, name: t.name, icon: t.icon, kind: t.kind,
-    startedAt: t.started_at, endsAt: t.ends_at, totalMs: total, remainingMs: Math.max(0, t.ends_at - now), state: ended ? 'ended' : 'running', warnAt: total > WARN_MS ? t.ends_at - WARN_MS : null,
+    startedAt: t.started_at, endsAt: paused ? null : t.ends_at, totalMs: total, remainingMs: paused ? (t.remain_ms ?? 0) : Math.max(0, t.ends_at - now), state: paused ? 'paused' : ended ? 'ended' : 'running', warnAt: !paused && total > WARN_MS ? t.ends_at - WARN_MS : null,
+    dayMs: bud ? bud.allowanceMs : null, dayLeftMs: bud ? bud.leftMs : null,
     next, warnKey: `${t.id}:warn:${t.ends_at}`, endKey: `${t.id}:end:${t.ends_at}`,
     texts: {
       warn: warnText(kid.name, t.kind, t.name, next?.name), end: endText(t.kind, t.name),
@@ -85,7 +115,7 @@ export function timerOut(core, t, now = core.now()) {
     },
   };
 }
-const ACTIVE = "status IN ('running','ended')";
+const ACTIVE = "status IN ('running','ended','paused')";
 export const kidTimer = (core, familyId, kidId) => {
   const t = core.get(`SELECT * FROM timers WHERE kid_id = ? AND ${ACTIVE} ORDER BY id DESC LIMIT 1`, kidId);
   return t ? timerOut(core, t) : null;
@@ -105,6 +135,10 @@ function alert(core, t, kind) {
 // 예고/종료를 정확히 한 번씩 발생시키는 상태 정리. 서버 활동(1초)와 모든 조회에서 호출되며 몇 번 불려도 안전하다.
 export function settleTimers(core, familyId = null) {
   const now = core.now();
+  // 어제 일시 중단해 둔 활동은 자정이 지나면 정리한다(하루 총 시간은 날마다 새로 시작)
+  const from = dayStartMs(core);
+  const stale = familyId ? core.all("SELECT id FROM timers WHERE status = 'paused' AND started_at < ? AND family_id = ?", from, familyId) : core.all("SELECT id FROM timers WHERE status = 'paused' AND started_at < ?", from);
+  for (const r of stale) { core.run("UPDATE timers SET status = 'canceled' WHERE id = ?", r.id); }
   const rows = familyId ? core.all("SELECT * FROM timers WHERE status = 'running' AND family_id = ?", familyId) : core.all("SELECT * FROM timers WHERE status = 'running'");
   for (const t of rows) {
     if (now >= t.ends_at) {
@@ -152,17 +186,25 @@ export function startTimer(core, ctx, kidId, b) {
   if (!act) throw err(404, 'not_found', '활동을 찾을 수 없어요.');
   const adult = ctx.adultOrNull();
   // 시간 조정과 '다음 활동' 선택은 어른만
-  const minutes = b.minutes !== undefined && adult ? money(b.minutes, '시간(분)', { min: 1, max: 240 }) : act.minutes;
+  const override = b.minutes !== undefined && adult ? money(b.minutes, '시간(분)', { min: 1, max: 240 }) : null;
   const next = b.next != null ? (adult ? resolveNext(core, ctx, kidId, b.next) : (() => { ctx.adult(); })()) : resolveNext(core, ctx, kidId, null);
   return core.tx(() => {
     settleTimers(core, ctx.familyId);
+    // 같은 활동을 일시 중단해 둔 상태라면 새로 만들지 않고 이어서 한다
+    const paused = core.get("SELECT * FROM timers WHERE kid_id = ? AND status = 'paused' AND activity_id = ?", kidId, act.id);
+    if (paused && override == null) return doResume(core, ctx, paused);
     const running = core.get("SELECT * FROM timers WHERE kid_id = ? AND status = 'running'", kidId);
     if (running) {
       if (!b.replace) throw err(409, 'timer_running', `${running.name} 활동이 진행 중이에요. 새로 시작할까요?`, { timer: timerOut(core, running) });
-      core.run("UPDATE timers SET status = 'canceled' WHERE id = ?", running.id);
+      core.run("UPDATE timers SET status = 'canceled', remain_ms = ? WHERE id = ?", Math.max(0, running.ends_at - core.now()), running.id);
     }
+    // 다른 활동을 일시 중단해 둔 것은 닫는다(남은 시간은 기록돼 있어 오늘 다시 쓸 수 있다)
+    core.run("UPDATE timers SET status = 'canceled' WHERE kid_id = ? AND status = 'paused'", kidId);
     core.run("UPDATE timers SET status = 'dismissed' WHERE kid_id = ? AND status = 'ended'", kidId);
-    const now = core.now(); const dur = minutes * 60000;
+    const now = core.now();
+    const left = budgetFor(core, kidId, act, now).leftMs;
+    if (override == null && left <= 0) throw err(409, 'budget_used', `오늘 ${act.name} 시간은 다 썼어요. 내일 또 할 수 있어요.`);
+    const dur = override != null ? override * 60000 : left;
     const tid = core.insert(`INSERT INTO timers (family_id, kid_id, activity_id, name, icon, kind, duration_ms, started_at, ends_at, status, next_type, next_item_id, next_name, next_icon, created_at)
       VALUES (?,?,?,?,?,?,?,?,?, 'running', ?,?,?,?, ?)`, ctx.familyId, kidId, act.id, act.name, act.icon, act.kind, dur, now, now + dur, next.next_type, next.next_item_id, next.next_name, next.next_icon, now);
     core.refresh(ctx.familyId, 'timers', 'home');
@@ -191,9 +233,50 @@ export function cancelTimer(core, ctx, tid) {
   const t = loadTimer(core, ctx, tid);
   ctx.kid(t.kid_id);
   ctx.ownOnly(t.kid_id);
-  if (['running', 'ended'].includes(t.status)) core.run("UPDATE timers SET status = 'canceled' WHERE id = ?", t.id);
+  if (t.status === 'running') core.run("UPDATE timers SET status = 'canceled', remain_ms = ? WHERE id = ?", Math.max(0, t.ends_at - core.now()), t.id); // 남은 시간은 오늘 다시 쓸 수 있다
+  else if (t.status === 'paused') core.run("UPDATE timers SET status = 'canceled' WHERE id = ?", t.id);
+  else if (t.status === 'ended') core.run("UPDATE timers SET status = 'canceled', remain_ms = 0 WHERE id = ?", t.id);
   core.refresh(ctx.familyId, 'timers', 'home');
   return { ok: true };
+}
+// 일시 중단: 남은 시간을 기억해 두고 멈춘다. 이어서 하면 그 시간부터 다시 센다(하루 총 시간 안에서 나눠서 할 수 있다).
+export function pauseTimer(core, ctx, tid) {
+  const t0 = loadTimer(core, ctx, tid);
+  ctx.kid(t0.kid_id);
+  ctx.ownOnly(t0.kid_id);
+  return core.tx(() => {
+    settleTimers(core, ctx.familyId);
+    const t = core.get('SELECT * FROM timers WHERE id = ?', t0.id);
+    if (t.status === 'paused') return timerOut(core, t);
+    if (t.status !== 'running') throw err(409, 'not_running', '진행 중인 활동만 잠깐 멈출 수 있어요.');
+    const now = core.now();
+    core.run("UPDATE timers SET status = 'paused', remain_ms = ?, paused_at = ? WHERE id = ?", Math.max(0, t.ends_at - now), now, t.id);
+    core.refresh(ctx.familyId, 'timers', 'home');
+    return timerOut(core, core.get('SELECT * FROM timers WHERE id = ?', t.id));
+  });
+}
+function doResume(core, ctx, t) {
+  const now = core.now();
+  if (core.get("SELECT 1 FROM timers WHERE kid_id = ? AND status = 'running'", t.kid_id)) throw err(409, 'timer_running', '다른 활동이 진행 중이에요.');
+  const remain = t.remain_ms ?? 0;
+  if (remain <= 0) throw err(409, 'budget_used', '남은 시간이 없어요.');
+  const ends = now + remain;
+  // 남은 시간이 5분을 넘으면 예고를 다시 받는다(이미 5분 이하면 예고는 다시 띄우지 않는다)
+  core.run("UPDATE timers SET status = 'running', ends_at = ?, remain_ms = NULL, paused_at = NULL, ended_at = NULL, warn_sent_for = ? WHERE id = ?", ends, remain <= WARN_MS ? ends : null, t.id);
+  core.refresh(ctx.familyId, 'timers', 'home');
+  return timerOut(core, core.get('SELECT * FROM timers WHERE id = ?', t.id));
+}
+export function resumeTimer(core, ctx, tid) {
+  const t0 = loadTimer(core, ctx, tid);
+  ctx.kid(t0.kid_id);
+  ctx.ownOnly(t0.kid_id);
+  return core.tx(() => {
+    settleTimers(core, ctx.familyId);
+    const t = core.get('SELECT * FROM timers WHERE id = ?', t0.id);
+    if (t.status === 'running') return timerOut(core, t);
+    if (t.status !== 'paused') throw err(409, 'not_paused', '일시 중단한 활동이 아니에요.');
+    return doResume(core, ctx, t);
+  });
 }
 export function extendTimer(core, ctx, tid, b) {
   ctx.adult();
@@ -203,6 +286,11 @@ export function extendTimer(core, ctx, tid, b) {
     const t = loadTimer(core, ctx, tid);
     const now = core.now();
     let ends;
+    if (t.status === 'paused') {
+      core.run('UPDATE timers SET remain_ms = ?, extended_ms = extended_ms + ? WHERE id = ?', (t.remain_ms ?? 0) + m * 60000, m * 60000, t.id);
+      core.refresh(ctx.familyId, 'timers', 'home');
+      return timerOut(core, core.get('SELECT * FROM timers WHERE id = ?', t.id));
+    }
     if (t.status === 'running') ends = t.ends_at + m * 60000;
     else if (t.status === 'ended') {
       if (core.get("SELECT 1 FROM timers WHERE kid_id = ? AND status = 'running'", t.kid_id)) throw err(409, 'timer_running', '다른 활동이 진행 중이에요.');
@@ -218,7 +306,7 @@ export function extendTimer(core, ctx, tid, b) {
 export function setNext(core, ctx, tid, b) {
   ctx.adult();
   const t = loadTimer(core, ctx, tid);
-  if (!['running', 'ended'].includes(t.status)) throw err(409, 'closed', '이미 끝난 활동이에요.');
+  if (!['running', 'ended', 'paused'].includes(t.status)) throw err(409, 'closed', '이미 끝난 활동이에요.');
   const n = resolveNext(core, ctx, t.kid_id, b.next);
   core.run('UPDATE timers SET next_type = ?, next_item_id = ?, next_name = ?, next_icon = ? WHERE id = ?', n.next_type, n.next_item_id, n.next_name, n.next_icon, t.id);
   core.refresh(ctx.familyId, 'timers', 'home');

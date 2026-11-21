@@ -6,7 +6,12 @@ import { memberAvatar } from './ui.js';
 // ---- 상태: 서버가 알려 준 '종료 시각'과 서버-기기 시계 차이로 남은 시간을 계산한다 ----
 export const T = { timers: [], offset: 0, sound: true, loaded: false };
 export const nowMs = () => Date.now() + T.offset;
-export const remaining = (t) => Math.max(0, t.endsAt - nowMs());
+export const remaining = (t) => (t.state === 'paused' ? t.remainingMs : Math.max(0, t.endsAt - nowMs()));
+// 분 단위로 읽기 쉽게(예: 18분 · 1시간 5분 · 40초)
+export function minLabel(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000)); if (s < 60) return `${s}초`;
+  const m = Math.ceil(s / 60); return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`;
+}
 export const timerOf = (kidId) => T.timers.find((t) => t.kidId === Number(kidId)) || null;
 export function fmt(ms) {
   const s = Math.ceil(ms / 1000); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const x = s % 60;

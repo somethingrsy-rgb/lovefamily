@@ -70,7 +70,7 @@ function idleImg(p, w) {
   // 도장을 받은 순간부터 5초 동안은 두 팔을 번쩍 든 '신나는 모습'. 끝나면 기본 자세(활동 중이면 활동 모습)로 돌아온다
   if (p.kind === 'kid' && (CHEER.get(p.id) || 0) > Date.now()) return `<img class="wk-img cheer" src="/assets/chars/${p.key}-cheer.webp" alt="" draggable="false">`;
   if (p.kind === 'kid' && atHome) {
-    const t = timerOf(p.id); const url = t && t.state !== 'ended' && actImgUrl(t.kind, p.id);
+    const t = timerOf(p.id); const url = t && t.state === 'running' && actImgUrl(t.kind, p.id);
     if (url) return `<img class="wk-img act" src="${url}" alt="" draggable="false">`;
   }
   if (p.kind === 'adult' && atHome && (p.role === 'mom' || p.role === 'dad')) {
