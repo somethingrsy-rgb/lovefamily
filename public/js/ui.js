@@ -163,14 +163,28 @@ export async function needAdult() {
 }
 
 // ---- 사진 선택(촬영/앨범) + 줄여서 업로드 ----
+// 얼굴 사진: 투명하지 않은 부분(머리)의 영역을 찾아 정사각형 안에 같은 비율로 맞춘다 → 아이마다 얼굴 크기가 비슷해진다
+function normalizeSquare(c, S = 640, fill = 0.94) {
+  const w = c.width; const h = c.height;
+  const d = c.getContext('2d').getImageData(0, 0, w, h).data;
+  let x0 = w; let y0 = h; let x1 = -1; let y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return c;
+  const bw = x1 - x0 + 1; const bh = y1 - y0 + 1; // 머리 영역의 '면적'을 같게 맞춘다(갸름한 얼굴/넓은 얼굴이어도 비슷한 크기로 보이게). 정사각형을 넘지 않도록만 제한.
+  const sc = Math.min((S * 0.75) / Math.sqrt(bw * bh), (S * fill) / bw, (S * fill) / bh);
+  const o = document.createElement('canvas'); o.width = S; o.height = S;
+  o.getContext('2d').drawImage(c, x0, y0, bw, bh, (S - bw * sc) / 2, (S - bh * sc) / 2, bw * sc, bh * sc);
+  return o;
+}
 async function shrink(file, max = 1600, png = false) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
     const r = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-    const c = document.createElement('canvas');
+    let c = document.createElement('canvas');
     c.width = Math.round(img.naturalWidth * r); c.height = Math.round(img.naturalHeight * r);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    if (png) c = normalizeSquare(c);
     return await new Promise((ok) => (png ? c.toBlob((b) => ok(b), 'image/png') : c.toBlob((b) => ok(b), 'image/jpeg', 0.82)));
   } catch { return file; } finally { URL.revokeObjectURL(url); }
 }
