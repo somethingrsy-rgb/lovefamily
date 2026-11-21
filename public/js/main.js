@@ -198,6 +198,25 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { bu
 
 hooks.loginRequired = () => { S.info = null; disconnectStream(); go('/login'); };
 
+// 아이폰 홈 화면 앱에서 키보드를 열었다 닫은 뒤 등에, 화면 보이는 영역과 앱의 영역이 어긋나 하단 메뉴가 화면 가운데로 떠 보이는 일이 있다.
+// 보이는 영역(visualViewport)의 아래쪽 끝에 하단 메뉴를 다시 맞춘다. 키보드가 열려 있는 동안에는 건드리지 않는다.
+export function fixTabs() {
+  const tabs = document.querySelector('.tabs'); const vv = window.visualViewport;
+  if (!tabs || !vv) return;
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; // 키보드가 열려 있음
+  const gap = Math.round(window.innerHeight - (vv.offsetTop + vv.height)); // 0이면 정상
+  if (Math.abs(gap) < 3) { if (tabs.style.bottom) tabs.style.bottom = ''; return; }
+  tabs.style.bottom = `${gap}px`;
+}
+window.__fixTabs = fixTabs;
+let fixTimer = null;
+const scheduleFixTabs = () => { clearTimeout(fixTimer); fixTimer = setTimeout(fixTabs, 120); };
+window.visualViewport?.addEventListener('resize', scheduleFixTabs);
+window.visualViewport?.addEventListener('scroll', scheduleFixTabs);
+window.addEventListener('orientationchange', scheduleFixTabs);
+window.addEventListener('pageshow', scheduleFixTabs);
+document.addEventListener('focusout', () => { setTimeout(() => { window.scrollTo(window.scrollX, window.scrollY); fixTabs(); }, 200); }, true); // 키보드를 닫은 뒤 보이는 영역을 다시 계산하게 한다
 export async function boot() {
   initReorder();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

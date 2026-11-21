@@ -113,6 +113,18 @@ for (const [name, opts] of [['iPhone 가로', { ...devices['iPhone 14 landscape'
   await lp.close();
 }
 console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
+// 아이폰 앱에서 보이는 영역이 어긋나 하단 메뉴가 떠 보일 때 보이는 영역의 아래 끝에 다시 맞춘다(보이는 영역을 흉내 내서 확인)
+{
+  const vp = await (await browser.newContext({ ...devices['iPhone 14'] })).newPage();
+  await vp.addInitScript(() => { let h = 664, top = 0; Object.defineProperty(window, '__vv', { value: { set(a, b) { h = a; top = b; } } }); const real = window.visualViewport; Object.defineProperty(window, 'visualViewport', { configurable: true, get() { return { get height() { return h; }, get offsetTop() { return top; }, addEventListener() {}, removeEventListener() {}, real }; } }); });
+  await vp.goto(base + '/#/login'); await vp.fill('input[name=loginId]', 'mom@t'); await vp.fill('input[name=password]', 'secret1'); await vp.click('button[type=submit]'); await vp.waitForSelector('.tabs');
+  await vp.evaluate(() => { window.__vv.set(window.innerHeight - 90, 0); window.__fixTabs(); });
+  assert.equal(await vp.$eval('.tabs', (e) => e.style.bottom), '90px', '보이는 영역이 90px 짧아지면 하단 메뉴도 그만큼 올려 맞춘다');
+  await vp.evaluate(() => { window.__vv.set(window.innerHeight, 0); window.__fixTabs(); });
+  assert.equal(await vp.$eval('.tabs', (e) => e.style.bottom), '', '정상이면 원래 위치');
+  await vp.close();
+  console.log('✓ 하단 메뉴가 떠 있을 때 보이는 영역 끝으로 다시 맞춤');
+}
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 7 통과 · 스크린샷:', shots);
