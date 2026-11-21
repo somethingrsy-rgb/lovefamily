@@ -243,3 +243,19 @@ test('루틴을 다 해도 어른에게 알림이 가지 않고, 아이가 도�
     assert.equal((await f.mom.ok('GET', '/api/approvals')).pending.length, 1);
   } finally { await f.close(); }
 });
+
+test('지운 루틴은 오늘 목록에서도 (아직 안 한 것은) 사라지고, 이미 체크한 것은 기록으로 남는다', async () => {
+  const f = await setup({ withRoutines: true });
+  try {
+    const kid = f.ids.yuel;
+    const day0 = await f.day(kid);
+    assert.equal(day0.items.length, 2);
+    const brush = day0.items.find((i) => i.name === '양치하기'); const hw = day0.items.find((i) => i.name === '숙제하기');
+    await f.device.ok('PUT', `/api/day-items/${hw.id}`, { done: true }); // 숙제는 이미 함
+    const rts = await f.mom.ok('GET', `/api/kids/${kid}/routines`);
+    for (const rt of rts) await f.mom.ok('DELETE', `/api/routines/${rt.id}`); // '오늘 목록에도' 옵션 없이 지움
+    const day1 = await f.day(kid);
+    assert.deepEqual(day1.items.map((i) => i.name), ['숙제하기'], '안 한 양치하기는 사라지고, 체크한 숙제하기는 기록으로 남는다');
+    void brush;
+  } finally { await f.close(); }
+});

@@ -78,6 +78,11 @@ export function reconcileRequest(core, day, { create = false } = {}) {
 export function dayState(core, kidId, date) {
   const kid = core.member(kidId);
   const day = ensureDay(core, kidId, date);
+  // 이미 지운 루틴이 오늘 목록에 아직 안 한 채로 남아 있으면 정리한다(지운 루틴이 오늘만 계속 보이는 일 방지). 체크한 항목은 기록이라 남긴다.
+  if (day && date === core.today() && !activeStamp(core, kidId, date)) {
+    const gone = core.get('SELECT COUNT(*) c FROM day_items WHERE day_id = ? AND done = 0 AND routine_id IN (SELECT id FROM routines WHERE active = 0)', day.id).c;
+    if (gone) { core.run('DELETE FROM day_items WHERE day_id = ? AND done = 0 AND routine_id IN (SELECT id FROM routines WHERE active = 0)', day.id); core.refresh(day.family_id, 'home', 'day'); }
+  }
   if (!day) return { kidId, date, exists: false, status: 'none', items: [], total: 0, done: 0, editable: false };
   const items = core.all('SELECT * FROM day_items WHERE day_id = ? ORDER BY sort, id', day.id).map((i) => ({
     id: i.id, name: i.name, icon: i.icon, slot: i.slot, slotLabel: SLOT_LABEL[i.slot], done: !!i.done, flag: i.flag_reason || null, activityId: i.activity_id || null,
