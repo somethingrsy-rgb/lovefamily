@@ -470,3 +470,10 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .walk-target { position: absolute; width: 11cqw; height: 3.2cqw; transform: translate(-50%, -50%); border: .5cqw dashed #8d6fdc; border-radius: 50%; background: rgba(255, 255, 255, .45); animation: wktgt 1s ease-in-out infinite; pointer-events: none; z-index: 1; }
 @keyframes wktgt { 0%, 100% { opacity: .5; transform: translate(-50%, -50%) scale(.9); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } }
 .walk-pad .walk-hint { white-space: normal; margin: 2px 0 6px; }
+/* 도장판 칸의 도장은 글자("최고!")가 읽히도록 크게 */
+.cell.on .st img.emo { height: 2.7em; vertical-align: middle; margin: -.3em 0; } .cell.on .st { font-size: 1.9rem; line-height: 1; }
+@media (max-width: 520px) { .cell.on .st img.emo { height: 2.3em; } }
+.cell.on { justify-content: space-between; padding: 6px 2px 4px; } .cell.on .st img.emo { height: 2.35em; margin: 0; } .cell.on small { line-height: 1.1; }
+@media (max-width: 520px) { .cell.on .st img.emo { height: 2em; } }
+.stamp-grid .cell { aspect-ratio: auto; min-height: 112px; } .stamp-grid .cell .no { margin: auto; } .stamp-grid.small .cell { aspect-ratio: 1; min-height: 0; }
+@media (max-width: 520px) { .stamp-grid .cell { min-height: 92px; } }
