@@ -77,8 +77,11 @@ await page.waitForTimeout(3600); // 쾅 애니메이션이 끝난 뒤
 await page.evaluate(() => document.querySelector('.house').scrollIntoView({ block: 'center' }));
 await page.screenshot({ path: path.join(shots, '61-cheer.png') });
 await page.waitForFunction((id) => !document.querySelector(`[data-walker="${id}"] img.cheer`), yuel, { timeout: 5000 });
-assert.ok(await page.$(`[data-walker="${yuel}"] img.wk-img`), '5초 뒤에는 기본 자세로 돌아온다');
+assert.equal(await page.$(`[data-walker="${yuel}"] img.cheer`), null, '5초 뒤에는 신나는 모습이 끝난다');
 console.log('✓ 도장을 받으면 신나는 모습 → 5초 뒤 기본 자세');
+await page.waitForFunction(({ id, y }) => { const e = document.querySelector(`[data-walker="${id}"]`); return e && !e.classList.contains('moving') && Math.abs(parseFloat(e.style.top) - y) < 3; }, { id: yuel, y: 52.4 }, { timeout: 20000 }); // 유엘방(1층 왼쪽) 바닥선
+assert.equal((await mom.call('GET', '/api/home')).walkers[yuel], '10', '도장을 받은 뒤 자기 방으로 돌아간다');
+console.log('✓ 도장 받고 신나는 모습이 끝나면 자기 방으로 자동 복귀');
 
 // 4) 준비물 아이콘: 글자 목록이 아니라 그림으로 고른다
 const mp = await (await browser.newContext({ viewport: { width: 420, height: 900 }, hasTouch: true })).newPage(); // 어른 본인 폰

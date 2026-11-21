@@ -37,6 +37,7 @@ const segLen = (a, b) => Math.hypot(b[0] - a[0], (b[1] - a[1]) * V_SCALE);
 // ===== 상태(화면을 다시 그려도 유지) =====
 const CHEER = new Map();              // 아이 id → 신나는 모습이 끝나는 시각(ms)
 export const CHEER_MS = 5000;
+const BANK_CELL = '12';              // 도장 방(확인방)
 const PENDING = new Map();            // 내가 보냈지만 서버가 아직 확인하지 않은 이동: memberId → 칸
 const W = new Map();                   // memberId → { id, key, home, cell, x, y, face, moving }
 let selected = null;                   // 선택된 사람 id
@@ -93,7 +94,13 @@ export function cheer(id, { delay = 0 } = {}) {
   setTimeout(() => {
     CHEER.set(id, Date.now() + CHEER_MS);
     const redo = () => { const p = P.find((x) => x.id === id); const w = W.get(id); if (p && w && !w.moving) refreshOne(p); };
-    redo(); setTimeout(redo, CHEER_MS + 30);
+    redo();
+    setTimeout(() => {
+      redo();
+      // 신나는 모습이 끝나면 도장 방에 서 있던 아이는 자기 방으로 걸어서 돌아간다(그 사이 다른 곳으로 옮겼다면 그대로 둔다)
+      const p = P.find((x) => x.id === id); const w = W.get(id);
+      if (p && w && !w.moving && w.cell === BANK_CELL && p.home !== BANK_CELL) moveTo(id, p.home);
+    }, CHEER_MS + 30);
   }, delay);
 }
 export const anyMoving = () => [...W.values()].some((w) => w.moving);
