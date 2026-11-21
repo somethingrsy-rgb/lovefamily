@@ -57,6 +57,11 @@ await call('POST', `/api/kids/${yuel}/deposits`, { amount: 3000, memo: '용돈' 
 await page.waitForSelector('.coin-overlay', { timeout: 6000 });
 assert.match(await page.textContent('.coin-overlay .anim-text'), /저금통에 쏙.*3,000원/, '자기 폰에는 금액도 보인다');
 await page.screenshot({ path: path.join(shots, '81-kidphone-coins.png') });
+await page.waitForFunction(() => { const el = document.querySelector('.piggy-anim.in .piggy-pic'); return el && getComputedStyle(el).animationName === 'piggyhop'; }, null, { timeout: 3000 });
+await page.waitForTimeout(2000); // 동전이 다 들어간 뒤 돼지가 폴짝 뛰는 중
+await page.screenshot({ path: path.join(shots, '82-piggy-hop.png') });
+assert.ok(await page.$('.piggy-anim .piggy-heart'), '하트가 올라온다');
+console.log('✓ 저금한 뒤 돼지가 폴짝(하트 포함)');
 console.log('✓ 용돈을 받으면 아이 폰 어느 화면에서든 저금통에 쏙 모션');
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }

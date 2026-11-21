@@ -262,6 +262,9 @@ export function playCoins(dir, amount, { hideAmount = false } = {}) {
     const src = bill && i % 3 === 0 ? bill : amount >= 500 || i % 2 ? 'c500' : 'c100';
     return `<img class="coin ${dir} c${i} ${src.startsWith('b') ? 'bill' : ''}" src="/assets/money/${src}.webp" alt="" draggable="false">`;
   }).join('');
-  overlay(`<div class="piggy-anim"><img class="piggy piggy-pic" src="/assets/money/piggy.webp" alt="" draggable="false">${coins}</div><div class="anim-text">${dir === 'in' ? '저금통에 쏙!' : '저금통에서 쏙!'} ${hideAmount ? '' : `${amount.toLocaleString('ko-KR')}원`}</div>`, 2400, 'coin-overlay');
+  // 저금하면(in): 동전이 다 들어간 뒤 돼지가 좋아서 폴짝폴짝 뛰고 하트가 올라온다
+  const hop = 0.15 * (n - 1) + 0.95; // 마지막 동전이 들어가는 시각(초)
+  const hearts = dir === 'in' ? '<i class="piggy-heart h0">💕</i><i class="piggy-heart h1">💕</i><i class="piggy-heart h2">💕</i>' : '';
+  overlay(`<div class="piggy-anim ${dir}" style="--hop:${hop.toFixed(2)}s"><img class="piggy piggy-pic" src="/assets/money/piggy.webp" alt="" draggable="false">${coins}${hearts}</div><div class="anim-text">${dir === 'in' ? '저금통에 쏙!' : '저금통에서 쏙!'} ${hideAmount ? '' : `${amount.toLocaleString('ko-KR')}원`}</div>`, dir === 'in' ? Math.round((hop + 1.7) * 1000) : 2400, 'coin-overlay');
 }
 export function celebrate(text) { overlay(`<div class="party">🎉🐷🎉</div><div class="anim-text">${esc(text)}</div>${'<i class="confetti"></i>'.repeat(18)}`, 2800, 'stamp-overlay'); }

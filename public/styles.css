@@ -551,3 +551,20 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 /* 저금통 모션도 전체 흐림 효과 없이(폰에서 버벅거림 방지) */
 .anim-overlay.coin-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255, 240, 250, .92); }
 :root[data-theme=dark] .anim-overlay.coin-overlay { background: rgba(30, 20, 55, .94); }
+
+/* 저금하면 돼지가 좋아서 폴짝(눌렸다가 튀어 올라 두세 번) + 하트 */
+.piggy-anim.in .piggy-pic { animation: piggyhop 1.5s var(--hop, 1.4s) both; transform-origin: 50% 100%; will-change: transform; }
+@keyframes piggyhop {
+  0% { transform: translate3d(0, 0, 0) scale(1, 1); animation-timing-function: ease-out; }
+  8% { transform: translate3d(0, 0, 0) scale(1.1, .88); animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
+  26% { transform: translate3d(0, -46px, 0) scale(.95, 1.08) rotate(-4deg); animation-timing-function: cubic-bezier(.7, 0, .9, .4); }
+  42% { transform: translate3d(0, 0, 0) scale(1.1, .88); animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
+  60% { transform: translate3d(0, -34px, 0) scale(.96, 1.06) rotate(4deg); animation-timing-function: cubic-bezier(.7, 0, .9, .4); }
+  76% { transform: translate3d(0, 0, 0) scale(1.06, .93); }
+  100% { transform: translate3d(0, 0, 0) scale(1, 1); }
+}
+.piggy-heart { position: absolute; left: 50%; top: 22%; font-style: normal; font-size: 1.6rem; opacity: 0; will-change: transform, opacity; animation: pheart 1.5s var(--hop, 1.4s) ease-out both; }
+.piggy-heart .emo { width: 1.8rem; height: 1.8rem; }
+.piggy-heart.h0 { margin-left: -80px; animation-delay: calc(var(--hop, 1.4s) + .1s); } .piggy-heart.h1 { margin-left: -10px; animation-delay: calc(var(--hop, 1.4s) + .3s); } .piggy-heart.h2 { margin-left: 60px; animation-delay: calc(var(--hop, 1.4s) + .5s); }
+@keyframes pheart { 0% { opacity: 0; transform: translate3d(0, 20px, 0) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate3d(0, -90px, 0) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .piggy-anim.in .piggy-pic, .piggy-heart { animation: none; } .piggy-heart { display: none; } }
