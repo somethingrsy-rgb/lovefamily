@@ -102,6 +102,17 @@ const hb = await (await kp.$('.house')).boundingBox();
 await kp.mouse.move(hb.x + 50, hb.y + 50); await kp.mouse.down(); await kp.waitForTimeout(800); await kp.mouse.up();
 assert.equal(!!(await kp.$('.layout-bar')), false, '아이 폰에서는 배열을 바꿀 수 없다');
 console.log('✓ 아이 폰에서는 바꿀 수 없음');
+// 폰을 가로로 돌리면 아이패드 가로와 같은 2단 배열(왼쪽 집 · 오른쪽 내용)
+for (const [name, opts] of [['iPhone 가로', { ...devices['iPhone 14 landscape'] }], ['안드로이드 가로', { viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true }]]) {
+  const lp = await (await browser.newContext(opts)).newPage();
+  await lp.goto(base + '/#/login'); await lp.fill('input[name=loginId]', 'mom@t'); await lp.fill('input[name=password]', 'secret1'); await lp.click('button[type=submit]'); await lp.waitForSelector('.walker');
+  const cols = (await lp.$eval('.home', (e) => getComputedStyle(e).gridTemplateColumns)).trim().split(/\s+/);
+  assert.equal(cols.length, 2, `${name}: 왼쪽 집 · 오른쪽 내용 2단 (${cols.join(' ')})`);
+  const hb = await (await lp.$('.house-col')).boundingBox(); const mb = await (await lp.$('.home-main')).boundingBox();
+  assert.ok(hb.x < mb.x && hb.x + hb.width <= mb.x + 2, `${name}: 집이 왼쪽, 내용이 오른쪽`);
+  await lp.close();
+}
+console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 7 통과 · 스크린샷:', shots);

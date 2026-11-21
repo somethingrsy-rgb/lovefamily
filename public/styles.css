@@ -140,7 +140,7 @@ textarea { min-height: 90px; resize: vertical; }
 .sched, .notes, .posts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .sched li, .notes li { display: flex; gap: 8px; align-items: flex-start; }
 .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 7px; background: var(--accent2); flex: none; } .dot.due { background: var(--warn); }
 .n-av { font-size: 1.4rem; } .note-form { display: flex; gap: 8px; margin-top: 10px; } .note-form input { min-height: 46px; }
-@media (min-width: 900px) and (orientation: landscape) {
+@media (min-width: 640px) and (orientation: landscape) {
   .kids { grid-template-columns: 1fr 1fr; } .lower { grid-template-columns: 1fr 1fr 1fr; }
   .kid-card { min-height: 250px; padding: 22px; } .kid-name h2 { font-size: 2.1rem; } .avatar.xl { width: 104px; height: 104px; font-size: 3.7rem; }
   .home.is-device .topbar { flex-wrap: nowrap; }
@@ -277,7 +277,7 @@ textarea { min-height: 90px; resize: vertical; }
 .tp-card { width: min(640px, 100%); background: var(--card); border-radius: 32px; padding: 20px; text-align: center; border: 4px solid #8d6fdc; box-shadow: 0 16px 60px rgba(0, 0, 0, .35); animation: rise .25s; } .tp-card.end { border-color: #ff8ebd; }
 .tp-head { display: flex; align-items: center; justify-content: center; gap: 12px; } .tp-head h2 { margin: 0; font-size: 1.5rem; }
 /* ===== 챙길 것 / 가족 활동 ===== */
-.lower2 { display: grid; grid-template-columns: 1fr; gap: 14px; } @media (min-width: 900px) and (orientation: landscape) { .lower2 { grid-template-columns: 1.2fr 1fr; } }
+.lower2 { display: grid; grid-template-columns: 1fr; gap: 14px; } @media (min-width: 640px) and (orientation: landscape) { .lower2 { grid-template-columns: 1.2fr 1fr; } }
 .sup-kid { padding: 8px 0; border-top: 1px solid var(--line); } .sup-kid:first-of-type { border-top: 0; } .sup-head { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; } .sup-card { margin: 4px 0 6px 42px; }
 .sup-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } .sup-chip { display: inline-flex; border-radius: 999px; background: var(--kc); overflow: hidden; } :root[data-theme=dark] .sup-chip { background: color-mix(in srgb, var(--kc) 40%, #2f2750); }
 .sc-btn { min-height: 44px; padding: 0 14px; border: 0; background: transparent; font-weight: 800; color: #3a3252; } :root[data-theme=dark] .sc-btn { color: var(--ink); } .sup-chip.on .sc-btn { text-decoration: line-through; opacity: .7; } .sc-photo { border: 0; background: rgba(255, 255, 255, .55); min-width: 44px; }
@@ -308,11 +308,11 @@ textarea { min-height: 90px; resize: vertical; }
 .room.empty .room-label { opacity: .7; }
 .room.bank .room-label { background: rgba(255, 246, 200, .95); }
 .avatar.photo { overflow: hidden; } .avatar.photo img { width: 100%; height: 100%; object-fit: contain; }
-@media (min-width: 900px) and (orientation: landscape) {
+@media (min-width: 640px) and (orientation: landscape) {
   .home { grid-template-columns: minmax(300px, 34%) minmax(0, 1fr); align-items: start; gap: 18px; }
   .house-col { position: sticky; top: 10px; width: 100%; margin: 0; }
 }
-@media (min-width: 900px) and (orientation: landscape) and (max-width: 1250px) { .home-main .kids { grid-template-columns: 1fr; } .home-main .lower { grid-template-columns: 1fr 1fr; } .home-main .lower2 { grid-template-columns: 1fr; } }
+@media (min-width: 640px) and (orientation: landscape) and (max-width: 1250px) { .home-main .kids { grid-template-columns: 1fr; } .home-main .lower { grid-template-columns: 1fr 1fr; } .home-main .lower2 { grid-template-columns: 1fr; } }
 @media (min-width: 1251px) and (orientation: landscape) { .home-main .lower { grid-template-columns: 1fr 1fr; } .home-main .lower2 { grid-template-columns: 1fr; } }
 
 /* 얼굴 사진은 원형 메달로 (투명 배경이 아닌 사진도 깔끔하게) */
@@ -323,7 +323,7 @@ textarea { min-height: 90px; resize: vertical; }
 .home-main .adult-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
 .home-main .adult-card { min-width: 0; padding: 8px 10px; gap: 8px; } .home-main .adult-card .avatar.md { width: 42px; height: 42px; font-size: 1.4rem; }
 .home-main .clock { min-width: 0; }
-@media (min-width: 900px) and (orientation: landscape) and (max-width: 1250px) { .home-main .kids { grid-template-columns: 1fr 1fr; } .home-main .lower { grid-template-columns: 1fr; } .home-main .kid-card { padding: 14px; min-height: 0; } .home-main .kid-name h2 { font-size: 1.5rem; } .home-main .avatar.xl { width: 72px; height: 72px; font-size: 2.5rem; } .home-main .kt-time { font-size: 1.8rem; } }
+@media (min-width: 640px) and (orientation: landscape) and (max-width: 1250px) { .home-main .kids { grid-template-columns: 1fr 1fr; } .home-main .lower { grid-template-columns: 1fr; } .home-main .kid-card { padding: 14px; min-height: 0; } .home-main .kid-name h2 { font-size: 1.5rem; } .home-main .avatar.xl { width: 72px; height: 72px; font-size: 2.5rem; } .home-main .kt-time { font-size: 1.8rem; } }
 @media (max-width: 520px) { .home-main .adult-cards { grid-template-columns: 1fr; } }
 
 /* 방 안의 가족 캐릭터: 바닥에 서 있고, 이름표는 발 아래, 상태 칩은 오른쪽 위 */
@@ -339,7 +339,7 @@ textarea { min-height: 90px; resize: vertical; }
 /* ===== 집 크게: iPad 가로에서는 화면 높이에 맞는 최대 크기, 오른쪽 칸은 좁아지면 한 줄로 ===== */
 .home-main { container-type: inline-size; }
 .house-col { width: min(100%, 460px); }
-@media (min-width: 900px) and (orientation: landscape) {
+@media (min-width: 640px) and (orientation: landscape) {
   .home { grid-template-columns: minmax(340px, 47%) minmax(0, 1fr); gap: 16px; }
   .house-col { width: min(100%, calc((100vh - 118px) * 0.75)); width: min(100%, calc((100dvh - 118px) * 0.75)); }
 }
@@ -645,3 +645,13 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .post-photo { width: 100%; height: auto; max-height: none; object-fit: contain; background: var(--card2); }
 .photo-preview img { max-height: 320px; object-fit: contain; background: var(--card2); }
 .wish-photo { object-fit: contain; }
+
+/* 폰을 가로로 돌렸을 때도 아이패드 가로와 같은 2단 배열(왼쪽 집 · 오른쪽 내용). 화면이 낮으니 집 칸과 하단 메뉴를 줄인다 */
+@media (max-height: 560px) and (orientation: landscape) {
+  .home { grid-template-columns: minmax(180px, 30%) minmax(0, 1fr); }
+  .house-col { width: min(100%, calc((100vh - 76px) * 0.75)); width: min(100%, calc((100dvh - 76px) * 0.75)); }
+  .tabs { padding: 4px 10px calc(4px + env(safe-area-inset-bottom)); gap: 4px; }
+  .tab { flex-direction: row; gap: 6px; min-height: 40px; padding: 4px 10px; font-size: .85rem; }
+  .tab .ti, .tab .ti img { width: 24px; height: 24px; font-size: 1.1rem; }
+  main#main { padding-bottom: 60px; }
+}
