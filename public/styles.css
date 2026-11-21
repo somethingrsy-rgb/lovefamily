@@ -477,3 +477,7 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 @media (max-width: 520px) { .cell.on .st img.emo { height: 2em; } }
 .stamp-grid .cell { aspect-ratio: auto; min-height: 112px; } .stamp-grid .cell .no { margin: auto; } .stamp-grid.small .cell { aspect-ratio: 1; min-height: 0; }
 @media (max-width: 520px) { .stamp-grid .cell { min-height: 92px; } }
+
+/* 도장 도구(기울어진 그림): 분홍 도장 면의 중심(그림의 30%,76%)이 자국 위치(장면 가운데)에 내려앉도록 맞춘다 */
+.stamp-tool { width: 190px; margin-left: 0; left: calc(50% - 57px); bottom: 2px; transform-origin: 30% 96%; }
+@keyframes stampslam { 0% { transform: translateY(-330px) rotate(-10deg); opacity: 0; } 8% { opacity: 1; } 20% { transform: translateY(-90px) rotate(-3deg); } 34% { transform: translateY(10px) rotate(0) scale(1.04, .94); opacity: 1; } 38% { transform: translateY(0) rotate(0) scale(.98, 1.03); } 46% { transform: translateY(5px) scale(1); } 50% { transform: translateY(6px); opacity: 1; } 58% { transform: translateY(-40px) rotate(-3deg); opacity: 1; } 72% { transform: translateY(-240px) rotate(-6deg); opacity: 1; } 82%, 100% { transform: translateY(-330px) rotate(-10deg); opacity: 0; } }
