@@ -30,6 +30,25 @@ const names = (pg) => pg.$$eval('.kids .kid-card h2', (e) => e.map((x) => x.text
 
 const page = await login(await browser.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: false }), false);
 assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
+// 집 그림 안을 돌아다니는 고양이 두 마리: 있고, 시간이 지나면 움직이고, 누르면 애교(하트), 가족 설정에서 끌 수 있다
+{
+  assert.equal(await page.$$eval('.house .pets .pet', (e) => e.length), 2, '루비와 크리스탈');
+  const snap = () => page.$$eval('.pet', (e) => e.map((x) => `${x.style.left}|${x.style.top}|${x.querySelector('.pet-sp')?.style.backgroundImage}`).join(','));
+  const first = await snap(); let moved = false;
+  for (let i = 0; i < 30 && !moved; i++) { await page.waitForTimeout(500); moved = (await snap()) !== first; }
+  assert.ok(moved, '고양이가 움직인다');
+  const rb = await page.$eval('.pet[data-pet=ruby]', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await page.mouse.click(rb.x, rb.y);
+  await page.waitForSelector('.pet-heart', { timeout: 2000 });
+  assert.equal(page.url().includes('#/kid'), false, '고양이를 눌러도 방 화면으로 넘어가지 않는다');
+  console.log('✓ 집 안 고양이: 돌아다니고, 누르면 애교');
+  await call('PATCH', '/api/family', { showCats: false });
+  await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
+  assert.equal(await page.$$eval('.pets', (e) => e.length), 0, '끄면 고양이가 안 나온다');
+  await call('PATCH', '/api/family', { showCats: true });
+  await page.reload(); await page.waitForSelector('.pet');
+  console.log('✓ 가족 설정으로 고양이 끄기/켜기');
+}
 // 꾹 누르기(0.7초) → 배열 바꾸기 상태
 const b0 = await (await page.$(`[data-rk="k${yuel}"]`)).boundingBox();
 const b1 = await (await page.$(`[data-rk="k${yuha}"]`)).boundingBox();

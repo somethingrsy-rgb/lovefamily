@@ -655,3 +655,15 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   .tab .ti, .tab .ti img { width: 24px; height: 24px; font-size: 1.1rem; }
   main#main { padding-bottom: 60px; }
 }
+
+/* ===== 집 안을 돌아다니는 고양이(루비·크리스탈) ===== */
+.pets { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.pet { position: absolute; transform: translate(-50%, -100%); will-change: left, top; }
+.pet-body { position: relative; }
+.pet-sp { background-repeat: no-repeat; background-position: 0 0; filter: drop-shadow(0 .5cqw .4cqw rgba(70, 40, 110, .22)); }
+.pet-sp.anim { animation-name: petstrip; animation-iteration-count: infinite; }
+@keyframes petstrip { to { background-position: 100% 0; } }
+.pet-heart { position: absolute; left: 50%; top: -2cqw; font-style: normal; font-size: 4cqw; transform: translateX(-50%); animation: petheart 1.6s ease-out forwards; pointer-events: none; }
+.pet-heart .emo { width: 4cqw; height: 4cqw; }
+@keyframes petheart { from { opacity: 1; transform: translate(-50%, 0) scale(.7); } to { opacity: 0; transform: translate(-50%, -7cqw) scale(1.2); } }
+@media (prefers-reduced-motion: reduce) { .pet-sp.anim { animation: none; } }

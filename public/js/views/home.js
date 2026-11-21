@@ -10,6 +10,7 @@ import { actImgUrl } from '../actimg.js';
 import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
 import { mountWalkers, walkPadHtml, walkerCell, anyMoving, cheer, syncWalkers } from './walkers.js';
+import { mountPets } from './cats.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -194,6 +195,7 @@ export async function mount(el) {
       onArrive: () => { if (deferred) { deferred = false; load(); } else syncBankReq(col, h, load); },
     });
     syncBankReq(col, h, load);
+    mountPets(col, S.info.family?.showCats !== false);
     for (const k of h.kids) {
       if (lastDay.has(k.id) && lastDay.get(k.id) !== 'approved' && k.day.status === 'approved') cheer(k.id, { delay: isDevice() ? 3200 : 0 });
       lastDay.set(k.id, k.day.status);
