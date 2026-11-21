@@ -86,8 +86,7 @@ function houseHtml(h) {
   const adults = ['grandma', 'mom', 'dad'].map((role) => {
     const a = h.adults.find((x) => x.role === role) || S.info.adults.find((x) => x.role === role);
     if (!a) return `<div class="room empty" style="${box(ADULT_ROOM[role])}"></div>`;
-    const st = a.status ? (STATUS.find((x) => x[0] === a.status.state) || [])[2] : '';
-    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${adultPic(role, a.status?.state)}${a.status ? `<span class="room-chips" title="${esc(a.status.label)}"><i>${st}</i></span>` : ''}</button>`;
+    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${a.status ? ` · ${esc(a.status.label)}` : ''}">${adultPic(role, a.status?.state)}</button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="/assets/house.webp" alt="" class="house-img" width="1086" height="1448">
