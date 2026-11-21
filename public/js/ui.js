@@ -213,7 +213,12 @@ export function playStamp({ kidName, provider }) {
     <div class="anim-text">${esc(provider ? `${provider}이(가) 도장을 줬어요!` : '도장을 받았어요!')}</div>${'<i class="confetti"></i>'.repeat(14)}`, 2600, 'stamp-overlay');
 }
 export function playCoins(dir, amount) {
-  const coins = Array.from({ length: Math.min(8, Math.max(3, Math.round(amount / 1000) + 2)) }, (_, i) => `<span class="coin ${dir} c${i}">${amount >= 5000 && i % 3 === 0 ? '💵' : '🪙'}</span>`).join('');
-  overlay(`<div class="piggy-anim"><div class="piggy">🐷</div>${coins}</div><div class="anim-text">${dir === 'in' ? '저금통에 쏙!' : '저금통에서 쏙!'} ${amount.toLocaleString('ko-KR')}원</div>`, 2400, 'coin-overlay');
+  const bill = amount >= 50000 ? 'b50000' : amount >= 10000 ? 'b10000' : amount >= 1000 ? 'b1000' : null;
+  const n = Math.min(8, Math.max(3, Math.round(amount / 1000) + 2));
+  const coins = Array.from({ length: n }, (_, i) => {
+    const src = bill && i % 3 === 0 ? bill : amount >= 500 || i % 2 ? 'c500' : 'c100';
+    return `<img class="coin ${dir} c${i} ${src.startsWith('b') ? 'bill' : ''}" src="/assets/money/${src}.webp" alt="" draggable="false">`;
+  }).join('');
+  overlay(`<div class="piggy-anim"><img class="piggy piggy-pic" src="/assets/money/piggy.webp" alt="" draggable="false">${coins}</div><div class="anim-text">${dir === 'in' ? '저금통에 쏙!' : '저금통에서 쏙!'} ${amount.toLocaleString('ko-KR')}원</div>`, 2400, 'coin-overlay');
 }
 export function celebrate(text) { overlay(`<div class="party">🎉🐷🎉</div><div class="anim-text">${esc(text)}</div>${'<i class="confetti"></i>'.repeat(18)}`, 2800, 'stamp-overlay'); }

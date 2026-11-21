@@ -27,7 +27,7 @@ export async function mount(el, { id }) {
     const active = reqs.filter((r) => ['pending', 'approved'].includes(r.status));
     const recent = reqs.filter((r) => ['rejected', 'canceled'].includes(r.status)).slice(0, 2);
     el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 돼지 저금통`)}
-      <section class="piggy-hero card" style="--kc:${esc(kid.color)}"><div class="piggy-big" aria-hidden="true">🐷</div><div><p class="muted">내 돈</p><div class="total" id="total">${won(w.balance)}</div></div></section>
+      <section class="piggy-hero card" style="--kc:${esc(kid.color)}"><img class="piggy-img" src="/assets/money/piggy.webp" alt="" draggable="false"><div><p class="muted">내 돈</p><div class="total" id="total">${won(w.balance)}</div></div></section>
       <section class="money-cards"><div class="mcard"><span>지금 쓸 수 있는 돈</span><b>${won(w.available)}</b></div>
         <a class="mcard link" href="#/kid/${id}/wishes"><span>목표에 모아둔 돈</span><b>${won(w.goalSaved)}</b></a>
         ${w.waiting ? `<div class="mcard wait"><span>지급 기다리는 돈</span><b>${won(w.waiting)}</b></div>` : ''}</section>

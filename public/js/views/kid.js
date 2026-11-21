@@ -19,7 +19,7 @@ export async function hub(el, { id }) {
         <div class="hub-head">${avatar(kid, 'xxl')}<div><h1>${esc(kid.name)}</h1><p class="hub-state">${status}</p><p class="small">💮 도장 <b>${boards.count}</b>/${boards.size}</p></div></div>
         <div class="big-grid">
           <a class="big-btn" href="#/kid/${id}/today"><span class="bi">✅</span><b>오늘 루틴</b><small>${day.done}/${day.total}</small></a>
-          <a class="big-btn" href="#/kid/${id}/wallet"><span class="bi">🐷</span><b>돼지 저금통</b><small>내 돈 보기</small></a>
+          <a class="big-btn" href="#/kid/${id}/wallet"><img class="bi-img" src="/assets/money/piggy.webp" alt="" draggable="false"><b>돼지 저금통</b><small>내 돈 보기</small></a>
           <a class="big-btn" href="#/kid/${id}/wishes"><span class="bi">🛍️</span><b>사고 싶은 것</b><small>모아서 사기</small></a>
           <a class="big-btn" href="#/kid/${id}/talk"><span class="bi">💌</span><b>가족에게 말하기</b><small>메시지 보내기</small></a>
         </div>

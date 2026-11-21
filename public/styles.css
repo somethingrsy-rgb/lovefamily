@@ -380,3 +380,16 @@ textarea { min-height: 90px; resize: vertical; }
 .room-time { position: absolute; z-index: 3; left: 50%; bottom: 1.2cqw; transform: translateX(-50%); padding: .4cqw 2.4cqw; border-radius: 999px; background: rgba(255, 255, 255, .93); color: #3a3252; font-size: 3.3cqw; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; box-shadow: 0 1px 5px rgba(90, 60, 140, .3); pointer-events: none; }
 .room-time.ended { background: #fff1cf; color: #5c3f00; font-size: 3cqw; }
 .room-timer { display: none; }
+
+/* ===== 돼지 저금통·돈 그림 ===== */
+.piggy-img { width: 120px; height: auto; flex: none; filter: drop-shadow(0 8px 10px rgba(120, 60, 110, .25)); } @media (min-width: 700px) { .piggy-img { width: 160px; } }
+.bi-img { width: 4.4rem; height: auto; max-height: 4rem; object-fit: contain; }
+.amount-field .money-btns { grid-template-columns: repeat(3, 1fr); }
+.money-btn { min-height: 104px; padding: 6px 4px; }
+.money-btn .mimg { display: block; margin: 0; } .money-btn img.mcoin { height: 48px; width: auto; } .money-btn img.mbill { height: 44px; width: auto; max-width: 92%; }
+.money-btn .bill5 { display: grid; place-items: center; height: 44px; width: 70px; border-radius: 8px; font-weight: 900; font-size: 1.05rem; color: #8a4b12; background: linear-gradient(135deg, #ffe0c2, #ffc89a); border: 2px solid #e9a96b; box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .45); }
+.money-btn b { font-size: .95rem; }
+.piggy-anim .piggy-pic { width: 190px; height: auto; font-size: 0; }
+.coin { font-size: 0; width: 3.4rem; height: auto; } .coin.bill { width: 5.2rem; }
+.piggy-hero .total { white-space: nowrap; } .piggy-hero { gap: 14px; }
+@media (max-width: 520px) { .piggy-img { width: 98px; } .piggy-hero .total { font-size: 2.3rem; } }

@@ -8,9 +8,12 @@ export const kidTitle = (kid, text) => `${avatar(kid, 'sm')} ${esc(kid.name)}의
 // ---- 금액 입력 (500원·1,000원·5,000원 그림 버튼 + 직접 입력, 정확한 금액을 글자로도 표시) ----
 export const amountHtml = (name = 'amount', { max } = {}) => `<div class="amount-field" data-max="${max ?? ''}">
   <div class="money-btns" role="group" aria-label="금액 더하기">
-    <button type="button" class="money-btn" data-add="500"><span class="mi">🪙</span><b>500원</b></button>
-    <button type="button" class="money-btn" data-add="1000"><span class="mi">🪙🪙</span><b>1,000원</b></button>
-    <button type="button" class="money-btn" data-add="5000"><span class="mi">💵</span><b>5,000원</b></button>
+    <button type="button" class="money-btn" data-add="100"><img class="mimg mcoin" src="/assets/money/c100.webp" alt="" draggable="false"><b>100원</b></button>
+    <button type="button" class="money-btn" data-add="500"><img class="mimg mcoin" src="/assets/money/c500.webp" alt="" draggable="false"><b>500원</b></button>
+    <button type="button" class="money-btn" data-add="1000"><img class="mimg mbill" src="/assets/money/b1000.webp" alt="" draggable="false"><b>1,000원</b></button>
+    <button type="button" class="money-btn" data-add="5000"><span class="mimg bill5" aria-hidden="true">5,000</span><b>5,000원</b></button>
+    <button type="button" class="money-btn" data-add="10000"><img class="mimg mbill" src="/assets/money/b10000.webp" alt="" draggable="false"><b>10,000원</b></button>
+    <button type="button" class="money-btn" data-add="50000"><img class="mimg mbill" src="/assets/money/b50000.webp" alt="" draggable="false"><b>50,000원</b></button>
   </div>
   <label class="field">금액(원) 직접 입력<input name="${name}" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"></label>
   <p class="amount-text" aria-live="polite">정확한 금액: <b>0원</b> <button type="button" class="btn small ghost" data-clear>지우기</button></p></div>`;
