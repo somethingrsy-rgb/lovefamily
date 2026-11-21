@@ -195,3 +195,25 @@ test('아이 폰: 우리집 대시보드(홈) 정보는 볼 수 있고, 걷기�
     assert.equal((await f.mom.put(`/api/walkers/${f.ids.yuha}`, { cell: '01' })).status, 200, '어른은 그대로 가능');
   } finally { await f.close(); }
 });
+
+test('용돈을 받으면 그 아이 폰(과 거실 기기)에만 "저금통에 쏙" 신호가 가고, 형제 폰에는 가지 않는다', async () => {
+  const f = await setup();
+  try {
+    const a = await pairPhone(f, f.ids.yuel); const b = await pairPhone(f, f.ids.yuha);
+    const open = async (client) => {
+      const ev = []; const ac = new AbortController();
+      const res = await fetch(f.base + '/api/stream', { headers: { cookie: client.cookie, 'X-Requested-With': 'lovefamily' }, signal: ac.signal });
+      (async () => { try { const rd = res.body.getReader(); const dec = new TextDecoder(); for (;;) { const { value, done } = await rd.read(); if (done) break; for (const m of dec.decode(value).matchAll(/data: (.*)\n/g)) ev.push(JSON.parse(m[1])); } } catch {} })();
+      await new Promise((r) => setTimeout(r, 80));
+      return { ev, stop: () => ac.abort() };
+    };
+    const sa = await open(a.phone); const sb = await open(b.phone);
+    await f.mom.ok('POST', `/api/kids/${f.ids.yuel}/deposits`, { amount: 3000, memo: '용돈' });
+    await new Promise((r) => setTimeout(r, 150));
+    const got = sa.ev.filter((e) => e.t === 'coins');
+    assert.equal(got.length, 1); assert.equal(got[0].amount, 3000); assert.equal(got[0].dir, 'in');
+    assert.equal(sb.ev.filter((e) => e.t === 'coins').length, 0, '동생 폰에는 가지 않는다');
+    // 같은 입금(재시도)은 두 번 알리지 않는다 — 장부 중복 방지와 같은 키
+    sa.stop(); sb.stop();
+  } finally { await f.close(); }
+});

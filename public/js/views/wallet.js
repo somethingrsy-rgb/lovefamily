@@ -1,6 +1,6 @@
 import { $, $$, esc, won, shortDate, lsGet, lsSet, ago } from '../util.js';
 import { S, get, post, isDevice, isAdultNow, kidById } from '../api.js';
-import { avatar, toast, errToast, formSheet, playCoins, needAdult } from '../ui.js';
+import { avatar, toast, errToast, formSheet, playCoins, needAdult, coinsSeen } from '../ui.js';
 import { back, amountSheet } from '../common.js';
 
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
@@ -18,7 +18,7 @@ export async function mount(el, { id }) {
     // 서버에서 확정된 변화만 애니메이션으로 보여 준다
     if (asKid()) {
       const key = `bal:${id}`; const prev = lsGet(key, null);
-      if (prev != null && prev !== w.balance) playCoins(w.balance > prev ? 'in' : 'out', Math.abs(w.balance - prev));
+      if (prev != null && prev !== w.balance && !(w.balance > prev && Date.now() - (coinsSeen.get(Number(id)) || 0) < 15000)) playCoins(w.balance > prev ? 'in' : 'out', Math.abs(w.balance - prev));
       lsSet(key, w.balance);
     }
   }

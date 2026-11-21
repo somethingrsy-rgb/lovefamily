@@ -51,6 +51,13 @@ console.log('✓ 자기 캐릭터만 움직이고, 어른 기능은 열리지 �
 await page.click('.tab[data-tab=today]'); await page.waitForSelector('.kid-hub');
 await page.click('.tab[data-tab=home]'); await page.waitForSelector('.house');
 console.log('✓ 우리집 ↔ 내 화면 이동');
+// 용돈이 들어오면 어느 화면에 있든(여기서는 우리집 화면) 저금통에 쏙 모션이 보인다(그 아이 폰)
+await page.click('.tab[data-tab=home]'); await page.waitForSelector('.house');
+await call('POST', `/api/kids/${yuel}/deposits`, { amount: 3000, memo: '용돈' });
+await page.waitForSelector('.coin-overlay', { timeout: 6000 });
+assert.match(await page.textContent('.coin-overlay .anim-text'), /저금통에 쏙.*3,000원/, '자기 폰에는 금액도 보인다');
+await page.screenshot({ path: path.join(shots, '81-kidphone-coins.png') });
+console.log('✓ 용돈을 받으면 아이 폰 어느 화면에서든 저금통에 쏙 모션');
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 6 통과 · 스크린샷:', shots);

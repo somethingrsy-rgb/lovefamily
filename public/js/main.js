@@ -2,7 +2,7 @@ import './emo.js';
 import { $, $$, esc, lsGet, lsSet, kstParts } from './util.js';
 import { S, get, post, bus, connectStream, disconnectStream, onStatus, outboxCount, isDevice, boundKid, hooks, flushOutbox, ApiError } from './api.js';
 import * as kidme from './views/kidme.js';
-import { popup, toast, sheetOpen, openSheet, needAdult, avatar, playStamp } from './ui.js';
+import { popup, toast, sheetOpen, openSheet, needAdult, avatar, playStamp, playCoins, coinsSeen } from './ui.js';
 import * as auth from './views/auth.js';
 import * as home from './views/home.js';
 import * as adult from './views/adult.js';
@@ -168,6 +168,13 @@ export async function openNotification(n) {
   if (n.url?.startsWith('/#')) go(n.url.slice(2)); else if (n.url) go(n.url);
 }
 bus.on('stamp', (ev) => { if (isDevice()) playStamp({ provider: ev.provider, key: ev.stampId }); });
+// 용돈·보상이 들어오면 어느 화면에 있든 '저금통에 쏙' 모션(그 아이 폰, 거실 기기). 거실 기기에서는 금액은 가린다.
+const coinSeen = new Set();
+bus.on('coins', (ev) => {
+  if (!isDevice() || coinSeen.has(ev.key)) return;
+  coinSeen.add(ev.key); coinsSeen.set(ev.kidId, Date.now());
+  playCoins('in', ev.amount, { hideAmount: !boundKid() });
+});
 bus.on('notify', async (ev) => {
   if (seen.has(ev.id)) return;
   markSeen(ev.id);

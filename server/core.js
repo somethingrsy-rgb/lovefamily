@@ -18,7 +18,7 @@ export class Hub {
     const data = `data: ${JSON.stringify(event)}\n\n`;
     for (const c of this.conns) {
       if (c.familyId !== familyId) continue;
-      if (c.bound && event.t === 'timer' && event.kidId !== c.bound) continue; // 아이 폰에는 자기 활동 알림만
+      if (c.bound && (event.t === 'timer' || event.t === 'coins') && event.kidId !== c.bound) continue; // 아이 폰에는 자기 활동 알림·자기 돈 소식만
       if (to) {
         const okAdult = c.memberId && to.adults?.includes(c.memberId);
         const okKid = c.kidId && to.kids?.includes(c.kidId);

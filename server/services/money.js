@@ -31,6 +31,10 @@ export function ledgerAdd(core, { familyId, kidId, kind, amount, affects = 1, me
   const lid = core.insert(
     'INSERT INTO ledger (family_id, kid_id, kind, amount, affects, memo, date, actor_id, balance_after, request_id, idem_key, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
     familyId, kidId, kind, amount, affects, memo, date || core.today(), actorId, bal, requestId, idemKey, core.now());
+  // 용돈·보상이 들어오면 아이 폰(그 아이 것만)과 거실 기기에 '저금통에 쏙' 소식을 보낸다
+  if (affects && amount > 0 && ['deposit', 'stamp_reward', 'mission_reward'].includes(kind)) {
+    core.afterCommit(() => core.hub.publish(familyId, { t: 'coins', dir: 'in', kidId, amount, kind, key: `coin:${lid}` }, { kids: [kidId], devices: true }));
+  }
   return { row: core.get('SELECT * FROM ledger WHERE id = ?', lid), created: true };
 }
 
