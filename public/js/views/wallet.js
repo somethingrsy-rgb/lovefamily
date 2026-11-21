@@ -7,7 +7,7 @@ const REASONS = ['용돈', '도장 30개', '문제집 1권', '세뱃돈'];
 const WD_REASONS = ['문구점', '슈퍼', '친구랑 간식'];
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
 export const adultPick = (name = 'toMemberId') => `<fieldset class="adult-pick-set"><legend>누구에게 보낼까요?</legend><div class="adult-pick">${S.info.adults.map((a, i) => `<label class="adult-opt radio"><input type="radio" name="${name}" value="${a.id}" ${i === 0 ? 'checked' : ''}>${avatar(a)}<span>${esc(a.name)}</span></label>`).join('')}</div></fieldset>`;
-const STEP = { withdraw: ['기다리는 중', '줄게요', '꺼냈어요'], deposit: ['기다리는 중', '입금 확인'], purchase: ['기다리는 중', '사도 좋아요', '샀어요'] };
+const STEP = { withdraw: ['기다리는 중', '줄게요', '받았어요'], deposit: ['기다리는 중', '입금 확인'], purchase: ['기다리는 중', '사도 좋아요', '샀어요'] };
 const stepIdx = { pending: 0, approved: 1, paid: 2, confirmed: 1, completed: 2 };
 
 export async function mount(el, { id }) {

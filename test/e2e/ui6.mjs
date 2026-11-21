@@ -123,9 +123,9 @@ assert.deepEqual(await page.$$eval('.coin-overlay .coin.out', (e) => e.map((x) =
 assert.match(await page.textContent('.coin-overlay .anim-text'), /저금통에서 쏙/);
 console.log('✓ 돈 꺼내기: 누른 그대로(100원 3개) 저금통에서 나옴');
 // 승인·완료 소식 팝업은 [열기]가 아니라 [확인]
-await page.waitForSelector('.popup:has-text("꺼냈어요")', { timeout: 6000 });
-assert.equal((await page.textContent('.popup:has-text("꺼냈어요") [data-a=open]')).trim(), '확인', '결과 소식 팝업 버튼은 확인');
-await page.click('.popup:has-text("꺼냈어요") [data-a=open]');
+await page.waitForSelector('.popup:has-text("받았어요")', { timeout: 6000 });
+assert.equal((await page.textContent('.popup:has-text("받았어요") [data-a=open]')).trim(), '확인', '결과 소식 팝업 버튼은 확인');
+await page.click('.popup:has-text("받았어요") [data-a=open]');
 assert.ok(page.url().includes('/wallet'), '확인을 눌러도 화면이 바뀌지 않는다(닫기만)');
 await page.waitForSelector('.coin-overlay', { state: 'detached', timeout: 8000 });
 // 어른은 저금통 기록을 지울 수 있다(아이 폰에는 지우기 버튼이 없다)

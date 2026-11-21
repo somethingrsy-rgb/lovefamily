@@ -24,7 +24,7 @@ test('동작 예시: 용돈 5,000 → 도장 보상 5,000 → 문구점 출금 2
     const w1 = await f.wallet(kid);
     assert.equal(w1.balance, 10000); assert.equal(w1.waiting, 2000); assert.equal(w1.available, 8000);
     const paid = await f.dad.ok('POST', `/api/money/requests/${rq.id}/pay`);
-    assert.equal(paid.statusLabel, '꺼냈어요');
+    assert.equal(paid.statusLabel, '받았어요');
     const w2 = await f.wallet(kid);
     assert.equal(w2.balance, 8000); assert.equal(w2.waiting, 0); assert.equal(w2.available, 8000);
     const led = await f.mom.ok('GET', `/api/kids/${kid}/ledger?month=2026-11`);
