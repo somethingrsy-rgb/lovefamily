@@ -171,9 +171,9 @@ export async function mount(el) {
       <div class="home-main">
       <header class="topbar">
         <div class="clock"><div class="date">${dateLabel(h.today)}</div><div class="time" id="clock">${timeLabel(Date.now())}</div><div class="fam">${esc(h.family.name)}</div></div>
-        <div class="adult-cards">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div>
         ${isDevice() ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
       </header>
+      <section class="adult-row" aria-label="부모님 상태"><div class="adult-cards">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>
       ${ah ? `<section class="adult-panel card" aria-label="내 할 일">${adultPanelHtml(ah)}</section>` : ''}
       <section class="kids" aria-label="아이들">${h.kids.map(kidCard).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
       <section class="lower">

@@ -605,3 +605,10 @@ input:not([type]), input[inputmode], input[type=date], input[type=number], input
 .wish-photo, .opt-card img, .now-next.small .nn-card, .timer-big, .piggy-hero, .goal, .board, .kid-timer.paused { border-radius: var(--r-l); }
 .sheet { border-radius: var(--r-l) var(--r-l) 0 0; }
 @media (min-width: 700px) { .sheet { border-radius: var(--r-l); } }
+
+/* ===== 홈 배열(아이패드): 위 줄 = 시계 · 어른 메뉴 / 부모님 상태(엄마|아빠 나란히) / 아이 카드(유엘|유하 나란히) ===== */
+.adult-row { min-width: 0; }
+.home-main .adult-row .adult-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: none; }
+.home-main .adult-row .adult-card { min-width: 0; }
+@media (max-width: 520px) { .home-main .adult-row .adult-cards { grid-template-columns: 1fr; } }
+@media (min-width: 700px) { .home-main .kids { grid-template-columns: 1fr 1fr; align-items: stretch; } }
