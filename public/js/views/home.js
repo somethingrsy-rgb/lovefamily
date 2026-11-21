@@ -1,5 +1,5 @@
 import { $, $$, esc, dateLabel, timeLabel, kstParts, shortDate } from '../util.js';
-import { S, get, post, put, isDevice, isAdultNow, bus } from '../api.js';
+import { S, get, post, put, isDevice, isAdultNow, bus, boundKid } from '../api.js';
 import { avatar, memberAvatar, toast, errToast, toastAction, openSheet } from '../ui.js';
 import { loadTimers } from '../timers.js';
 import { kidTimerHtml, bindDismiss } from './timerui.js';
@@ -119,6 +119,12 @@ function bindHouse(root, reload, h) {
   root.addEventListener('click', async (e) => {
     const r = e.target.closest('[data-room]'); if (!r) return;
     const t = r.dataset.room;
+    const kp = boundKid(); // 아이 폰: 보기 위주. 자기 방·자기 도장판만 열린다(어른 상태 바꾸기·알림장·형제 화면은 열지 않는다)
+    if (kp) {
+      if (t === 'kid' && Number(r.dataset.id) === kp) location.hash = `#/kid/${kp}`;
+      else if (t === 'bank') location.hash = `#/kid/${kp}/stamps`;
+      return;
+    }
     if (t === 'kid') location.hash = `#/kid/${r.dataset.id}`;
     else if (t === 'bank') location.hash = '#/stamps';
     else if (t === 'living') location.hash = '#/notebook';
@@ -140,7 +146,8 @@ export async function mount(el) {
   let lastSig = '';
   const lastDay = new Map(); // 아이별 직전 하루 상태: 도장을 '방금' 받았는지 알아내기 위함
   let deferred = false; // 누군가 걷는 중이면 화면을 다시 그리지 않고, 도착한 뒤에 한 번만 갱신(걷는 그림이 끊기거나 깜박이지 않게)
-  const adultUser = !isDevice();
+  const kidPhone = !!boundKid();
+  const adultUser = !isDevice() && !kidPhone;
   async function load() {
     // 요청을 한꺼번에 보낸다(하나씩 기다리면 휴대폰 망에서 왕복 시간이 그대로 쌓인다)
     const [info, , home, ah] = await Promise.all([
@@ -158,14 +165,14 @@ export async function mount(el) {
   }
   function draw(h, ah) {
     const p = kstParts(h.now);
-    const dev = isDevice();
+    const dev = isDevice() || kidPhone;
     el.innerHTML = `<div class="home ${dev ? 'is-device' : ''}">
       <aside class="house-col">${houseHtml(h)}</aside>
       <div class="home-main">
       <header class="topbar">
         <div class="clock"><div class="date">${dateLabel(h.today)}</div><div class="time" id="clock">${timeLabel(Date.now())}</div><div class="fam">${esc(h.family.name)}</div></div>
         <div class="adult-cards">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div>
-        ${dev ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
+        ${isDevice() ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
       </header>
       ${ah ? `<section class="adult-panel card" aria-label="내 할 일">${adultPanelHtml(ah)}</section>` : ''}
       <section class="kids" aria-label="아이들">${h.kids.map(kidCard).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
@@ -182,8 +189,8 @@ export async function mount(el) {
     bindHouse($('.house-col', el), load, h);
     const col = $('.house-col', el);
     mountWalkers(col, h, {
-      onOpen: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)),
-      onDouble: (p) => (p.kind === 'kid' ? (location.hash = `#/kid/${p.id}`) : openAdultSheet(p.id, h, load)), // 두 번 누르면 활동창
+      onOpen: (p) => { if (kidPhone) { if (p.id === boundKid()) location.hash = `#/kid/${p.id}`; return; } if (p.kind === 'kid') location.hash = `#/kid/${p.id}`; else openAdultSheet(p.id, h, load); },
+      onDouble: (p) => { if (kidPhone) { if (p.id === boundKid()) location.hash = `#/kid/${p.id}`; return; } if (p.kind === 'kid') location.hash = `#/kid/${p.id}`; else openAdultSheet(p.id, h, load); }, // 두 번 누르면 그 사람 화면(아이 폰은 자기 것만)
       onArrive: () => { if (deferred) { deferred = false; load(); } else syncBankReq(col, h, load); },
     });
     syncBankReq(col, h, load);

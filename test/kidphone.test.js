@@ -181,3 +181,17 @@ test('집 안 걷기: 칸 위치가 가족 모든 기기에 공유되고, 잘못
     sd.stop();
   } finally { await f.close(); }
 });
+
+test('아이 폰: 우리집 대시보드(홈) 정보는 볼 수 있고, 걷기는 자기 캐릭터만 움직일 수 있다', async () => {
+  const f = await setup({ withRoutines: true });
+  try {
+    const { phone } = await pairPhone(f, f.ids.yuel);
+    const home = await phone.ok('GET', '/api/home');
+    assert.equal(home.kids.length, 2); assert.ok(home.adults.length >= 2);
+    assert.equal((await phone.get('/api/adult/home')).status, 403, '어른 전용 홈 패널은 안 열린다');
+    assert.equal((await phone.put(`/api/walkers/${f.ids.yuel}`, { cell: '01' })).status, 200);
+    assert.equal((await phone.put(`/api/walkers/${f.ids.yuha}`, { cell: '01' })).status, 403, '동생 캐릭터는 못 움직인다');
+    assert.equal((await phone.put(`/api/walkers/${f.ids.mom}`, { cell: '01' })).status, 403, '어른 캐릭터도 못 움직인다');
+    assert.equal((await f.mom.put(`/api/walkers/${f.ids.yuha}`, { cell: '01' })).status, 200, '어른은 그대로 가능');
+  } finally { await f.close(); }
+});

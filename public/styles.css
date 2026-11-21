@@ -434,7 +434,6 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 
 /* 아이 폰: 어른 전용 버튼은 보이지 않는다(서버도 막아 둠) */
 .kidphone .adult-set, .kidphone #adultMode, .kidphone #adm, .kidphone #next, .kidphone .adult-menu, .kidphone [data-adult-only] { display: none !important; }
-.kidphone .back[href="#/"] { visibility: hidden; }
 
 /* ===== 집 안을 걷는 가족 ===== */
 .walkers { position: absolute; inset: 0; z-index: 4; pointer-events: none; }

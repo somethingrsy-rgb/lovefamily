@@ -238,6 +238,7 @@ export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
     if (wk && !(selected !== null && Number(wk.dataset.walker) !== selected)) { // 캐릭터 누르기 = 선택/해제
       e.stopPropagation();
       const id = Number(wk.dataset.walker);
+      if (isKidPhone() && id !== boundKid()) return; // 아이 폰에서는 자기 캐릭터만 움직일 수 있다
       const now = Date.now(); const dbl = lastTap.id === id && now - lastTap.t < 420; lastTap = { id: dbl ? null : id, t: now };
       if (dbl) { const p = P.find((x) => x.id === id); if (p && onDouble) { onDouble(p); return; } }
       selected = selected === id ? null : id;
@@ -266,4 +267,4 @@ export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
   }, true);
   for (const [id, target] of toMove) setTimeout(() => moveTo(id, target, { remote: true }), 50);
 }
-void toast; void isKidPhone; void boundKid;
+void toast;

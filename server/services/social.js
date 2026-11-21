@@ -324,6 +324,7 @@ export function setWalker(core, ctx, memberId, cell) {
   if (typeof cell !== 'string' || !CELL.test(cell)) throw err(400, 'bad_cell', '갈 수 없는 칸이에요.');
   const m = core.member(memberId);
   if (!m || m.family_id !== ctx.familyId || m.removed) throw err(404, 'not_found', '찾을 수 없어요.');
+  if (ctx.boundKid && ctx.boundKid !== m.id) throw err(403, 'forbidden', '내 캐릭터만 움직일 수 있어요.'); // 아이 폰은 자기 캐릭터만
   core.run('INSERT INTO walkers (member_id, family_id, cell, updated_at) VALUES (?,?,?,?) ON CONFLICT(member_id) DO UPDATE SET cell = excluded.cell, updated_at = excluded.updated_at', m.id, ctx.familyId, cell, core.now());
   core.refresh(ctx.familyId, 'walkers');
   return { ok: true, memberId: m.id, cell };

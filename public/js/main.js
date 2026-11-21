@@ -79,7 +79,7 @@ bus.on('reloadInfo', async () => { await loadInfo(); });
 function tabsFor() {
   const k = boundKid();
   if (!k) return TABS;
-  return [['today', `/kid/${k}`, '🏠', '오늘'], ['stamps', `/kid/${k}/stamps`, '💮', '도장판'], ['me', '/me', '⚙️', '내 설정']];
+  return [['home', '/', '🏠', '우리집'], ['today', `/kid/${k}`, '✅', '내 화면'], ['stamps', `/kid/${k}/stamps`, '💮', '도장판'], ['me', '/me', '⚙️', '내 설정']];
 }
 function shell() {
   const dev = isDevice();
@@ -108,8 +108,8 @@ async function render() {
   if (S.info && boundKid() && !match.pub) { // 아이 폰: 자기 아이 화면과 내 설정만 열린다
     const own = boundKid();
     S.actKid = own; document.body.classList.add('kidphone');
-    const ok = match.view === kidme || (match.kid && Number(params.id) === own);
-    if (!ok) { go(`/kid/${own}`); return; }
+    const ok = match.view === kidme || match.view === home || (match.kid && Number(params.id) === own); // 우리집 대시보드(홈)도 볼 수 있다
+    if (!ok) { go('/'); return; }
   } else document.body.classList.remove('kidphone');
   if (!S.info) { if (!match.pub) { go('/login'); return; } app.innerHTML = '<div id="main" class="authwrap"></div>'; current = await match.view.mount?.($('#main'), params) || await match.view($('#main'), params); return; }
   if (match.pub) { go('/'); return; }
@@ -119,8 +119,9 @@ async function render() {
     if (S.actKid !== want) { S.actKid = want; connectStream(); }
   }
   if (!$('.shell')) shell();
-  else if (boundKid() && $$('.tab').length !== 3) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
-  $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === match.tab));
+  else if (boundKid() && $$('.tab').length !== 4) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
+  const tabKey = boundKid() && match.view === home ? 'home' : match.tab;
+  $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === tabKey));
   const main = $('#main');
   main.onclick = null; // 이전 화면의 눌림 처리가 새 화면에 남지 않게
   main.innerHTML = '<div class="loading">불러오는 중…</div>';
