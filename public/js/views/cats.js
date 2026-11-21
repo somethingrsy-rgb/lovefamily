@@ -20,6 +20,7 @@ const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groo
 const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' || name === 'down' ? 'jump' : name}.webp` : `/assets/cats/${id}-${name}.webp`);
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
 const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(연이는 15% 크게)
+const PLAY_GAP = 22;             // 장난칠 때 두 마리 사이 거리(집 너비 %): 고양이 한 마리 폭의 두 배쯤
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
 const MIN_X = 9, MAX_X = 91;     // 방 안쪽 범위
@@ -89,7 +90,10 @@ function tryPlay(now) {
     if (Math.random() > 0.6) continue;
     const left = a.x <= b.x ? a : b; const right = left === a ? b : a;
     left.face = 1; right.face = -1;
-    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 4600; c.path = []; c.key = ''; c.playKind = pick(PLAYS); c.hop = 0; }
+    // 너무 붙어서 겹치지 않게, 가운데를 기준으로 서로 PLAY_GAP 만큼 떨어져 선다(천천히 걸어서 벌어진다)
+    const mid = Math.min(Math.max((a.x + b.x) / 2, MIN_X + PLAY_GAP / 2), MAX_X - PLAY_GAP / 2);
+    left.tx = mid - PLAY_GAP / 2; right.tx = mid + PLAY_GAP / 2;
+    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 6200; c.path = []; c.key = ''; c.playKind = pick(PLAYS); c.hop = 0; }
   }
 }
 
@@ -101,9 +105,10 @@ function step(now) {
   for (const c of cats) {
     const el = layer.querySelector(`[data-pet="${c.id}"]`); if (!el) continue;
     if (c.mode === 'play') {
-      if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2000, 5000); c.key = ''; el.classList.remove('hop'); }
-      else if (c.playKind === 'dog') { setLook(c, el, Math.floor((now - (c.until - 4600)) / 1100) % 2 ? 'roll' : 'aegyo'); el.classList.add('hop'); }
+      if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2000, 5000); c.key = ''; c.tx = null; el.classList.remove('hop'); }
+      else if (c.playKind === 'dog') { setLook(c, el, Math.floor((now - (c.until - 6200)) / 1100) % 2 ? 'roll' : 'aegyo'); el.classList.add('hop'); }
       else setLook(c, el, `play-${c.playKind}`);
+      if (c.tx != null && Math.abs(c.tx - c.x) > 0.2) c.x += Math.sign(c.tx - c.x) * Math.min(Math.abs(c.tx - c.x), H_SPEED * dt); // 장난 자리로 벌어진다
     } else if (c.mode === 'aegyo') {
       if (now > c.until) { c.mode = 'idle'; c.until = now + rnd(2000, 5000); c.pose = 'sit'; }
       else { setLook(c, el, 'aegyo'); }
