@@ -38,7 +38,7 @@ export async function today(el, { id }) {
   async function load() {
     const d = await get(`/api/kids/${id}/day?date=${date}`);
     draw(d);
-    if (lastStatus && lastStatus !== 'approved' && d.status === 'approved' && d.date === S.info.today) playStamp({ kidName: kid.name, provider: d.stamp?.providerName });
+    if (lastStatus && lastStatus !== 'approved' && d.status === 'approved' && d.date === S.info.today) playStamp({ kidName: kid.name, provider: d.stamp?.providerName, key: d.stamp?.id });
     lastStatus = d.status;
   }
   function draw(d) {

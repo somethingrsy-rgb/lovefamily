@@ -126,6 +126,7 @@ export function connectStream() {
     if (ev.t === 'refresh') bus.emit('refresh', ev.topics || ['all']);
     else if (ev.t === 'notify') bus.emit('notify', ev);
     else if (ev.t === 'timer') bus.emit('timer', ev);
+    else if (ev.t === 'stamp') bus.emit('stamp', ev);
   };
 }
 export function disconnectStream() { es?.close(); es = null; esKid = undefined; }

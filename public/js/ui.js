@@ -241,7 +241,9 @@ function overlay(html, ms, cls = '') {
   setTimeout(() => el.classList.add('out'), ms - 300);
   setTimeout(() => el.remove(), ms);
 }
-export function playStamp({ kidName, provider }) {
+const stampSeen = new Set();
+export function playStamp({ kidName, provider, key }) {
+  if (key != null) { if (stampSeen.has(key)) return; stampSeen.add(key); }
   // 도장이 위에서 쑥 내려와 "쾅" 찍히고(화면이 살짝 흔들림), 도장이 올라가면 자국이 남는다
   overlay(`<div class="stamp-scene"><div class="stamp-paper"></div>
       <div class="stamp-mark"><img src="/assets/emoji/stamp-mark.webp" alt=""></div>

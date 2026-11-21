@@ -73,6 +73,7 @@ export function approveStamp(core, ctx, requestId) {
       familyId: req.family_id, memberId: req.kid_id, kind: 'stamp_approved', title: `${adult.name}이(가) 도장을 줬어요!`,
       body: req.date, url: '/#/kid/stamps', dedupe: `stamp-ok:${sid}`,
     });
+    core.afterCommit(() => core.hub.publish(req.family_id, { t: 'stamp', stampId: sid, kidId: req.kid_id, provider: adult.name, date: req.date }, { devices: true }));
     core.refresh(req.family_id, 'approvals', 'home', 'day', 'stamps', 'wallet');
     return { result: 'approved', by: { id: adult.id, name: adult.name }, kidName: kid.name, date: req.date, stampId: sid };
   });

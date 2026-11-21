@@ -1,7 +1,7 @@
 import './emo.js';
 import { $, $$, esc, lsGet, lsSet, kstParts } from './util.js';
 import { S, get, post, bus, connectStream, disconnectStream, onStatus, outboxCount, isDevice, hooks, flushOutbox, ApiError } from './api.js';
-import { popup, toast, sheetOpen, openSheet, needAdult, avatar } from './ui.js';
+import { popup, toast, sheetOpen, openSheet, needAdult, avatar, playStamp } from './ui.js';
 import * as auth from './views/auth.js';
 import * as home from './views/home.js';
 import * as adult from './views/adult.js';
@@ -149,6 +149,7 @@ const markSeen = (id) => { seen.add(id); lsSet('seenNotifs', [...seen].slice(-20
 export async function openNotification(n) {
   if (n.url?.startsWith('/#')) go(n.url.slice(2)); else if (n.url) go(n.url);
 }
+bus.on('stamp', (ev) => { if (isDevice()) playStamp({ provider: ev.provider, key: ev.stampId }); });
 bus.on('notify', async (ev) => {
   if (seen.has(ev.id)) return;
   markSeen(ev.id);

@@ -412,3 +412,27 @@ test('활동 중단: 아이가 직접 자기 활동을 멈출 수 있고, 루틴
     assert.equal((await other.post(`/api/timers/${t.id}/cancel`)).status, 404);
   } finally { await f.close(); }
 });
+
+test('도장 승인 순간 모든 아이용 기기(거실 iPad·아이 휴대폰)에 쾅 신호가 한 번씩 가고, 어른 휴대폰에는 가지 않는다', async () => {
+  const f = await setup();
+  try {
+    const listen = async (client, qs = '') => {
+      const ev = []; const ac = new AbortController();
+      const res = await fetch(f.base + '/api/stream' + qs, { headers: { cookie: client.cookie, 'X-Requested-With': 'lovefamily' }, signal: ac.signal });
+      (async () => { try { const rd = res.body.getReader(); const dec = new TextDecoder(); for (;;) { const { value, done } = await rd.read(); if (done) break; for (const m of dec.decode(value).matchAll(/data: (.*)\n/g)) ev.push(JSON.parse(m[1])); } } catch {} })();
+      await new Promise((r) => setTimeout(r, 80)); return { ev, stop: () => ac.abort() };
+    };
+    const { Client } = await import('./helpers.js');
+    const kidPhone = new Client(f.base); await kidPhone.ok('POST', '/api/auth/login', { loginId: 'mom@test', password: 'secret1', device: true });
+    const a = await listen(f.device, `?kid=${f.ids.yuel}`); const b = await listen(kidPhone, `?kid=${f.ids.yuha}`); const adultPhone = await listen(f.dad);
+    await f.completeDay(f.ids.yuel);
+    const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
+    await Promise.all([f.mom, f.dad, f.gma].map((c) => c.post(`/api/stamp-requests/${rid}/approve`)));
+    await new Promise((r) => setTimeout(r, 150));
+    const stamps = (s) => s.ev.filter((e) => e.t === 'stamp');
+    assert.equal(stamps(a).length, 1); assert.equal(stamps(b).length, 1, '다른 아이 화면에 있는 기기에도');
+    assert.equal(stamps(adultPhone).length, 0);
+    assert.equal(stamps(a)[0].kidId, f.ids.yuel); assert.ok(stamps(a)[0].provider);
+    [a, b, adultPhone].forEach((s) => s.stop());
+  } finally { await f.close(); }
+});
