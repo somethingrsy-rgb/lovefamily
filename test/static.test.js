@@ -54,3 +54,10 @@ test('알림 아이콘: 서비스 워커가 쓰는 하트 배지/아이콘 파�
   const png = fs.readFileSync(new URL('../public/icons/badge-heart.png', import.meta.url));
   assert.equal(png.readUInt32BE(16), 96); assert.equal(png.readUInt32BE(20), 96); assert.equal(png[25], 6, 'RGBA(투명 배경)');
 });
+
+test('매니페스트에 단색(monochrome) 하트 아이콘이 있어, 안드로이드 설치 앱의 알림 작은 아이콘이 흰 네모가 되지 않는다', () => {
+  const m = JSON.parse(fs.readFileSync(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8'));
+  const mono = m.icons.find((i) => i.purpose === 'monochrome');
+  assert.ok(mono, 'monochrome 아이콘');
+  assert.ok(fs.existsSync(new URL(`../public${mono.src}`, import.meta.url)));
+});
