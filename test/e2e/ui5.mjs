@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createApp } from '../../server/app.js';
 
 const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 const shots = process.env.SHOTS_DIR || path.join(os.tmpdir(), 'lf-shots');
 fs.mkdirSync(shots, { recursive: true });
 const app = createApp({ dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'lf-ui5-')) });
@@ -35,6 +35,21 @@ await page.waitForTimeout(600);
 await page.dblclick('.act-card:has-text("게임하기")'); // 두 번 누르면 바로 시작
 await page.waitForSelector('#pause');
 console.log('✓ 활동을 두 번 누르면 바로 시작');
+// 진행 중 화면: [일시 중단]·[다른 활동 시작]·[그만하기]가 스크롤 없이 한 화면에(휴대폰 크기), '지금' 그림 카드는 없다
+{
+  const ph = await (await browser.newContext({ ...devices['iPhone 14'] })).newPage();
+  await ph.goto(base + '/#/login');
+  await ph.fill('input[name=loginId]', 'mom@t'); await ph.fill('input[name=password]', 'secret1'); await ph.check('input[name=device]');
+  await ph.click('button[type=submit]'); await ph.waitForSelector('.walker');
+  await ph.goto(base + `/#/kid/${kid}/timer`); await ph.waitForSelector('#pause');
+  assert.equal(await ph.$$eval('.now-next', (e) => e.length), 0, "'지금' 그림 카드는 없다");
+  const fit = await ph.evaluate(() => { const tabs = document.querySelector('.tabs').getBoundingClientRect().top; return ['#pause', '#stop', '#new'].map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { s, bottom: Math.round(r.bottom), tabs: Math.round(tabs) }; }); });
+  const order = await ph.$$eval('.timer-big .row button', (e) => e.map((x) => x.id)); assert.deepEqual(order, ['pause', 'stop', 'new'], '버튼 순서: 일시 중단 → 그만하기 → 다른 활동 시작');
+  for (const b of fit) assert.ok(b.bottom <= b.tabs, `${b.s} 버튼이 스크롤 없이 보여야 한다: ${JSON.stringify(fit)}`);
+  await ph.screenshot({ path: path.join(shots, '72-timer-phone.png') });
+  await ph.close();
+  console.log('✓ 진행 중 화면의 버튼이 스크롤 없이 한 화면에');
+}
 await page.waitForTimeout(2200);
 await page.click('#pause');
 await page.waitForSelector('#resume');

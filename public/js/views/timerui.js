@@ -106,12 +106,12 @@ export async function timerPage(el, { id }) {
       <section class="timer-big card ${ended ? 'ended' : ''} ${paused ? 'paused' : ''}" style="--kc:${esc(kid.color)}">
         ${actImgUrl(t.kind, id) ? `<img class="timer-pic" src="${actImgUrl(t.kind, id)}" alt="">` : ''}
         <div class="ring-wrap">${ringSvg(t, 300, 22)}<div class="ring-center"><div class="big-digits" data-timer="${t.id}">${ended ? '00:00' : fmt(remaining(t))}</div><div>${paused ? '⏸ 일시 중단 · ' : ''}${esc(t.icon)} ${esc(t.name)}</div></div></div>
-        ${nextCards(t)}
+        ${ended ? nextCards(t) : ''}
         <p class="tp-text">${paused ? `⏸ 잠깐 멈췄어요. <b>남은 시간 ${esc(minLabel(remaining(t)))}</b> · 이어서 하면 여기서부터 다시 셀게요.` : ended ? esc(t.texts.end) : remaining(t) <= 300000 && t.warnAt ? esc(t.texts.warn) : t.next ? `다음 활동: ${esc(t.next.name)}` : '시간이 다 되면 알려 줄게요.'}</p>
         ${ended && t.texts.nextEnd ? `<p class="tp-next">${esc(t.texts.nextEnd)}</p>` : ''}
         <div class="row gap wrap center">${ended ? `${t.next?.type === 'routine' && !t.next.done ? `<a class="btn big" href="#/kid/${id}/today">${esc(t.next.name)} 루틴 열기</a>` : ''}<button class="btn primary big" data-dismiss="${t.id}">확인했어요</button>` : ''}
-        ${paused ? '<button class="btn primary big" id="resume">▶ 이어서 하기</button><button class="btn ghost" id="new">다른 활동 시작</button><button class="btn stop-btn" id="stop">⏹ 그만하기</button>' : !ended ? '<button class="btn primary big" id="pause">⏸ 일시 중단</button><button class="btn ghost" id="new">다른 활동 시작</button><button class="btn stop-btn" id="stop">⏹ 그만하기</button>' : ''}</div>
-        ${!ended && t.dayMs ? `<p class="small muted center">오늘 ${esc(t.name)} 남은 시간 <b>${esc(minLabel(t.dayLeftMs))}</b> / 하루 ${esc(minLabel(t.dayMs))} · 나눠서 해도 돼요</p>` : ''}
+        ${paused ? '<button class="btn primary big" id="resume">▶ 이어서 하기</button><button class="btn stop-btn" id="stop">⏹ 그만하기</button><button class="btn ghost" id="new">다른 활동 시작</button>' : !ended ? '<button class="btn primary big" id="pause">⏸ 일시 중단</button><button class="btn stop-btn" id="stop">⏹ 그만하기</button><button class="btn ghost" id="new">다른 활동 시작</button>' : ''}</div>
+        ${!ended && t.dayMs ? `<p class="small muted center">오늘 남은 <b>${esc(minLabel(t.dayLeftMs))}</b> · 나눠서 해도 돼요</p>` : ''}
         ${T.sound && !audioReady() ? '<p class="small muted center">🔇 알람 소리를 들으려면 이 화면을 한 번 눌러 주세요.</p>' : ''}
       </section>
       <section class="card page-card adult-set"><h3>🔑 어른 설정 <small class="muted">${isDevice() && !adult ? '(누르면 어른 확인이 필요해요)' : ''}</small></h3><div class="row gap wrap">

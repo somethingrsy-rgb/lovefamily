@@ -537,3 +537,12 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .timer-big.paused .ring-fg { stroke: #f0b429; }
 .timer-big.paused .big-digits { color: #b07a00; }
 .room-time.paused { background: #fff1cf; color: #6b4a00; }
+
+/* 진행 중·일시 중단 화면은 스크롤 없이 한 화면에: 화면 높이에 맞춰 원과 그림 크기를 줄인다 */
+.timer-big:not(.ended) { padding: 10px 14px 12px; margin: 6px 0; }
+.timer-big:not(.ended) .timer-pic { height: min(120px, 14vh); margin-bottom: 0; }
+.timer-big:not(.ended) .ring-wrap { width: min(300px, 62vw, 34vh); }
+.timer-big:not(.ended) .big-digits { font-size: clamp(2.4rem, 6.5vh, 4rem); }
+.timer-big:not(.ended) .tp-text { font-size: 1.05rem; margin: 6px 0; }
+.timer-big:not(.ended) .row { margin-top: 4px; }
+.timer-big:not(.ended) .btn.big { min-height: 46px; padding: 8px 16px; }
