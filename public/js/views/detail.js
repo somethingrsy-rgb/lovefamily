@@ -55,7 +55,7 @@ export async function money(el, { id }) {
     if (r.type === 'withdraw' && r.status === 'approved') btns.push(['pay', '지급 완료', 'primary'], ['cancel', '취소', 'ghost']);
     if (r.type === 'purchase' && r.status === 'approved') btns.push(['complete', '구매 완료', 'primary'], ['cancel', '취소', 'ghost']);
     el.innerHTML = `${back('/', label)}<section class="card page-card"><h2>${esc(r.kidName)} · ${won(r.amount)}</h2><p>${esc(r.purpose)}</p>
-      <ol class="steps">${STEPS[r.type].map((s, i, a) => { const cur = a.indexOf(r.status); return `<li class="${i <= cur ? 'on' : ''}">${({ pending: '기다리는 중', approved: '줄게요', paid: '받았어요', confirmed: '입금 확인', completed: '샀어요' })[s]}</li>`; }).join('')}</ol>
+      <ol class="steps">${STEPS[r.type].map((s, i, a) => { const cur = a.indexOf(r.status); return `<li class="${i <= cur ? 'on' : ''}">${({ pending: '기다리는 중', approved: '줄게요', paid: '꺼냈어요', confirmed: '입금 확인', completed: '샀어요' })[s]}</li>`; }).join('')}</ol>
       ${['rejected', 'canceled'].includes(r.status) ? `<div class="banner rest">${r.status === 'rejected' ? `거절됐어요${r.rejectReason ? `: ${esc(r.rejectReason)}` : ''}` : '취소됐어요'}</div>` : ''}
       ${w ? `<p class="muted small">사용 가능 ${won(w.available)} · 목표에 모은 돈 ${won(w.goalSaved)} · 지급 기다리는 돈 ${won(w.waiting)}</p>` : ''}
       ${!mine && active ? `<p class="banner wait">${esc(r.toName)}에게 온 요청이에요. 처리는 ${esc(r.toName)}만 할 수 있어요.</p>` : ''}

@@ -167,7 +167,7 @@ export function cashSpent(core, ctx, kidId, b) {
 // ---------- 요청 (입금 확인 / 출금 / 구매) ----------
 const REQ_LABEL = {
   deposit: { pending: '확인 기다리는 중', confirmed: '입금 확인했어요', rejected: '거절됐어요', canceled: '취소했어요' },
-  withdraw: { pending: '기다리는 중', approved: '줄게요', paid: '받았어요', rejected: '거절됐어요', canceled: '취소했어요' },
+  withdraw: { pending: '기다리는 중', approved: '줄게요', paid: '꺼냈어요', rejected: '거절됐어요', canceled: '취소했어요' },
   purchase: { pending: '기다리는 중', approved: '사도 좋아요', completed: '샀어요', rejected: '거절됐어요', canceled: '취소했어요' },
 };
 export const reqOut = (core, r) => {
@@ -335,7 +335,7 @@ export function payRequest(core, ctx, rid) {
     if (r.status !== 'approved') throw err(409, 'not_approved', '먼저 승인해 주세요.');
     const { row } = ledgerAdd(core, { familyId: r.family_id, kidId: r.kid_id, kind: 'withdraw', amount: -r.amount, memo: r.purpose, actorId: adult.id, requestId: r.id, idemKey: `req:${r.id}:paid` });
     setStatus(core, r, 'paid', { by: adult.id, ledgerId: row.id });
-    notifyKidMoney(core, r.family_id, r.kid_id, 'money_done', '받았어요', `${r.amount.toLocaleString('ko-KR')}원을 받았어요.`);
+    notifyKidMoney(core, r.family_id, r.kid_id, 'money_done', '꺼냈어요', `${r.amount.toLocaleString('ko-KR')}원을 저금통에서 꺼냈어요.`);
     core.refresh(r.family_id, 'requests', 'wallet');
     return reqOut(core, core.get('SELECT * FROM money_requests WHERE id = ?', r.id));
   });

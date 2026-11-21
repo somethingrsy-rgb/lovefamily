@@ -7,21 +7,23 @@ const REASONS = ['용돈', '도장 30개', '문제집 1권', '세뱃돈'];
 const WD_REASONS = ['문구점', '슈퍼', '친구랑 간식'];
 const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
 export const adultPick = (name = 'toMemberId') => `<fieldset class="adult-pick-set"><legend>누구에게 보낼까요?</legend><div class="adult-pick">${S.info.adults.map((a, i) => `<label class="adult-opt radio"><input type="radio" name="${name}" value="${a.id}" ${i === 0 ? 'checked' : ''}>${avatar(a)}<span>${esc(a.name)}</span></label>`).join('')}</div></fieldset>`;
-const STEP = { withdraw: ['기다리는 중', '줄게요', '받았어요'], deposit: ['기다리는 중', '입금 확인'], purchase: ['기다리는 중', '사도 좋아요', '샀어요'] };
+const STEP = { withdraw: ['기다리는 중', '줄게요', '꺼냈어요'], deposit: ['기다리는 중', '입금 확인'], purchase: ['기다리는 중', '사도 좋아요', '샀어요'] };
 const stepIdx = { pending: 0, approved: 1, paid: 2, confirmed: 1, completed: 2 };
 
 export async function mount(el, { id }) {
   const kid = kidOf(id);
   let month = S.info.today.slice(0, 7);
   const asKid = () => isDevice() && S.actKid === Number(id);
+  let lastBal = null; // 이 화면에서 마지막으로 본 잔액
   async function load() {
     const [w, led, reqs] = await Promise.all([get(`/api/kids/${id}/wallet`), get(`/api/kids/${id}/ledger?month=${month}`), get(`/api/kids/${id}/requests`)]);
     draw(w, led, reqs);
     // 서버에서 확정된 변화만 애니메이션으로 보여 준다
     if (asKid()) {
-      const key = `bal:${id}`; const prev = lsGet(key, null);
-      if (prev != null && prev !== w.balance && !(Date.now() - (coinsSeen.get(Number(id)) || 0) < 15000)) playCoins(w.balance > prev ? 'in' : 'out', Math.abs(w.balance - prev));
-      lsSet(key, w.balance);
+      // 이 화면을 열어 둔 채로 잔액이 바뀐 경우에만(그것도 실시간 신호로 이미 보여 주지 않았을 때만). 예전에 저장해 둔 잔액과 비교하면
+      // 화면을 열 때마다 지난 입금·출금 모션이 엉뚱하게 다시 나오므로, 저장값은 쓰지 않는다.
+      if (lastBal != null && lastBal !== w.balance && !(Date.now() - (coinsSeen.get(Number(id)) || 0) < 15000)) playCoins(w.balance > lastBal ? 'in' : 'out', Math.abs(w.balance - lastBal));
+      lastBal = w.balance;
     }
   }
   function draw(w, led, reqs) {

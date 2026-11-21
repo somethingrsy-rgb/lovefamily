@@ -92,6 +92,12 @@ await page.click('[data-reason="친구랑 간식"]');
 assert.equal(await page.inputValue('input[name=purpose]'), '친구랑 간식', '쓸 곳도 버튼으로 고른다');
 console.log('✓ 돈 꺼내기: 어디에 쓸지 버튼으로 선택');
 console.log('✓ 엄마·아빠 얼굴 그림, 입금 이유 버튼');
+// 예전에 저장해 둔 잔액이 있어도, 저금통 화면을 열 때 지난 입금·출금 모션이 엉뚱하게 다시 나오지 않는다
+await page.click('.sheet [data-close]').catch(() => {}); await page.waitForTimeout(400);
+await page.evaluate((id) => localStorage.setItem(`bal:${id}`, '1'), yuel);
+await page.goto(base + '/#/'); await page.waitForSelector('.house'); await page.goto(base + `/#/kid/${yuel}/wallet`); await page.waitForSelector('#wd'); await page.waitForTimeout(1200);
+assert.equal(await page.$$eval('.coin-overlay', (e) => e.length), 0, '화면을 열기만 했는데 모션이 나오면 안 된다');
+console.log('✓ 저금통 화면을 열 때 옛날 모션이 다시 나오지 않음');
 // 아이가 500원을 두 번 누르면 저금통에도 500원 2개가 들어간다(천원 한 장이 아니라)
 await page.click('.sheet [data-close]').catch(() => {}); await page.waitForTimeout(400);
 await page.goto(base + `/#/kid/${yuel}/wallet`); await page.waitForSelector('#dep'); await page.click('#dep'); await page.waitForSelector('[data-add="500"]');
