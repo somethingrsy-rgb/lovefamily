@@ -415,9 +415,9 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 
 /* ===== 도장 쾅! 애니메이션 ===== */
 .anim-overlay.stamp-overlay { animation: fade .25s, shake 3s 0s both; }
-.stamp-scene { position: relative; width: 340px; height: 420px; }
-.stamp-paper { position: absolute; left: 0; right: 0; bottom: 0; height: 250px; background: #fff; border-radius: 22px; box-shadow: var(--shadow); border: 3px dashed #ffb3d1; }
-.stamp-mark { position: absolute; left: 50%; bottom: 8px; width: 120px; height: 120px; margin-left: -60px; transform: scale(0) rotate(-14deg); opacity: 0; animation: markpop 3s ease-out both; }
+.stamp-scene { position: relative; width: 340px; height: 440px; }
+.stamp-paper { position: absolute; left: 0; right: 0; bottom: 0; height: 340px; background: #fff; border-radius: 22px; box-shadow: var(--shadow); border: 3px dashed #ffb3d1; }
+.stamp-mark { position: absolute; left: 50%; bottom: 110px; width: 120px; height: 120px; margin-left: -60px; transform: scale(0) rotate(-14deg); opacity: 0; animation: markpop 3s ease-out both; }
 .stamp-mark img { width: 100%; height: 100%; object-fit: contain; }
 .stamp-tool { position: absolute; left: 50%; bottom: 30px; width: 130px; height: auto; margin-left: -65px; transform: translateY(-330px) rotate(-6deg); opacity: 0; transform-origin: 50% 100%; animation: stampslam 3s cubic-bezier(.5, 0, .75, 0) both; filter: drop-shadow(0 12px 10px rgba(80, 40, 100, .3)); }
 .stamp-flash { position: absolute; left: 50%; bottom: 10px; width: 220px; height: 120px; margin-left: -110px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, .95), rgba(255, 190, 220, .5) 55%, transparent); opacity: 0; animation: flash 3s both; }
@@ -425,7 +425,7 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 @keyframes stampslam { 0% { transform: translateY(-330px) rotate(-6deg); opacity: 0; } 8% { opacity: 1; } 20% { transform: translateY(-90px) rotate(2deg); } 34% { transform: translateY(14px) rotate(0) scale(1.04, .94); opacity: 1; } 38% { transform: translateY(2px) rotate(0) scale(.98, 1.03); } 46% { transform: translateY(8px) scale(1); } 50% { transform: translateY(8px); opacity: 1; } 58% { transform: translateY(-40px) rotate(-3deg); opacity: 1; } 72% { transform: translateY(-240px) rotate(-5deg); opacity: 1; } 82%, 100% { transform: translateY(-330px) rotate(-6deg); opacity: 0; } }
 @keyframes markpop { 0%, 33% { transform: scale(0) rotate(-14deg); opacity: 0; } 38% { transform: scale(1.35) rotate(-14deg); opacity: 1; } 48% { transform: scale(.95) rotate(-14deg); } 58%, 100% { transform: scale(1) rotate(-14deg); opacity: 1; } }
 /* 쿵 찍힌 뒤 도장 밑에 남는 동그라미(도장 자국) */
-.stamp-ring { position: absolute; left: 50%; bottom: 14px; width: 170px; height: 170px; margin-left: -85px; border-radius: 50%; border: 9px solid #ff5f9b; box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .55), 0 0 0 3px rgba(255, 95, 155, .18); opacity: 0; transform: scale(0); animation: ringpop 3s ease-out both; }
+.stamp-ring { position: absolute; left: 50%; bottom: 85px; width: 170px; height: 170px; margin-left: -85px; border-radius: 50%; border: 9px solid #ff5f9b; box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .55), 0 0 0 3px rgba(255, 95, 155, .18); opacity: 0; transform: scale(0); animation: ringpop 3s ease-out both; }
 @keyframes ringpop { 0%, 33% { transform: scale(0); opacity: 0; } 38% { transform: scale(1.3); opacity: 1; } 48% { transform: scale(.96); opacity: 1; } 58%, 100% { transform: scale(1); opacity: .9; } }
 @keyframes flash { 0%, 32% { opacity: 0; transform: scale(.4); } 36% { opacity: 1; transform: scale(1.1); } 60%, 100% { opacity: 0; transform: scale(1.5); } }
 @keyframes bang { 0%, 33% { transform: translateX(-50%) scale(0) rotate(-8deg); opacity: 0; } 38% { transform: translateX(-50%) scale(1.3) rotate(-8deg); opacity: 1; } 50% { transform: translateX(-50%) scale(1) rotate(-8deg); } 80% { opacity: 1; } 100% { transform: translateX(-50%) scale(1) rotate(-8deg); opacity: 0; } }
@@ -483,5 +483,5 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 @media (max-width: 520px) { .stamp-grid .cell { min-height: 92px; } }
 
 /* 도장 도구(기울어진 그림): 분홍 도장 면의 중심(그림의 30%,76%)이 자국 위치(장면 가운데)에 내려앉도록 맞춘다 */
-.stamp-tool { width: 190px; margin-left: 0; left: calc(50% - 57px); bottom: 2px; transform-origin: 30% 96%; }
+.stamp-tool { width: 190px; margin-left: 0; left: calc(50% - 57px); bottom: 130px; transform-origin: 30% 96%; }
 @keyframes stampslam { 0% { transform: translateY(-330px) rotate(-10deg); opacity: 0; } 8% { opacity: 1; } 20% { transform: translateY(-90px) rotate(-3deg); } 34% { transform: translateY(10px) rotate(0) scale(1.04, .94); opacity: 1; } 38% { transform: translateY(0) rotate(0) scale(.98, 1.03); } 46% { transform: translateY(5px) scale(1); } 50% { transform: translateY(6px); opacity: 1; } 58% { transform: translateY(-40px) rotate(-3deg); opacity: 1; } 72% { transform: translateY(-240px) rotate(-6deg); opacity: 1; } 82%, 100% { transform: translateY(-330px) rotate(-10deg); opacity: 0; } }
