@@ -87,7 +87,7 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
     core.afterCommit(() => {
       const to = m.kind === 'adult' ? { adults: [memberId] } : { kids: [memberId] };
       core.hub.publish(familyId, { t: 'notify', id: nid, kind, popup }, to);
-      core.sendPush(memberId, { title: '우리집', body: lock || title, url: url || '/', tag: `n${nid}`, nid }); // 어른·아이 모두(잠금화면에는 짧은 문구만)
+      core.sendPush(memberId, { title: '우리집', body: lock || title, url: url || '/', tag: `n${nid}`, nid, sticky: ['message', 'stamp_request'].includes(kind) }); // 어른·아이 모두(잠금화면에는 짧은 문구만)
     });
     return nid;
   };
