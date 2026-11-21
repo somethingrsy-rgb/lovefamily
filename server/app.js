@@ -65,7 +65,12 @@ export function createApp(opts = {}) {
     const file = path.normalize(path.join(PUBLIC_DIR, rel));
     if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404, SEC_HEADERS); return res.end('Not found'); }
     const ext = path.extname(file);
-    const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': rel === '/sw.js' || ext === '.html' ? 'no-cache' : 'public, max-age=300', ...SEC_HEADERS };
+    const stat = fs.statSync(file);
+    const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
+    // 그림은 하루 동안 다시 묻지 않고(바뀌면 서비스 워커가 뒤에서 새로 받아 둔다), 코드는 매번 '바뀌었나?'만 물어 304 로 끝낸다
+    const isAsset = /^\/(assets|icons)\//.test(rel);
+    const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream', ETag: etag, 'Cache-Control': rel === '/sw.js' || ext === '.html' ? 'no-cache' : isAsset ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache', ...SEC_HEADERS };
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, { ETag: etag, 'Cache-Control': headers['Cache-Control'], ...SEC_HEADERS }); return res.end(); }
     // 글자 파일은 압축해서 보낸다(휴대폰 데이터 환경에서 첫 화면이 훨씬 빨라진다). 압축 결과는 파일이 바뀔 때까지 메모리에 둔다.
     if (COMPRESSIBLE.has(ext)) {
       const ae = String(req.headers['accept-encoding'] || '');
@@ -88,6 +93,9 @@ export function createApp(opts = {}) {
   }
 
   async function handle(req, res) {
+    // 느린 요청은 로그에 남긴다(fly logs 에서 '느림' 으로 찾을 수 있다): 어디가 오래 걸리는지 확인하기 위함
+    const t0 = Date.now();
+    res.on('finish', () => { const ms = Date.now() - t0; if (ms > 500 && !String(req.url).startsWith('/api/stream')) console.log(`느림 ${ms}ms ${req.method} ${String(req.url).split('?')[0]} ${res.statusCode}`); });
     const url = new URL(req.url, 'http://x');
     const { pathname } = url;
     if (!pathname.startsWith('/api/')) return serveStatic(req, res, pathname);

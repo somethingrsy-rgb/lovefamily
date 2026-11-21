@@ -64,11 +64,25 @@ export async function api(method, url, body, opts = {}) {
     }
   }
 }
-export const get = (u, o) => api('GET', u, undefined, o);
-export const post = (u, b = {}, o) => api('POST', u, b, o);
-export const put = (u, b = {}, o) => api('PUT', u, b, o);
-export const patch = (u, b = {}, o) => api('PATCH', u, b, o);
-export const del = (u, o) => api('DELETE', u, undefined, o);
+// 같은 조회를 동시에/바로 이어서 여러 번 보내지 않는다: 앱을 열 때 /me·/timers 를 서로 다른 곳에서 3번씩 요청하던 것을 한 번으로.
+// 같은 요청이 진행 중이면 그 결과를 같이 받고, 1.2초 안의 반복 조회는 방금 받은 것을 쓴다. 저장(POST 등)이나 서버 알림(SSE)이 오면 바로 비운다.
+const SHARED = new Set(['/api/me', '/api/timers', '/api/home']);
+const shared = new Map(); // url → { p, t }
+export const dropShared = () => shared.clear();
+export const get = (u, o) => {
+  if (!SHARED.has(u) || (o && Object.keys(o).some((k) => k !== 'noPrompt'))) return api('GET', u, undefined, o);
+  const hit = shared.get(u);
+  if (hit && Date.now() - hit.t < 1200) return hit.p;
+  const p = api('GET', u, undefined, o);
+  const rec = { p, t: Date.now() };
+  shared.set(u, rec);
+  p.catch(() => { if (shared.get(u) === rec) shared.delete(u); });
+  return p;
+};
+export const post = (u, b = {}, o) => { dropShared(); return api('POST', u, b, o); };
+export const put = (u, b = {}, o) => { dropShared(); return api('PUT', u, b, o); };
+export const patch = (u, b = {}, o) => { dropShared(); return api('PATCH', u, b, o); };
+export const del = (u, o) => { dropShared(); return api('DELETE', u, undefined, o); };
 
 // ---- 온라인 상태 / 저장 대기 대기열 (체크 토글만: 같은 값으로 다시 보내도 안전한 동작) ----
 const listeners = new Set();
@@ -103,7 +117,7 @@ export async function toggleItem(itemId, done) {
   bus.emit('synced');
   await flushOutbox();
 }
-window.addEventListener('online', () => { setOnline(true); flushOutbox(); bus.emit('refresh', ['all']); });
+window.addEventListener('online', () => { setOnline(true); flushOutbox(); dropShared(); bus.emit('refresh', ['all']); });
 window.addEventListener('offline', () => setOnline(false));
 setInterval(() => { if (outbox.length) flushOutbox(); }, 6000);
 
@@ -121,11 +135,11 @@ export function connectStream() {
   esKid = kid;
   es = new EventSource(`/api/stream${kid ? `?kid=${kid}` : ''}`);
   let opened = false;
-  es.onopen = () => { setOnline(true); if (opened) bus.emit('refresh', ['all']); opened = true; flushOutbox(); };
+  es.onopen = () => { setOnline(true); if (opened) { dropShared(); bus.emit('refresh', ['all']); } opened = true; flushOutbox(); };
   es.onerror = () => { if (!navigator.onLine) setOnline(false); };
   es.onmessage = (m) => {
     let ev; try { ev = JSON.parse(m.data); } catch { return; }
-    if (ev.t === 'refresh') bus.emit('refresh', ev.topics || ['all']);
+    if (ev.t === 'refresh') { dropShared(); bus.emit('refresh', ev.topics || ['all']); }
     else if (ev.t === 'notify') bus.emit('notify', ev);
     else if (ev.t === 'timer') bus.emit('timer', ev);
     else if (ev.t === 'stamp') bus.emit('stamp', ev);
