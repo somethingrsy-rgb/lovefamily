@@ -465,3 +465,8 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .pad-row { display: flex; justify-content: center; gap: 8px; margin: 4px 0 8px; }
 .pad-row .pad-btn { width: 62px; height: 52px; }
 .walk-pad .btn.small { min-height: 38px; }
+
+/* 가고 싶은 곳 표시(바닥의 점선 타원) */
+.walk-target { position: absolute; width: 11cqw; height: 3.2cqw; transform: translate(-50%, -50%); border: .5cqw dashed #8d6fdc; border-radius: 50%; background: rgba(255, 255, 255, .45); animation: wktgt 1s ease-in-out infinite; pointer-events: none; z-index: 1; }
+@keyframes wktgt { 0%, 100% { opacity: .5; transform: translate(-50%, -50%) scale(.9); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } }
+.walk-pad .walk-hint { white-space: normal; margin: 2px 0 6px; }

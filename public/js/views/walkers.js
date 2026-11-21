@@ -35,6 +35,7 @@ export function buildPath(fromCell, toCell, startX = null) {
 const segLen = (a, b) => Math.hypot(b[0] - a[0], (b[1] - a[1]) * V_SCALE);
 
 // ===== 상태(화면을 다시 그려도 유지) =====
+const PENDING = new Map();            // 내가 보냈지만 서버가 아직 확인하지 않은 이동: memberId → 칸
 const W = new Map();                   // memberId → { id, key, home, cell, x, y, face, moving }
 let selected = null;                   // 선택된 사람 id
 let P = [];                            // 현재 화면에 그릴 사람 정보
@@ -102,12 +103,17 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
   const path = buildPath(from, targetCell, slotX(from, id));
   path[path.length - 1][0] = finalX;
   w.cell = targetCell;   // 논리 위치는 바로 바꿔 둔다(다른 기기와 같은 값)
-  if (!remote) put(`/api/walkers/${id}`, { cell: targetCell }).catch(errToast);
+  if (!remote) {
+    PENDING.set(id, targetCell);
+    put(`/api/walkers/${id}`, { cell: targetCell })
+      .then(() => { if (PENDING.get(id) === targetCell) PENDING.delete(id); })
+      .catch((e) => { PENDING.delete(id); errToast(e); });
+  }
   if (reduce()) { w.x = finalX; w.y = FLOOR_Y[rc(targetCell)[0]]; render(); return; }
   w.moving = true; w.x = path[0][0]; w.y = path[0][1];
   const lens = path.slice(1).map((pt, i) => segLen(path[i], pt)); const total = lens.reduce((a, b) => a + b, 0);
   const t0 = performance.now(); let seg = 0;
-  refreshOne(p); updatePad();
+  refreshOne(p); updatePad(); showTarget(targetCell, id);
   const tick = (now) => {
     let d = Math.min(total, ((now - t0) / 1000) * SPEED);
     let acc = 0; seg = 0;
@@ -117,7 +123,7 @@ export function moveTo(id, targetCell, { remote = false } = {}) {
     if (b[0] !== a[0]) { const face = b[0] > a[0] ? 1 : -1; if (face !== w.face) { w.face = face; const sp = document.querySelector(`[data-walker="${id}"] .wk-sprite`); if (sp) sp.style.transform = `scaleX(${face})`; } }
     const el = document.querySelector(`[data-walker="${id}"]`);
     if (el) { el.style.left = `${w.x}%`; el.style.top = `${w.y}%`; }
-    if (d < total) raf(tick); else { w.moving = false; w.face = 1; refreshOne(p); relayout(); updatePad(); }
+    if (d < total) raf(tick); else { w.moving = false; w.face = 1; clearTarget(); refreshOne(p); relayout(); updatePad(); }
   };
   raf(tick);
 }
@@ -132,13 +138,24 @@ function updatePad() {
   const pad = document.getElementById('walkpad'); if (!pad) return;
   const p = P.find((x) => x.id === selected); const w = p && W.get(p.id);
   if (!p) { pad.innerHTML = '<p class="walk-hint">🚶 캐릭터를 눌러 집 안을 걸어 보세요</p>'; return; }
-  const [r, c] = rc(w.cell);
-  const can = { up: r > 0, down: r < 2, left: c > 0, right: c < 2 };
   const busy = w.moving;
-  const btn = (dir, label, ok) => `<button class="pad-btn ${dir}" data-dir="${dir}" ${ok && !busy ? '' : 'disabled'} aria-label="${label}">${{ up: '▲', down: '▼', left: '◀', right: '▶' }[dir]}</button>`;
-  pad.innerHTML = `<div class="pad-head">${avatar(p.member, 'sm')} <b>${esc(p.name)}</b>${busy ? ' 걷는 중…' : ''}<button class="btn small ghost" data-act="close" aria-label="선택 해제">✕</button></div>
-    <div class="pad-row">${btn('left', '왼쪽으로', can.left)}${btn('up', '위로', can.up)}${btn('down', '아래로', can.down)}${btn('right', '오른쪽으로', can.right)}</div>
+  pad.innerHTML = `<div class="pad-head">${avatar(p.member, 'sm')} <b>${esc(p.name)}</b><button class="btn small ghost" data-act="close" aria-label="선택 해제">✕</button></div>
+    <p class="walk-hint">${busy ? '걷는 중이에요…' : '👆 가고 싶은 곳을 눌러 주세요'}</p>
     <div class="row gap wrap center"><button class="btn small" data-act="home" ${w.cell === p.home || busy ? 'disabled' : ''}>🏠 내 방으로</button><button class="btn small ghost" data-act="open">${p.kind === 'kid' ? '화면 열기' : '상태 바꾸기'}</button></div>`;
+}
+
+// 눌린 위치(집 그림 %) → 칸. 정원(아래쪽 바깥)이나 벽 밖은 가지 않는다.
+export function cellAt(xPct, yPct) {
+  if (xPct < 4 || xPct > 96 || yPct < 9 || yPct > 78) return null;
+  const row = yPct < 33.5 ? 0 : yPct < 55.7 ? 1 : 2;
+  const col = xPct < PILLAR_X[0] ? 0 : xPct < PILLAR_X[1] ? 1 : 2;
+  return cellOf(row, col);
+}
+function clearTarget() { document.querySelectorAll('.walk-target').forEach((e) => e.remove()); }
+function showTarget(cell, id) {
+  const layer = document.querySelector('.walkers'); if (!layer) return;
+  clearTarget();
+  layer.insertAdjacentHTML('afterbegin', `<i class="walk-target" style="left:${slotX(cell, id)}%;top:${FLOOR_Y[rc(cell)[0]]}%"></i>`);
 }
 
 // ===== 연결 =====
@@ -152,20 +169,40 @@ export function mountWalkers(houseEl, h, { onOpen } = {}) {
   }
   // 다른 기기에서 움직인 사람은 이 화면에서도 걸어서 이동
   const toMove = [];
-  for (const p of P) { const w = W.get(p.id); const target = server[p.id] || p.home; if (!w.moving && w.cell !== target) toMove.push([p.id, target]); }
+  for (const p of P) { const w = W.get(p.id); const target = server[p.id] || p.home; if (!w.moving && !PENDING.has(p.id) && w.cell !== target) toMove.push([p.id, target]); }
   const layerHost = houseEl.querySelector('.house');
   if (layerHost) { layerHost.querySelector('.walkers')?.remove(); layerHost.insertAdjacentHTML('beforeend', walkersLayerHtml()); }
   updatePad();
-  houseEl.onclick = (e) => {
+  houseEl.addEventListener('click', (e) => {
     const wk = e.target.closest('[data-walker]');
-    if (wk) { const id = Number(wk.dataset.walker); selected = selected === id ? null : id; $$('.walker', houseEl).forEach((x) => { const on = Number(x.dataset.walker) === selected; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); }); updatePad(); return; }
-    const d = e.target.closest('[data-dir]'); const a = e.target.closest('[data-act]');
-    const p = P.find((x) => x.id === selected); if (!p) return; const w = W.get(p.id);
-    if (d && !d.disabled) { const [r, c] = rc(w.cell); const nr = r + (d.dataset.dir === 'down') - (d.dataset.dir === 'up'); const nc = c + (d.dataset.dir === 'right') - (d.dataset.dir === 'left'); moveTo(p.id, cellOf(nr, nc)); }
-    if (a?.dataset.act === 'close') { selected = null; $$('.walker.sel', houseEl).forEach((x) => { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); }); updatePad(); }
-    if (a?.dataset.act === 'home') moveTo(p.id, p.home);
-    if (a?.dataset.act === 'open') onOpen?.(p);
-  };
+    // 이미 누군가를 선택한 상태에서 '다른 사람' 위를 누르면, 그 사람을 고르는 게 아니라 그 칸으로 가는 것으로 본다
+    // (같은 사람을 다시 누르면 선택 해제). 그래서 누가 서 있는 칸의 한가운데도 목적지로 고를 수 있다.
+    if (wk && !(selected !== null && Number(wk.dataset.walker) !== selected)) { // 캐릭터 누르기 = 선택/해제
+      e.stopPropagation();
+      const id = Number(wk.dataset.walker); selected = selected === id ? null : id;
+      $$('.walker', houseEl).forEach((x) => { const on = Number(x.dataset.walker) === selected; x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
+      updatePad(); return;
+    }
+    const a = e.target.closest('[data-act]');
+    if (a) {
+      e.stopPropagation();
+      const p = P.find((x) => x.id === selected); if (!p) return;
+      if (a.dataset.act === 'close') { selected = null; $$('.walker.sel', houseEl).forEach((x) => { x.classList.remove('sel'); x.setAttribute('aria-pressed', 'false'); }); updatePad(); }
+      if (a.dataset.act === 'home') moveTo(p.id, p.home);
+      if (a.dataset.act === 'open') onOpen?.(p);
+      return;
+    }
+    if (e.target.closest('#walkpad')) { e.stopPropagation(); return; }
+    // 선택된 캐릭터가 있으면, 집 안을 누른 곳으로 걸어간다(방 화면으로 넘어가지 않는다)
+    const house = e.target.closest('.house'); const p = P.find((x) => x.id === selected);
+    if (!house || !p) return;
+    e.stopPropagation(); e.preventDefault();
+    const r = house.getBoundingClientRect();
+    const cell = cellAt(((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100);
+    const w = W.get(p.id);
+    if (!cell || w.moving || w.cell === cell) return;
+    moveTo(p.id, cell);
+  }, true);
   for (const [id, target] of toMove) setTimeout(() => moveTo(id, target, { remote: true }), 50);
 }
 void toast; void isKidPhone; void boundKid;

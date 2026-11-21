@@ -1,4 +1,4 @@
-// 브라우저 E2E 3: 집 안 걷기 — 건물 뼈대(층 바닥선·기둥 통로)로만 이동하는지, 기기 간 공유되는지
+// 브라우저 E2E 3: 집 안 걷기 — 캐릭터를 선택하고 가고 싶은 곳을 누르면 건물 뼈대(층 바닥선·기둥 통로)로만 걸어간다
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -12,6 +12,7 @@ const shots = process.env.SHOTS_DIR || path.join(os.tmpdir(), 'lf-shots');
 fs.mkdirSync(shots, { recursive: true });
 
 const FLOOR_Y = [30.0, 52.4, 73.9];
+const COL_X = [19.6, 50.2, 80.3];
 const PILLAR_X = [35.2, 64.9];
 const app = createApp({ dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'lf-ui3-')) });
 const port = await app.listen(0, '127.0.0.1');
@@ -55,72 +56,89 @@ const ipad = await open({ viewport: { width: 1180, height: 820 }, hasTouch: true
 const phone = await open({ ...devices['iPhone 14'] }, 'iPhone');
 
 const pos = (p, id) => p.evaluate((i) => { const e = document.querySelector(`[data-walker="${i}"]`); return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top), moving: e.classList.contains('moving'), face: e.querySelector('.wk-sprite')?.style.transform || '' } : null; }, id);
-const select = async (p, id) => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click(`[data-walker="${id}"]`); await p.waitForSelector('.pad-btn'); };
-const press = async (p, dir) => { await p.waitForSelector(`.pad-btn.${dir}:not([disabled])`, { timeout: 8000 }); await p.click(`.pad-btn.${dir}`); };
-async function walkAndSample(p, id, dir) {
-  await press(p, dir);
-  const samples = []; const faces = new Set();
-  for (let i = 0; i < 200; i++) {
+const houseBox = async (p) => { await p.evaluate(() => document.querySelector('.house').scrollIntoView({ block: 'center' })); return p.$eval('.house', (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }); };
+const select = async (p, id) => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click(`[data-walker="${id}"]`); await p.waitForSelector('.pad-head'); };
+// 집 그림 위의 칸을 실제로 눌러 본다(칸의 위쪽 빈 곳: 사람이 서 있지 않은 높이)
+async function tapCell(p, row, col) {
+  const box = await houseBox(p);
+  const rowMid = [21, 44.6, 66.4][row];
+  await p.mouse.click(box.x + (COL_X[col] / 100) * box.w, box.y + (rowMid / 100) * box.h);
+}
+async function walk(p, id, row, col) {
+  await tapCell(p, row, col);
+  const samples = [];
+  for (let i = 0; i < 300; i++) {
     const s = await pos(p, id);
-    if (s) { samples.push(s); if (s.moving) faces.add(s.face); }
+    if (s) samples.push(s);
     if (s && !s.moving && samples.length > 3) break;
     await p.waitForTimeout(40);
   }
-  return { samples, faces };
+  await p.waitForSelector(`[data-walker="${id}"].idle`, { timeout: 8000 });
+  return samples.filter((s) => s.moving);
 }
 const onSkeleton = (s) => FLOOR_Y.some((fy) => Math.abs(s.y - fy) < 0.5) || PILLAR_X.some((px) => Math.abs(s.x - px) < 0.5);
 
-// 1) 아빠(아래층 오른쪽 방 22): 위 → 위 로 거실까지. 기둥 통로를 거쳐 층을 오르내려야 한다
+// 0) 선택하지 않고 방을 누르면 예전처럼 그 화면으로 이동(확인방 빈 곳 → 도장판)
+const b0 = await houseBox(ipad);
+await ipad.mouse.click(b0.x + 0.78 * b0.w, b0.y + 0.44 * b0.h);
+await ipad.waitForFunction(() => location.hash.startsWith('#/stamps'), null, { timeout: 4000 });
+console.log('✓ 선택 없이 방을 누르면 그 화면(도장판)으로 이동');
+await ipad.goto(base + '/#/'); await ipad.waitForSelector('.walker'); await ipad.waitForTimeout(400);
+
+// 1) 아빠(아래층 오른쪽 22)를 선택하고 거실 가운데(01)를 누른다 → 기둥 통로를 거쳐 층을 올라가야 한다
 await select(ipad, ids.dad);
-let all = [];
-for (const dir of ['up', 'up']) {
-  const r = await walkAndSample(ipad, ids.dad, dir);
-  all = all.concat(r.samples.filter((s) => s.moving));
-  console.log(`아빠 ${dir}: 걷는 중 샘플 ${r.samples.filter((s) => s.moving).length}개`);
-  await ipad.waitForSelector(`[data-walker="${ids.dad}"].idle`);
-}
-assert.ok(all.length > 20, '걷는 모습이 충분히 샘플링돼야 한다');
-const off = all.filter((s) => !onSkeleton(s));
-assert.equal(off.length, 0, `뼈대를 벗어난 위치: ${JSON.stringify(off.slice(0, 3))}`);
-assert.ok(all.some((s) => PILLAR_X.some((px) => Math.abs(s.x - px) < 0.5) && s.y > FLOOR_Y[0] + 3 && s.y < FLOOR_Y[2] - 3), '기둥 통로로 오르내림');
-const fin = await pos(ipad, ids.dad);
-assert.ok(Math.abs(fin.y - FLOOR_Y[0]) < 0.5, '거실 바닥에 도착');
-console.log('✓ 아빠: 거실까지 이동 전 구간이 바닥선·기둥 통로 위');
+assert.match(await ipad.textContent('.walk-hint'), /가고 싶은 곳/);
+assert.equal(await ipad.$$eval('.pad-btn', (e) => e.length), 0, '방향 패드 버튼은 없다');
+const up = await walk(ipad, ids.dad, 0, 1);
+console.log(`아빠 거실로: 걷는 중 샘플 ${up.length}개`);
+assert.ok(up.length > 20, '걷는 모습이 충분히 샘플링돼야 한다');
+assert.equal(up.filter((s) => !onSkeleton(s)).length, 0, `뼈대를 벗어난 위치: ${JSON.stringify(up.filter((s) => !onSkeleton(s)).slice(0, 3))}`);
+assert.ok(up.some((s) => PILLAR_X.some((px) => Math.abs(s.x - px) < 0.5) && s.y > FLOOR_Y[0] + 3 && s.y < FLOOR_Y[2] - 3), '기둥 통로로 오르내림');
+assert.ok(Math.abs((await pos(ipad, ids.dad)).y - FLOOR_Y[0]) < 0.5);
+console.log('✓ 아빠: 선택 → 거실을 눌러 이동, 전 구간이 바닥선·기둥 통로 위');
 await ipad.screenshot({ path: path.join(shots, '50-walk-living.png') });
 
-// 2) 걷는 방향에 맞춰 좌우 반전(왼쪽으로 걸으면 반전)
-assert.equal(await ipad.$eval('.pad-btn.right', (e) => e.disabled), true, '오른쪽 끝에서는 오른쪽 불가');
-const ll = await walkAndSample(ipad, ids.dad, 'left');   // 거실 가운데(01)로
-await ipad.waitForSelector(`[data-walker="${ids.dad}"].idle`);
-const rr = await walkAndSample(ipad, ids.dad, 'right');  // 다시 오른쪽(02)
-await ipad.waitForSelector(`[data-walker="${ids.dad}"].idle`);
-await walkAndSample(ipad, ids.dad, 'left');              // 거실 가운데(01)에서 멈춤
-assert.ok([...rr.faces].some((f) => f.includes('scaleX(1)')) && [...ll.faces].some((f) => f.includes('scaleX(-1)')), '방향에 따라 좌우 반전');
+// 2) 걷는 방향에 맞춰 좌우 반전 (거실 오른쪽 02로, 다시 왼쪽 00으로)
+const faces = { r: new Set(), l: new Set() };
+(await walk(ipad, ids.dad, 0, 2)).forEach((s) => faces.r.add(s.face));
+(await walk(ipad, ids.dad, 0, 0)).forEach((s) => faces.l.add(s.face));
+assert.ok([...faces.r].some((f) => f.includes('scaleX(1)')) && [...faces.l].some((f) => f.includes('scaleX(-1)')), '방향에 따라 좌우 반전');
 console.log('✓ 오른쪽/왼쪽으로 걸을 때 얼굴 방향이 바뀜');
 
-// 3) 같은 칸에 둘이 서면 나란히, 가장자리에서는 그쪽 방향 버튼이 꺼짐
+// 3) 같은 칸에 둘이 서면 나란히: 유엘을 선택해 유하방(11)을 누른다
 await ipad.click('.pad-head [data-act=close]');
 await select(ipad, ids.yuel);
-assert.equal(await ipad.$eval('.pad-btn.left', (e) => e.disabled), true, '왼쪽 끝에서는 왼쪽 불가');
-assert.equal(await ipad.$eval('.pad-btn.up', (e) => e.disabled), false);
-await walkAndSample(ipad, ids.yuel, 'right'); // 유하방(11)
-await ipad.waitForSelector(`[data-walker="${ids.yuel}"].idle`);
+const yw = await walk(ipad, ids.yuel, 1, 1);   // 유하가 서 있는 칸의 한가운데를 눌러도 목적지로 인식돼야 한다
+assert.ok(yw.length > 10, '유엘이 실제로 걸어서 이동');
 await ipad.waitForTimeout(700);
 const a = await pos(ipad, ids.yuel); const b = await pos(ipad, ids.yuha);
 assert.ok(Math.abs(a.x - b.x) > 6 && Math.abs(a.y - b.y) < 0.5, '같은 방의 두 사람은 좌우로 나란히 선다');
+assert.ok(a.x > COL_X[0] + 8, '유엘은 원래 방(왼쪽 칸)을 떠나 유하방으로 옮겨 왔다');
 console.log('✓ 한 방에 둘이 서면 나란히');
 
 // 4) 다른 기기(휴대폰)에서도 같은 위치로 걸어가서 도착
 await phone.waitForFunction(({ id, y }) => { const e = document.querySelector(`[data-walker="${id}"]`); return e && !e.classList.contains('moving') && Math.abs(parseFloat(e.style.top) - y) < 0.6; }, { id: ids.yuel, y: FLOOR_Y[1] }, { timeout: 10000 });
 const server = await mom.call('GET', '/api/home');
-assert.equal(server.walkers[ids.yuel], '11'); assert.equal(server.walkers[ids.dad], '01');
+assert.equal(server.walkers[ids.yuel], '11'); assert.equal(server.walkers[ids.dad], '00');
 console.log('✓ 다른 기기에도 같은 위치(서버 공유)');
 await phone.evaluate(() => window.scrollTo(0, 0));
 await phone.screenshot({ path: path.join(shots, '51-walk-phone.png') });
 
-// 5) 내 방으로: 거실의 아빠가 집(아래층 오른쪽 방)으로 돌아온다
+// 5) 정원처럼 갈 수 없는 곳을 누르면 아무 일도 없다(화면도 바뀌지 않는다)
 await ipad.click('.pad-head [data-act=close]');
 await select(ipad, ids.dad);
+const bg = await houseBox(ipad);
+// 정원 왼쪽 끝(방향 패드 창과 겹치지 않는 곳)을 누른다
+const gx = bg.x + 0.12 * bg.w, gy = bg.y + 0.9 * bg.h;
+const hit = await ipad.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e && (e.closest('#walkpad') ? 'pad' : e.closest('[data-room]') ? 'room' : e.closest('.house') ? 'house' : 'other'); }, [gx, gy]);
+assert.equal(hit, 'house', '정원 왼쪽 끝은 패드가 아니라 집 그림 위');
+await ipad.mouse.click(gx, gy);
+await ipad.waitForTimeout(300);
+assert.equal((await pos(ipad, ids.dad)).moving, false, '정원을 눌러도 가지 않는다');
+assert.ok(!ipad.url().includes('#/stamps') && !ipad.url().includes('#/kid'), '화면도 바뀌지 않는다');
+console.log('✓ 정원 등 갈 수 없는 곳은 무시');
+
+// 6) 내 방으로: 거실의 아빠가 집으로 돌아온다
 await ipad.click('[data-act=home]');
 const back = [];
 for (let i = 0; i < 300; i++) { const s = await pos(ipad, ids.dad); if (s?.moving) back.push(s); if (s && !s.moving && back.length > 5) break; await ipad.waitForTimeout(40); }
@@ -128,7 +146,6 @@ assert.equal(back.filter((s) => !onSkeleton(s)).length, 0, '돌아올 때도 뼈
 assert.equal((await mom.call('GET', '/api/home')).walkers[ids.dad], '22');
 console.log('✓ 내 방으로 돌아올 때도 뼈대로만');
 
-// 6) 가로 스크롤 없음(휴대폰)
 assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
