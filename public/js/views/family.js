@@ -38,7 +38,8 @@ export async function syncPush() {
 const PUSH_WHY = { no_vapid: '서버에 푸시 키(VAPID)가 없어요.', no_sub: '이 기기가 아직 알림에 등록되지 않았어요. ‘알림 끄기’ 후 다시 켜 보세요.', failed: '푸시 서비스가 거절했어요. 알림을 껐다가 다시 켜 보세요.' };
 export async function testPush() {
   const r = await post('/api/push/test');
-  if (r.ok) toast('테스트 알림을 보냈어요. 앱을 닫아도 잠시 뒤 알림이 오는지 보세요 🔔');
+  const via = (r.hosts || []).map((h) => (/googleapis|fcm/.test(h) ? '안드로이드(구글)' : /apple/.test(h) ? '애플' : /mozilla/.test(h) ? '파이어폭스' : h)).join(', ');
+  if (r.ok) toast(`테스트 알림을 보냈어요${via ? ` (${via} 경로)` : ''}. 화면을 끄고 잠금 화면에 오는지 보세요 🔔`);
   else throw new Error(`${PUSH_WHY[r.reason] || '보내지 못했어요.'}${r.failed?.length ? ` (오류 ${r.failed.join(', ')})` : ''}`);
 }
 export async function disablePush(st) { if (st.sub) { await post('/api/push/unsubscribe', { endpoint: st.sub.endpoint }); await st.sub.unsubscribe(); } }

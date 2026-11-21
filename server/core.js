@@ -30,6 +30,7 @@ export class Hub {
   }
 }
 
+const hostOf = (u) => { try { return new URL(u).host; } catch { return '?'; } };
 export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSender = null, dataDir = null, appUrl = '' } = {}) {
   const db = openDb(dbPath);
   const cache = new Map();
@@ -99,9 +100,9 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
   };
   // 결과를 기다리는 전송(테스트 알림): 성공·실패 코드를 돌려준다. 만료된 구독(404/410)은 지운다.
   core.pushToAwait = async (subs, payload) => {
-    const out = { sent: 0, failed: [] };
+    const out = { sent: 0, failed: [], hosts: [] };
     for (const s of subs) {
-      try { await core.pushSender({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload)); out.sent++; }
+      try { await core.pushSender({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload)); out.sent++; out.hosts.push(hostOf(s.endpoint)); }
       catch (e) {
         const code = e?.statusCode || 0;
         out.failed.push(code || String(e?.message || e).slice(0, 80));
@@ -116,6 +117,7 @@ export function createCore({ dbPath = ':memory:', now = () => Date.now(), pushSe
     for (const s of subs) {
       Promise.resolve()
         .then(() => core.pushSender({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload)))
+        .then(() => { if (!process.env.NODE_TEST_CONTEXT) console.log(`[push] 전달됨 member=${s.member_id} 서비스=${hostOf(s.endpoint)}`); })
         .catch((e) => {
           if (e && (e.statusCode === 404 || e.statusCode === 410)) core.run('DELETE FROM push_subs WHERE id = ?', s.id);
           else console.error('push 실패', e?.statusCode || e?.message);
