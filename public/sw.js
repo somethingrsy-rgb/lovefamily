@@ -1,5 +1,5 @@
 // 서비스 워커: 앱 껍데기 캐시(오프라인 대비) + 푸시 알림 표시/클릭 처리
-const CACHE = 'lovefamily-shell-v5';
+const CACHE = 'lovefamily-shell-v6';
 const SHELL = ['/', '/styles.css', '/js/main.js', '/manifest.webmanifest', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
