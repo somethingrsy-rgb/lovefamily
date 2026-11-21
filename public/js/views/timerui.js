@@ -117,7 +117,7 @@ export async function timerPage(el, { id }) {
         if (e.target.id === 'new') { if (await confirmDialog('진행 중인 활동은 그만하고 새로 고를까요?', { yes: '새로 고르기' })) { await post(`/api/timers/${t.id}/cancel`); await load(); } }
         if (e.target.closest('#pause')) { const r = await post(`/api/timers/${t.id}/pause`); toast(`⏸ 일시 중단! 남은 시간 ${minLabel(r.remainingMs)}`); await load(); }
         if (e.target.closest('#resume')) { await post(`/api/timers/${t.id}/resume`); toast('▶ 이어서 시작해요'); await load(); }
-        if (e.target.closest('#stop')) { if (await confirmDialog('활동을 그만할까요? 남은 시간은 오늘 다시 쓸 수 있어요.', { yes: '그만하기', no: '계속 하기', danger: true })) { await post(`/api/timers/${t.id}/cancel`); toast('활동을 그만했어요'); await load(); } }
+        if (e.target.closest('#stop')) { if (await confirmDialog('활동을 그만할까요? 남은 시간은 오늘 다시 쓸 수 있어요.', { yes: '그만하기', no: '계속 하기', danger: true })) { await post(`/api/timers/${t.id}/cancel`); await load(); const b = budget[t.activityId]; toast(b ? `그만했어요 · 오늘 ${t.name} 남은 시간 ${minLabel(b.leftMs)}` : '활동을 그만했어요'); } }
         if (e.target.id === 'cancel') { if (await confirmDialog('활동을 끝낼까요?', { danger: true })) { await post(`/api/timers/${t.id}/cancel`); await load(); } }
         if (e.target.id === 'setnext') { const n = await nextPicker(id); if (n !== undefined) { await fetchPut(t.id, n); await load(); } }
         if (e.target.id === 'test') { if (!chime('warn')) toast('소리가 꺼져 있거나 화면을 한 번 눌러야 해요'); }

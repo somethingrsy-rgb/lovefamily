@@ -10,7 +10,8 @@ export const remaining = (t) => (t.state === 'paused' ? t.remainingMs : Math.max
 // 분 단위로 읽기 쉽게(예: 18분 · 1시간 5분 · 40초)
 export function minLabel(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000)); if (s < 60) return `${s}초`;
-  const m = Math.ceil(s / 60); return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : `${m}분`;
+  const m = Math.floor(s / 60); const r = s % 60;
+  return m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}` : r ? `${m}분 ${r}초` : `${m}분`; // 29분 57초처럼 정확하게
 }
 export const timerOf = (kidId) => T.timers.find((t) => t.kidId === Number(kidId)) || null;
 export function fmt(ms) {
