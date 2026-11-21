@@ -408,3 +408,7 @@ img.emo { display: inline-block; height: 1.18em; width: auto; vertical-align: -.
 .tab .ti img.emo { height: 1.5em; vertical-align: middle; }
 .big-btn .bi img.emo { height: 1.05em; vertical-align: middle; }
 .status-btn img.emo, .chip img.emo { height: 1.3em; }
+/* 프로필 동그라미 안의 그림: 동그라미 안에 딱 맞게 */
+.avatar { position: relative; overflow: hidden; }
+.avatar img.emo { position: absolute; inset: 13%; width: 74%; height: 74%; object-fit: contain; vertical-align: baseline; }
+.avatar.photo img { position: static; width: 100%; height: 100%; }

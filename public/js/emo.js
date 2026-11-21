@@ -85,6 +85,18 @@ const PAIRS = [
   ['▶', 'play'],
   ['💞', 'hearts-orbit'],
   ['🙂', 'smile-face'],
+  ['🍽', 'meal'],
+  ['📺', 'tv'],
+  ['🎮', 'game'],
+  ['🪥', 'toothbrush'],
+  ['📚', 'homework'],
+  ['📖', 'reading'],
+  ['🛁', 'bath'],
+  ['💼', 'briefcase'],
+  ['🚌', 'bus'],
+  ['🚗', 'car'],
+  ['🐰', 'avatar-rabbit'],
+  ['🐱', 'avatar-cat'],
 ];
 const MAP = new Map(PAIRS.map(([e, f]) => [e, f]));
 const RE = new RegExp(PAIRS.map(([e]) => e).sort((a, b) => b.length - a.length).join('|') + '', 'gu');
