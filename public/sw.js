@@ -36,7 +36,7 @@ self.addEventListener('push', (e) => {
   e.waitUntil(self.registration.showNotification(d.title || '우리집', {
     body: d.body || '새 알림이 있어요', tag: d.tag || 'lovefamily', data: { url: d.url || '/', nid: d.nid }, icon: '/icons/heart-pink.png', badge: '/icons/badge-heart.png',
     // 안드로이드: 진동 + 다시 울림, 메시지·도장 요청은 눌러서 확인할 때까지 남겨 둔다(잠금 화면에서도 보이도록). iPhone 은 이 옵션들을 무시한다.
-    vibrate: [200, 100, 200], renotify: true, requireInteraction: !!d.sticky, timestamp: Date.now(),
+    vibrate: Array.isArray(d.vibrate) && d.vibrate.length <= 12 ? d.vibrate.map((n) => Math.min(2000, Number(n) || 0)) : [200, 100, 200], renotify: true, requireInteraction: !!d.sticky, timestamp: Date.now(),
   }));
 });
 self.addEventListener('notificationclick', (e) => {

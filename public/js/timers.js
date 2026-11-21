@@ -97,7 +97,7 @@ export function showAlert(kind, t, { quiet = false } = {}) {
   card.querySelector('[data-ok]').onclick = close;
   card.querySelector('[data-open]')?.addEventListener('click', () => { close(); location.hash = `#/kid/${t.kidId}/today`; });
   host.appendChild(card);
-  if (!quiet) chime(kind);
+  if (!quiet) { chime(kind); navigator.vibrate?.(kind === 'end' ? [600, 200, 600, 200, 600, 200, 900] : [300, 150, 300]); } // 앱이 열려 있을 때 진동(안드로이드)
 }
 
 // 같은 알림 키는 한 번만 보여 준다(새로고침·재접속·여러 번 조회해도 중복 없음)

@@ -122,15 +122,17 @@ export const kidTimer = (core, familyId, kidId) => {
 };
 export const homeTimers = (core, familyId) => core.all(`SELECT * FROM timers WHERE family_id = ? AND ${ACTIVE} ORDER BY id`, familyId).map((t) => timerOut(core, t));
 
+// 진동 패턴(ms): 5분 전 예고는 짧게 두 번, 시간이 끝났을 때는 길게 여러 번(안드로이드 폰)
+const VIBRATE = { warn: [300, 150, 300], end: [600, 200, 600, 200, 600, 200, 900] };
 function alert(core, t, kind) {
   const out = timerOut(core, t);
   const key = kind === 'warn' ? out.warnKey : out.endKey;
   const lock = kind === 'warn' ? `${out.kidName} · ${t.name} 5분 남았어요` : `${out.kidName} · ${t.name} 시간이 끝났어요`;
   core.afterCommit(() => {
     core.hub.publish(t.family_id, { t: 'timer', kind, key, timerId: t.id, kidId: t.kid_id }, { devices: true });
-    core.sendPushDevices(t.family_id, { title: '우리집', body: lock, url: '/#/', tag: `timer-${t.id}-${kind}`, nid: null });
+    core.sendPushDevices(t.family_id, { title: '우리집', body: lock, url: '/#/', tag: `timer-${t.id}-${kind}`, nid: null, vibrate: VIBRATE[kind] });
     // 그 아이의 전용 폰에도(앱을 닫아 두거나 화면이 잠겨 있어도 알림이 오도록). 형제·어른 폰에는 가지 않는다.
-    core.sendPush(t.kid_id, { title: '우리집', body: lock, url: `/#/kid/${t.kid_id}/timer`, tag: `timer-${t.id}-${kind}`, nid: null, sticky: true });
+    core.sendPush(t.kid_id, { title: '우리집', body: lock, url: `/#/kid/${t.kid_id}/timer`, tag: `timer-${t.id}-${kind}`, nid: null, sticky: true, vibrate: VIBRATE[kind] });
   });
 }
 

@@ -110,7 +110,10 @@ test('아이 폰 푸시: 그 아이에게 온 알림만 그 폰으로(잠금화�
     assert.ok(f.pushes.some((p) => p.endpoint === 'https://push.example/ipad'));
     const tp = f.pushes.filter((p) => p.endpoint.includes('phone'));
     assert.deepEqual([...new Set(tp.map((p) => p.endpoint))], ['https://push.example/yuel-phone'], '유엘 활동 알림은 유엘 폰에만');
-    assert.ok(tp.some((p) => /5분|끝났/.test(p.payload.body)), '5분 남았어요/끝났어요 알림');
+    assert.ok(tp.some((p) => /끝났/.test(p.payload.body)), '끝났어요 알림');
+    const endPush = tp.find((p) => /끝났/.test(p.payload.body));
+    assert.ok(endPush, '시간이 끝났어요 알림도 아이 폰으로 간다');
+    assert.ok(endPush.payload.vibrate.length >= 5 && Math.max(...endPush.payload.vibrate) >= 600, '끝났을 때는 길게 여러 번 진동');
     assert.ok(tp.every((p) => p.payload.url === `/#/kid/${f.ids.yuel}/timer` && p.payload.sticky), '누르면 활동 화면, 눌러서 확인할 때까지 남는다');
     assert.ok(!f.pushes.some((p) => p.endpoint === 'https://push.example/mom' || p.endpoint === 'https://push.example/yuha-phone'), '어른·형제에게는 가지 않는다');
     // 연결 해제: 목록에 보이고, 해제하면 로그인·푸시가 모두 끊긴다
@@ -249,5 +252,23 @@ test('아이가 누른 지폐·동전 그대로 저금통 모션 신호가 간�
     const out = coins().filter((e) => e.dir === 'out');
     assert.equal(out.length, 1); assert.deepEqual(out[0].pieces, [100, 100, 100]); assert.equal(out[0].amount, 300);
     ac.abort();
+  } finally { await f.close(); }
+});
+
+test('활동 알림 푸시: 5분 전은 짧은 진동, 시간이 끝났을 때는 길게 여러 번 진동(그 아이 폰으로)', async () => {
+  const f = await setup();
+  try {
+    const A = await pairPhone(f, f.ids.yuel);
+    await A.phone.ok('POST', '/api/push/subscribe', { subscription: { endpoint: 'https://push.example/yuel-phone', keys: { p256dh: 'p', auth: 'a' } } });
+    f.pushes.length = 0;
+    const a = Object.fromEntries((await f.mom.ok('GET', '/api/activities')).map((x) => [x.kind, x]));
+    await f.mom.ok('POST', `/api/kids/${f.ids.yuel}/timers`, { activityId: a.tv.id });
+    f.clock.t += 25 * 60000 + 1000; f.app.settle(); await f.flush();
+    const warn = f.pushes.filter((p) => p.endpoint.includes('yuel-phone') && /5분/.test(p.payload.body));
+    assert.equal(warn.length, 1); assert.equal(warn[0].payload.vibrate.length, 3);
+    f.clock.t += 5 * 60000; f.app.settle(); await f.flush();
+    const end = f.pushes.filter((p) => p.endpoint.includes('yuel-phone') && /끝났/.test(p.payload.body));
+    assert.equal(end.length, 1, '끝났어요 알림은 한 번');
+    assert.ok(end[0].payload.vibrate.length >= 5); assert.equal(end[0].payload.sticky, true);
   } finally { await f.close(); }
 });
