@@ -86,6 +86,11 @@ await page.click('[data-reason="문제집 1권"]');
 assert.equal(await page.inputValue('input[name=purpose]'), '문제집 1권', '버튼을 누르면 이유가 채워진다');
 await page.screenshot({ path: path.join(shots, '83-reason-chips.png') });
 await page.click('[data-close]'); await page.goto(base + `/#/kid/${yuel}/talk`); await page.waitForSelector('.big-btn[data-to]'); await page.screenshot({ path: path.join(shots, '84-talk-avatars.png') });
+await page.goto(base + `/#/kid/${yuel}/wallet`); await page.waitForSelector('#wd'); await page.click('#wd'); await page.waitForSelector('[data-reason="슈퍼"]');
+assert.deepEqual(await page.$$eval('[data-reason]', (e) => e.map((x) => x.dataset.reason)), ['문구점', '슈퍼', '친구랑 간식']);
+await page.click('[data-reason="친구랑 간식"]');
+assert.equal(await page.inputValue('input[name=purpose]'), '친구랑 간식', '쓸 곳도 버튼으로 고른다');
+console.log('✓ 돈 꺼내기: 어디에 쓸지 버튼으로 선택');
 console.log('✓ 엄마·아빠 얼굴 그림, 입금 이유 버튼');
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
