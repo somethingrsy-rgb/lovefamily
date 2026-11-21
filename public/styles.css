@@ -667,3 +667,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .pet-heart .emo { width: 4cqw; height: 4cqw; }
 @keyframes petheart { from { opacity: 1; transform: translate(-50%, 0) scale(.7); } to { opacity: 0; transform: translate(-50%, -7cqw) scale(1.2); } }
 @media (prefers-reduced-motion: reduce) { .pet-sp.anim { animation: none; } }
+
+.pet.hop .pet-body { animation: pethop .55s ease-in-out infinite; }
+@keyframes pethop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.6cqw); } }
+@media (prefers-reduced-motion: reduce) { .pet.hop .pet-body { animation: none; } }

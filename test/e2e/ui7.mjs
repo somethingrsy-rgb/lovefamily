@@ -37,6 +37,14 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   const first = await snap(); let moved = false;
   for (let i = 0; i < 30 && !moved; i++) { await page.waitForTimeout(500); moved = (await snap()) !== first; }
   assert.ok(moved, '고양이가 움직인다');
+  // 같은 층에서 마주치면 장난을 친다(고양이끼리, 연이와도)
+  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 52.4; } r.x = 40; c.x = 50; Math.random = () => 0; });
+  await page.waitForFunction(() => window.__pets[0].mode === 'play' && window.__pets[1].mode === 'play', null, { timeout: 4000 });
+  const pl = await page.evaluate(() => window.__pets.slice(0, 2).map((p) => [p.face, p.playKind]));
+  assert.equal(pl[0][0], 1); assert.equal(pl[1][0], -1, '서로 마주 본다');
+  assert.ok(await page.$eval('.pet[data-pet=ruby] .pet-sp', (e) => /play-/.test(e.style.backgroundImage)), '장난 그림으로 바뀐다');
+  console.log('✓ 만나면 장난');
+  await page.evaluate(() => { window.__pets.forEach((p) => { p.mode = 'idle'; p.until = performance.now() + 1000; }); });
   const rb = await page.$eval('.pet[data-pet=ruby]', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.mouse.click(rb.x, rb.y);
   await page.waitForSelector('.pet-heart', { timeout: 2000 });

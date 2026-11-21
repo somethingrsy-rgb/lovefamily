@@ -9,6 +9,8 @@ const SHEET = {
   'ruby-sit': [122, 152, 1], 'ruby-sleep': [155, 104, 1], 'ruby-groom': [131, 147, 1], 'ruby-aegyo': [164, 120, 1],
   'crystal-walkR': [159, 130, 12], 'crystal-walkL': [161, 130, 12], 'crystal-up': [174, 153, 12], 'crystal-down': [173, 131, 9],
   'crystal-sit': [124, 149, 1], 'crystal-sleep': [159, 109, 1], 'crystal-groom': [139, 150, 1], 'crystal-aegyo': [169, 127, 1], 'crystal-stand': [158, 130, 1],
+  'ruby-play-sniff': [156, 132, 12], 'ruby-play-tap': [142, 146, 12], 'ruby-play-bow': [153, 134, 12], 'ruby-play-roll': [174, 153, 12], 'ruby-play-dash': [168, 140, 12], 'ruby-play-sneak': [158, 132, 12],
+  'crystal-play-sniff': [141, 139, 12], 'crystal-play-tap': [138, 142, 12], 'crystal-play-bow': [154, 136, 12], 'crystal-play-roll': [163, 153, 12], 'crystal-play-dash': [176, 133, 12], 'crystal-play-sneak': [162, 130, 12],
   // 강아지 연이 (public/assets/dog/dog-*.webp). 오르내리기는 뛰는 그림 하나를 같이 쓴다
   'yeoni-walkR': [140, 121, 12], 'yeoni-walkL': [140, 121, 12], 'yeoni-up': [137, 121, 12], 'yeoni-down': [137, 121, 12],
   'yeoni-sit': [102, 135, 1], 'yeoni-sleep': [125, 97, 1], 'yeoni-groom': [107, 132, 1], 'yeoni-aegyo': [114, 127, 1], 'yeoni-stand': [124, 131, 1], 'yeoni-roll': [145, 114, 1],
@@ -29,6 +31,7 @@ const cats = [
   { id: 'crystal', x: 72, y: FLOOR_Y[2], face: -1, mode: 'idle', pose: 'sleep', until: 0, path: [], seg: 0, key: '' },
   { id: 'yeoni', x: 48, y: FLOOR_Y[0], face: 1, mode: 'idle', pose: 'sit', until: 0, path: [], seg: 0, key: '' },
 ];
+window.__pets = cats; // 시험용: 화면 밖에서 상태를 확인·조정한다
 let running = false;
 let last = 0;
 
@@ -68,13 +71,36 @@ function chooseNext(c, now) {
   c.seg = 0; c.mode = 'walk';
 }
 
+// ---- 만나면 장난: 같은 층에서 가까워지면(약 1분에 한 번쯤) 마주 보고 몇 초 논다 ----
+const PLAYS = ['sniff', 'tap', 'bow', 'roll', 'dash', 'sneak'];
+const lastPlay = new Map(); // 'a|b' → 마지막 장난 시각
+function tryPlay(now) {
+  for (let i = 0; i < cats.length; i++) for (let j = i + 1; j < cats.length; j++) {
+    const a = cats[i]; const b = cats[j];
+    if (a.mode === 'play' || b.mode === 'play' || a.mode === 'aegyo' || b.mode === 'aegyo') continue;
+    if (Math.abs(a.y - b.y) > 0.5 || Math.abs(a.x - b.x) > 16) continue;
+    const key = `${a.id}|${b.id}`;
+    if (now - (lastPlay.get(key) ?? -1e9) < 45000) continue;
+    lastPlay.set(key, now);
+    if (Math.random() > 0.6) continue;
+    const left = a.x <= b.x ? a : b; const right = left === a ? b : a;
+    left.face = 1; right.face = -1;
+    for (const c of [a, b]) { c.mode = 'play'; c.until = now + 4600; c.path = []; c.key = ''; c.playKind = c.id === 'yeoni' ? 'dog' : pick(PLAYS); c.hop = 0; }
+  }
+}
+
 function step(now) {
+  tryPlay(now);
   const layer = document.querySelector('.pets');
   if (!layer) { running = false; return; }
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   for (const c of cats) {
     const el = layer.querySelector(`[data-pet="${c.id}"]`); if (!el) continue;
-    if (c.mode === 'aegyo') {
+    if (c.mode === 'play') {
+      if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2000, 5000); c.key = ''; el.classList.remove('hop'); }
+      else if (c.playKind === 'dog') { setLook(c, el, Math.floor((now - (c.until - 4600)) / 1100) % 2 ? 'roll' : 'aegyo'); el.classList.add('hop'); }
+      else setLook(c, el, `play-${c.playKind}`);
+    } else if (c.mode === 'aegyo') {
       if (now > c.until) { c.mode = 'idle'; c.until = now + rnd(2000, 5000); c.pose = 'sit'; }
       else { setLook(c, el, 'aegyo'); }
     } else if (c.mode === 'idle') {
