@@ -162,7 +162,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, showCats: !!fam.show_cats, showDog: !!fam.show_dog, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
+    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -228,7 +228,12 @@ export function updateFamily(core, ctx, b) {
   const sound = b.timerSound !== undefined ? (b.timerSound ? 1 : 0) : fam.timer_sound;
   const cats = b.showCats !== undefined ? (b.showCats ? 1 : 0) : fam.show_cats;
   const dog = b.showDog !== undefined ? (b.showDog ? 1 : 0) : fam.show_dog;
-  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ? WHERE id = ?', name, show, sound, cats, dog, fam.id);
+  const pp = b.pets && typeof b.pets === 'object' ? b.pets : {};
+  const ruby = pp.ruby !== undefined ? (pp.ruby ? 1 : 0) : fam.show_ruby;
+  const crystal = pp.crystal !== undefined ? (pp.crystal ? 1 : 0) : fam.show_crystal;
+  const yeoni = pp.yeoni !== undefined ? (pp.yeoni ? 1 : 0) : dog;
+  // 예전 '고양이 전체' 설정(show_cats)은 이름별 설정으로 옮겨 오므로, 이름별로 저장할 때는 켜 둔다
+  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, fam.id);
   void adult;
   core.refresh(ctx.familyId, 'family', 'home', 'timers');
   return me(core, ctx).family;

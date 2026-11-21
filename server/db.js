@@ -164,6 +164,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id I
 
 // 이미 만들어진 개발/운영 DB 를 위한 컬럼 추가
 const COLUMNS = [
+  ['families', 'show_ruby INTEGER NOT NULL DEFAULT 1'], ['families', 'show_crystal INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_dog INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_cats INTEGER NOT NULL DEFAULT 1'],
   ['families', 'layout TEXT'],

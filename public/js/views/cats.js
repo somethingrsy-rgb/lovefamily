@@ -150,10 +150,10 @@ function onTap(e) {
 let tapBound = false;
 
 // 집 그림 안에 고양이 층을 만들고(없으면) 돌아다니게 한다. enabled=false 면 치운다.
-export function mountPets(houseEl, enabled = { cats: true, dog: true }) {
+export function mountPets(houseEl, enabled = {}) {
   const house = houseEl?.querySelector?.('.house'); if (!house) return;
   house.querySelector('.pets')?.remove();
-  const on = (c) => (c.id === 'yeoni' ? enabled.dog : enabled.cats);
+  const on = (c) => enabled[c.id] !== false;
   const shown = cats.filter(on);
   if (!shown.length) return;
   const layer = document.createElement('div');

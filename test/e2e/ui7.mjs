@@ -55,17 +55,13 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c, y]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 31.8; } r.x = 20; c.x = 80; y.x = 21; });
   await page.waitForTimeout(1200);
   assert.equal(await page.evaluate(() => window.__pets[2].mode), 'idle', '고양이와 연이는 만나도 장난치지 않는다');
-  // 고양이·강아지를 따로 끄고 켠다
-  await call('PATCH', '/api/family', { showCats: false });
-  await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
-  assert.deepEqual(await page.$$eval('.pet', (e) => e.map((x) => x.dataset.pet)), ['yeoni'], '고양이만 끄면 연이만 남는다');
-  await call('PATCH', '/api/family', { showCats: true, showDog: false });
-  await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
-  assert.deepEqual(await page.$$eval('.pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal'], '강아지만 끄면 고양이만 남는다');
-  await call('PATCH', '/api/family', { showCats: false });
-  await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500);
-  assert.equal(await page.$$eval('.pets', (e) => e.length), 0, '둘 다 끄면 아무도 안 나온다');
-  await call('PATCH', '/api/family', { showDog: true });
+  // 루비·크리스탈·연이를 각각 끄고 켠다
+  const only = async (pets, expect, msg) => { await call('PATCH', '/api/family', { pets }); await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500); assert.deepEqual(await page.$$eval('.pet', (e) => e.map((x) => x.dataset.pet)), expect, msg); };
+  await only({ ruby: false }, ['crystal', 'yeoni'], '루비만 끄면');
+  await only({ ruby: true, crystal: false }, ['ruby', 'yeoni'], '크리스탈만 끄면');
+  await only({ crystal: true, yeoni: false }, ['ruby', 'crystal'], '연이만 끄면');
+  await only({ ruby: false, crystal: false }, [], '모두 끄면');
+  await only({ ruby: true, crystal: true, yeoni: true }, ['ruby', 'crystal', 'yeoni'], '다시 모두 켜면');
   await call('PATCH', '/api/family', { showCats: true });
   await page.reload(); await page.waitForSelector('.pet');
   console.log('✓ 가족 설정으로 고양이 끄기/켜기');
