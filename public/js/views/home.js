@@ -76,23 +76,24 @@ function houseHtml(h) {
     const img = t && actImgUrl(t.kind, k.id);
     const pic = img ? `<img class="room-char act" src="${img}" alt="" draggable="false">` : charImg(KID_CHAR[i]);
     const total = t ? t.totalMs : 1; const rem = t ? remaining(t) : 0;
-    const panel = !t ? '' : t.state === 'ended'
-      ? `<span class="room-timer ended"><b>⏰ 끝났어요</b><small>${esc(t.name)}</small></span>`
-      : `<span class="room-timer" role="timer" aria-label="${esc(t.name)} 남은 시간"><b><span data-timer="${t.id}">${fmt(rem)}</span></b><small>남음</small><i class="rt-bar"><u data-bar="${t.id}" style="width:${(100 * (1 - rem / total)).toFixed(1)}%"></u></i><small><span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span> 지남</small></span>`;
-    return `<button class="room kid" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${pic}<span class="room-label">${esc(k.name)}방</span>${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${panel}</button>`;
+    // 지나간 시간만 그림 바로 아래에 표시(남은 시간·막대는 보여 주지 않는다)
+    const timeTag = !t ? '' : t.state === 'ended'
+      ? `<span class="room-time ended" role="timer" aria-label="${esc(t.name)} 끝남">⏰ 끝났어요</span>`
+      : `<span class="room-time" role="timer" aria-label="${esc(t.name)} 지난 시간">⏱ <span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span></span>`;
+    return `<button class="room kid ${t ? 'has-time' : ''}" style="${box(i === 0 ? 'yuel' : 'yuha')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${pic}${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;
   }).join('');
   const pending = h.kids.filter((k) => k.day.status === 'requested').length;
   const adults = ['grandma', 'mom', 'dad'].map((role) => {
     const a = h.adults.find((x) => x.role === role) || S.info.adults.find((x) => x.role === role);
-    if (!a) return `<div class="room empty" style="${box(ADULT_ROOM[role])}"><span class="room-label muted">${({ grandma: '할머니', mom: '엄마', dad: '아빠' })[role]}방</span></div>`;
+    if (!a) return `<div class="room empty" style="${box(ADULT_ROOM[role])}"></div>`;
     const st = a.status ? (STATUS.find((x) => x[0] === a.status.state) || [])[2] : '';
-    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${adultPic(role, a.status?.state)}<span class="room-label">${esc(a.name)}방</span>${a.status ? `<span class="room-chips" title="${esc(a.status.label)}"><i>${st}</i></span>` : ''}</button>`;
+    return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)">${adultPic(role, a.status?.state)}${a.status ? `<span class="room-chips" title="${esc(a.status.label)}"><i>${st}</i></span>` : ''}</button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="/assets/house.webp" alt="" class="house-img" width="1086" height="1448">
-    <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기"><span class="room-label top">거실</span></button>
+    <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기"></button>
     ${kidRooms}
-    <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기"><span class="room-label">은행·도장</span>${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
+    <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
     ${adults}</div>`;
 }
 function bindHouse(root, reload, h) {

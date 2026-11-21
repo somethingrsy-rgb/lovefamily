@@ -370,3 +370,13 @@ textarea { min-height: 90px; resize: vertical; }
 .room-timer { top: 5.2cqw; right: 1.2cqw; min-width: 10.6cqw; padding: .6cqw 1.1cqw; gap: .2cqw; }
 .room-timer b { font-size: 3.1cqw; line-height: 1.05; } .room-timer small { font-size: 2cqw; }
 .room-timer.ended { top: 6cqw; } .room-timer.ended small { max-width: 10cqw; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== 방 이름표 없음 / 캐릭터는 바닥에 / 지난 시간은 그림 아래 ===== */
+.room-label { display: none; }
+.room-char { bottom: 3.4cqw; } .room-char.wide { bottom: 3.8cqw; } .room-char.car { bottom: 3.4cqw; }
+.room.has-time .room-char { bottom: 7.2cqw; }
+.room-char.act { left: 50%; transform: translateX(-50%); max-width: 21cqw; max-height: 15.5cqw; bottom: 7.2cqw; }
+.room.kid:active .room-char.act { transform: translateX(-50%) translateY(-.6cqw); }
+.room-time { position: absolute; z-index: 3; left: 50%; bottom: 1.2cqw; transform: translateX(-50%); padding: .4cqw 2.4cqw; border-radius: 999px; background: rgba(255, 255, 255, .93); color: #3a3252; font-size: 3.3cqw; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; box-shadow: 0 1px 5px rgba(90, 60, 140, .3); pointer-events: none; }
+.room-time.ended { background: #fff1cf; color: #5c3f00; font-size: 3cqw; }
+.room-timer { display: none; }
