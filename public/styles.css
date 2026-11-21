@@ -335,3 +335,13 @@ textarea { min-height: 90px; resize: vertical; }
 .room-char { height: 21cqw; bottom: 5.4cqw; }
 .room.adult .room-chips { top: 1cqw; right: 1.2cqw; } .room.adult .room-chips i { font-size: 3.4cqw; padding: .3cqw 1.2cqw; }
 .room-char { height: 20cqw; bottom: 7cqw; }
+
+/* ===== 집 크게: iPad 가로에서는 화면 높이에 맞는 최대 크기, 오른쪽 칸은 좁아지면 한 줄로 ===== */
+.home-main { container-type: inline-size; }
+.house-col { width: min(100%, 460px); }
+@media (min-width: 900px) and (orientation: landscape) {
+  .home { grid-template-columns: minmax(340px, 47%) minmax(0, 1fr); gap: 16px; }
+  .house-col { width: min(100%, calc((100vh - 118px) * 0.75)); width: min(100%, calc((100dvh - 118px) * 0.75)); }
+}
+@container (max-width: 660px) { .home-main .kids { grid-template-columns: 1fr; } .home-main .lower, .home-main .lower2 { grid-template-columns: 1fr; } .home-main .kid-card { min-height: 0; } }
+@container (max-width: 660px) { .home-main .kid-card { padding: 12px 14px; gap: 6px; } .home-main .avatar.xl { width: 60px; height: 60px; font-size: 2.1rem; } .home-main .kid-name h2 { font-size: 1.35rem; } .home-main .kid-progress b { font-size: 1.15rem; } .home-main .bar { height: 12px; } .home-main .kid-state { padding: 3px 12px; } .home-main .rem-chips li { font-size: .8rem; padding: 1px 10px; } .home-main .kt-time { font-size: 1.6rem; } }
