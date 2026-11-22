@@ -773,9 +773,10 @@ ul + .btn, ol + .btn, ul + .row, ol + .row, .rlist + .btn, #addact { margin-top:
 .rem-chips { gap: 8px; }
 .wallet-nav, .month-nav { gap: 10px; }
 
-/* 간식주기·산책하기: 아이 본인 폰에서만, 집 그림 아래 두 칸 */
-.pet-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 4px; }
-.pet-bar-btn { min-height: 66px; padding: 8px 6px; border: 0; border-radius: var(--r-s, 10px); background: var(--card); color: #3a3252; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 800; font-size: .95rem; line-height: 1.15; }
-.pet-bar-btn b { font-weight: 800; }
+/* 간식주기·산책하기: 아이 본인 폰에서만, 본인 카드의 이름 오른쪽 */
+.kid-card { position: relative; }
+.kid-pet-btns { position: absolute; top: 18px; right: 16px; display: flex; gap: 8px; z-index: 2; }
+.pet-bar-btn { width: 78px; min-height: 66px; padding: 6px 2px; border: 0; border-radius: var(--r-s, 10px); background: rgba(255, 255, 255, .85); color: #3a3252; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 800; font-size: .8rem; line-height: 1.15; }
+.pet-bar-btn b { font-weight: 800; white-space: nowrap; }
 .pet-bar-btn .emo { width: 1.9em; height: 1.9em; }
 .pet-bar-btn:active { transform: scale(.96); }

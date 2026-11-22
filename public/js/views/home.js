@@ -23,11 +23,10 @@ const dayBadge = (k) => {
 };
 
 const PET_NAME = ['다이아', '귀요미']; // 첫째 아이(유엘)의 고양이 다이아, 둘째 아이(유하)의 강아지 귀요미
-// 간식주기·산책하기는 아이 본인 폰에서만 누른다: 집 그림 바로 아래에 [🍪 간식][🌳 산책] 두 버튼
-function petBar(kids) {
-  const me = boundKid(); const i = kids.findIndex((k) => k.id === me); if (i < 0 || !PET_NAME[i]) return '';
-  const k = kids[i];
-  return `<div class="pet-bar" data-rk="petbar"><button type="button" class="pet-bar-btn" data-pet-act="snack" data-kid="${k.id}" aria-label="${PET_NAME[i]}에게 간식 주기">🍪<b>간식</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${PET_NAME[i]} 산책하기">🌳<b>산책</b></button></div>`;
+// 간식주기·산책하기는 아이 본인 폰에서만 누른다: 본인 카드의 이름 옆에 [🍪 간식주기][🌳 산책하기]
+function petBtns(k, i) {
+  if (!boundKid() || boundKid() !== k.id || !PET_NAME[i]) return '';
+  return `<div class="kid-pet-btns"><button type="button" class="pet-bar-btn" data-pet-act="snack" data-kid="${k.id}" aria-label="${PET_NAME[i]}에게 간식 주기">🍪<b>간식주기</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${PET_NAME[i]} 산책하기">🌳<b>산책하기</b></button></div>`;
 }
 function kidCard(k, i) {
   const pct = k.day.total ? Math.round((k.day.done / k.day.total) * 100) : 0;
@@ -38,7 +37,7 @@ function kidCard(k, i) {
     ${dayBadge(k)}
     ${rem.length && k.day.status === 'open' ? `<ul class="rem-chips">${rem.slice(0, 3).map((n) => `<li>${esc(n)}</li>`).join('')}${rem.length > 3 ? `<li class="more">+${rem.length - 3}</li>` : ''}</ul>` : ''}
     <div class="stamp-mini" aria-label="도장 ${k.board.count}/${k.board.size}"><span>💮 도장 <b>${k.board.count}</b>/${k.board.size}</span><div class="bar thin"><i style="width:${(k.board.count / k.board.size) * 100}%"></i></div></div>
-  </a>${kidTimerHtml(k)}</article>`;
+  </a>${petBtns(k, i)}${kidTimerHtml(k)}</article>`;
 }
 
 function adultCard(a, meId, canEdit) {
@@ -176,15 +175,15 @@ export async function mount(el) {
     const p = kstParts(h.now);
     const dev = isDevice() || kidPhone;
     el.innerHTML = `<div class="home ${dev ? 'is-device' : ''}">
-      <aside class="house-col">${houseHtml(h)}${petBar(h.kids)}</aside>
+      <aside class="house-col">${houseHtml(h)}</aside>
       <div class="home-main" data-rc="home.sections">
-      <header class="topbar" data-rk="topbar" data-section="1">
+      ${kidPhone ? '' : `<header class="topbar" data-rk="topbar" data-section="1">
         <div class="clock"><div class="date">${dateLabel(h.today)}</div><div class="time" id="clock">${timeLabel(Date.now())}</div><div class="fam">${esc(h.family.name)}</div></div>
         ${isDevice() ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
       </header>
-      <section class="adult-row" aria-label="부모님 상태" data-rk="adults" data-section="1"><div class="adult-cards" data-rc="home.adults">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>
+      <section class="adult-row" aria-label="부모님 상태" data-rk="adults" data-section="1"><div class="adult-cards" data-rc="home.adults">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>`}
       ${ah ? `<section class="adult-panel card" aria-label="내 할 일" data-rk="panel" data-section="1">${adultPanelHtml(ah)}</section>` : ''}
-      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${h.kids.map(kidCard).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
+      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${(kidPhone ? [...h.kids].sort((x, y) => (y.id === boundKid()) - (x.id === boundKid())) : h.kids).map((k) => kidCard(k, h.kids.indexOf(k))).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
       <section class="lower" data-rk="lower" data-section="1" data-rc="home.lower">
         <div class="panel card" data-rk="schedule"><h3>📅 오늘 일정</h3>${scheduleHtml(h.schedule)}</div>
         <div class="panel card" data-rk="notes"><h3>💬 가족 한마디</h3><ul class="notes">${h.notes.map((n) => `<li><span class="n-av">${memberAvatar(n.authorId, 'sm', { avatar: n.authorAvatar || '🙂', color: '#e8e0f5' })}</span><div><b>${esc(n.authorName)}</b> ${esc(n.text)}</div></li>`).join('') || '<li class="muted">첫 한마디를 남겨 보세요</li>'}</ul>
@@ -209,7 +208,7 @@ export async function mount(el) {
       lastDay.set(k.id, k.day.status);
     }
     bindDismiss($('.kids', el), load);
-    $$('.pet-bar', el).forEach((box) => box.addEventListener('click', async (e) => {
+    $$('.kid-pet-btns', el).forEach((box) => box.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-pet-act]'); if (!b) return;
       e.preventDefault();
       const idx = h.kids.findIndex((k) => k.id === Number(b.dataset.kid)); const pn = PET_NAME[idx];
@@ -220,7 +219,7 @@ export async function mount(el) {
     }));
     $('.supplies', el)?.addEventListener('click', supplyClick);
     if (ah) bindAdultPanel($('.adult-panel', el), load);
-    bindStatus($('.adult-cards', el), load);
+    if (!kidPhone) bindStatus($('.adult-cards', el), load);
     $('#adultMenu', el)?.addEventListener('click', () => { location.hash = '#/adult'; });
     $('.note-form', el)?.addEventListener('submit', async (e) => {
       e.preventDefault(); const t = e.target.text.value.trim(); if (!t) return;

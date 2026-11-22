@@ -27,7 +27,7 @@ const kidPhone = async (code) => {
   const pg = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
   pg.on('pageerror', (e) => errors.push(e.message));
   await pg.goto(base + '/#/pair'); await pg.fill('input', code); await pg.click('button[type=submit]');
-  await pg.goto(base + '/#/'); await pg.waitForSelector('.pet-bar', { timeout: 8000 }); await pg.waitForTimeout(400);
+  await pg.goto(base + '/#/'); await pg.waitForSelector('.kid-pet-btns', { timeout: 8000 }); await pg.waitForTimeout(400);
   return pg;
 };
 const page = await (await browser.newContext({ viewport: { width: 1180, height: 820 } })).newPage();
@@ -36,11 +36,15 @@ await page.goto(base + '/#/login'); await page.fill('input[name=loginId]', 'mom@
 await page.click('button[type=submit]'); await page.waitForSelector('.kid-card'); await page.waitForSelector('.pet'); await page.waitForTimeout(600);
 
 // 1) 어른·거실 화면에는 간식·산책 버튼이 없고, 아이 폰에는 자기 것 [간식][산책] 두 버튼만 있다
-assert.equal(await page.$('.pet-bar'), null, '거실 기기에는 버튼 없음'); assert.equal(await page.$('[data-pet-act]'), null);
+assert.equal(await page.$('.kid-pet-btns'), null, '거실 기기에는 버튼 없음'); assert.equal(await page.$('[data-pet-act]'), null);
 const phY = await kidPhone(codeY); const phH = await kidPhone(codeH);
 for (const ph of [phY, phH]) {
-  assert.deepEqual(await ph.$$eval('.pet-bar-btn', (e) => e.map((x) => x.textContent.trim())), ['간식', '산책']);
+  assert.deepEqual(await ph.$$eval('.pet-bar-btn', (e) => e.map((x) => x.textContent.trim())), ['간식주기', '산책하기']);
+  assert.equal(await ph.$('.topbar'), null, '날짜·시계 줄 없음'); assert.equal(await ph.$('.adult-row'), null, '엄마·아빠·할머니 줄 없음');
+  assert.ok(await ph.$eval('.kids .kid-card:first-child .kid-pet-btns', () => true), '본인 카드가 맨 위, 이름 옆에 버튼');
   assert.ok(await ph.$('.pet-bar-btn img.emo'), '쿠키·나무 그림 아이콘');
+  const bb = await ph.$eval('.kid-pet-btns', (e) => { const r = e.getBoundingClientRect(); const n = e.closest('.kid-card').querySelector('.kid-name').getBoundingClientRect(); return { l: r.left, nr: n.right, t: r.top, nt: n.top, w: window.innerWidth, r: r.right }; });
+  assert.ok(bb.l >= bb.nr - 2 && bb.r <= bb.w, `버튼이 이름과 겹치지 않고 화면 안에 있다 (${JSON.stringify(bb)})`);
 }
 assert.equal(await phY.$$eval('[data-pet-act]', (e) => [...new Set(e.map((x) => x.dataset.kid))].join()), String(yuel), '유엘 폰에는 유엘 것만');
 assert.equal(await phH.$$eval('[data-pet-act]', (e) => [...new Set(e.map((x) => x.dataset.kid))].join()), String(yuha), '유하 폰에는 유하 것만');
