@@ -230,9 +230,8 @@ function gardenFollow(c, el, dt, now) {
   const [, tx, ty] = tr[0]; // 약 0.9초 전 아이 자리
   const dx = tx - c.x; const dy = ty - c.y;
   const sp = 8 * dt; // 아이 걷는 속도(약 6.5%/초)보다 조금 빠르게 따라붙는다
-  if (Math.abs(dx) > 0.3) c.x += Math.sign(dx) * Math.min(Math.abs(dx), sp);
+  if (Math.abs(dx) > 0.3) { c.x += Math.sign(dx) * Math.min(Math.abs(dx), sp); c.face = dx >= 0 ? 1 : -1; } // 가는 쪽을 바라본다(뒤로 걷지 않게)
   if (Math.abs(dy) > 0.2) c.y += Math.sign(dy) * Math.min(Math.abs(dy), sp);
-  if (Math.abs(dx) > 1.5) c.face = dx >= 0 ? 1 : -1; // 어느 정도 멀어졌을 때만 방향을 바꾼다(작은 떨림에는 그대로)
   setLook(c, el, c.face > 0 ? 'walkR' : 'walkL', 'walk'); // 산책 중에는 앉지 않고 계속 걷는 모습
 }
 function endWalk(c) {
