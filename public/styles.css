@@ -677,3 +677,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .room-time .emo { width: 2.3cqw; height: 2.3cqw; vertical-align: -.35cqw; }
 
 .min-step { margin: 8px 0; } .min-step .row { align-items: center; margin-top: 6px; } .min-now { font-size: 1.5rem; min-width: 7.5ch; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* 말로 보내기 */
+.chat-form .mic-btn { min-width: 56px; padding: 0 14px; font-size: 1.4rem; background: var(--mint); color: #fff; box-shadow: none; }
+.chat-form .mic-btn.on { background: var(--pink); animation: micpulse 1.1s ease-in-out infinite; }
+@keyframes micpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(236, 140, 180, .6); } 50% { box-shadow: 0 0 0 10px rgba(236, 140, 180, 0); } }
+.mic-status { margin: 4px 0 0; min-height: 1.4em; }
+@media (prefers-reduced-motion: reduce) { .chat-form .mic-btn.on { animation: none; } }
