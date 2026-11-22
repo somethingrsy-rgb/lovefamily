@@ -1,6 +1,7 @@
 import { err, text, money, id as vid, oneOf, kstDate } from '../util.js';
 import { warnText, endText, nextEndText } from '../ko.js';
 
+export const KID_EXTRA_MIN = 30; // 아이가 어른이 정한 시간에서 더 늘릴 수 있는 최대(분)
 export const WARN_MS = 5 * 60 * 1000;
 const KINDS = ['meal', 'tv', 'game', 'brush', 'homework', 'reading', 'bath', 'other'];
 // [이름, 아이콘, 종류, 기본 시간(분)] — 어른이 가족 탭에서 이름·시간을 바꿀 수 있다
@@ -213,8 +214,9 @@ export function startTimer(core, ctx, kidId, b) {
     if (kidMinutes != null) {
       // 아이가 줄이는 것: 어른이 정한 하루 시간(오늘 남은 시간) 안에서, 10분 단위(남은 시간 전체도 가능)
       const leftMin = Math.ceil(left / 60000);
-      const ok = kidMinutes >= Math.min(10, leftMin) && kidMinutes <= leftMin && (kidMinutes % 10 === 0 || kidMinutes === leftMin);
-      if (!ok) throw err(400, 'bad_minutes', `시간은 10분 단위로, 오늘 남은 ${leftMin}분 안에서 정할 수 있어요.`);
+      const hi = Math.max(leftMin, Math.floor((leftMin + KID_EXTRA_MIN) / 10) * 10); // 어른이 정한 시간에서 최대 +30분까지 늘릴 수 있다
+      const ok = kidMinutes >= Math.min(10, leftMin) && kidMinutes <= hi && (kidMinutes % 10 === 0 || kidMinutes === leftMin);
+      if (!ok) throw err(400, 'bad_minutes', `시간은 10분 단위로, 어른이 정한 ${leftMin}분에서 최대 ${KID_EXTRA_MIN}분까지만 늘릴 수 있어요.`);
       dur = kidMinutes === leftMin ? left : kidMinutes * 60000;
     }
     const tid = core.insert(`INSERT INTO timers (family_id, kid_id, activity_id, name, icon, kind, duration_ms, started_at, ends_at, status, next_type, next_item_id, next_name, next_icon, created_at)

@@ -183,8 +183,12 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
   await page.click('#mdown');
   assert.equal(await page.$eval('#mdown', (e) => e.disabled), true, '10분 밑으로는 못 줄인다');
   await page.click('#mup'); await page.click('#mup');
-  assert.equal(await page.$eval('#mup', (e) => e.disabled), true, '오늘 남은 시간(30분)보다 늘릴 수 없다');
-  await page.click('#mdown'); await page.click('#start');
+  assert.match(await page.textContent('.min-now'), /30분/); assert.equal(await page.$eval('#mup', (e) => e.disabled), false, '어른이 정한 시간에서 더 늘릴 수 있다');
+  await page.click('#mup'); await page.click('#mup'); await page.click('#mup');
+  assert.match(await page.textContent('.min-now'), /1시간/, '30분에서 +30분 = 60분');
+  assert.equal(await page.$eval('#mup', (e) => e.disabled), true, '+30분을 넘길 수 없다');
+  await page.click('#mdown'); await page.click('#mdown'); await page.click('#mdown'); await page.click('#mdown');
+  await page.click('#start');
   await page.waitForSelector('.big-digits');
   assert.match(await page.textContent('.big-digits'), /^(20:00|19:5\d)/, '20분짜리로 시작');
   await page.click('#stop'); await page.click('[data-yes]');
@@ -192,7 +196,7 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
 }
 // 루틴 빠른 등록에 성경말씀(성경책 그림 아이콘)
 {
-  await page.goto(base + `/#/routines`); await page.waitForSelector('[data-q]');
+  await page.waitForTimeout(600); await page.goto(base + `/#/routines`); await page.waitForSelector('[data-q]'); await page.waitForTimeout(400);
   assert.ok(await page.$('[data-q]:has-text("성경말씀")'), '빠른 추가에 성경말씀');
   assert.ok(await page.$('[data-q]:has-text("성경말씀") img.emo[src*="bible"]'), '성경책 그림 아이콘');
   console.log('✓ 루틴 빠른 추가: 성경말씀(성경책 아이콘)');

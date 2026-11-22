@@ -69,8 +69,9 @@ export async function timerPage(el, { id }) {
   const kid = kidOf(id);
   let acts = []; let sel = null; let nextChoice = null; let budget = {}; let lastTap = { id: null, t: 0 }; let mins = null; // mins: 아이가 고른 시간(분). null = 어른이 정한 오늘 남은 시간 그대로
   const leftMin = (aid) => { const b = budget[aid]; return b ? Math.max(1, Math.ceil(b.leftMs / 60000)) : (acts.find((x) => x.id === aid)?.minutes || 10); };
-  const curMin = (aid) => Math.min(mins ?? leftMin(aid), leftMin(aid));
-  const stepMin = (aid, dir) => { const L = leftMin(aid); const lo = Math.min(10, L); let m = curMin(aid); if (dir < 0) m = m % 10 ? Math.floor(m / 10) * 10 : m - 10; else m = Math.min(L, (Math.floor(m / 10) + 1) * 10); mins = Math.max(lo, Math.min(L, m)); };
+  const hiMin = (aid) => { const L = leftMin(aid); return Math.max(L, Math.floor((L + 30) / 10) * 10); }; // 어른이 정한 시간 + 최대 30분
+  const curMin = (aid) => Math.min(mins ?? leftMin(aid), hiMin(aid));
+  const stepMin = (aid, dir) => { const L = leftMin(aid); const lo = Math.min(10, L); let m = curMin(aid); if (dir < 0) m = m % 10 ? Math.floor(m / 10) * 10 : m - 10; else m = m < L ? Math.min(L, (Math.floor(m / 10) + 1) * 10) : (Math.floor(m / 10) + 1) * 10; mins = Math.max(lo, Math.min(hiMin(aid), m)); };
   async function load() {
     const [a, b] = await Promise.all([get('/api/activities'), get(`/api/kids/${id}/activity-budget`).catch(() => []), loadTimers()]);
     acts = a; budget = Object.fromEntries(b.map((x) => [x.activityId, x]));
@@ -86,7 +87,7 @@ export async function timerPage(el, { id }) {
         <p class="center big-q">무슨 시간이에요?</p>
         <div class="act-grid" role="radiogroup" aria-label="활동 고르기">${acts.map((a) => `<button class="act-card ${sel === a.id ? 'on' : ''}" role="radio" aria-checked="${sel === a.id}" data-act="${a.id}">${actPic(a.kind, a.icon, id, 'big')}<b>${esc(a.name)}</b><small>${budgetLabel(a)}</small></button>`).join('')}</div>
         <div class="card page-card center"><div class="row gap wrap center"><button class="btn ghost" id="next">➡️ 다음 활동 정하기 <small>(어른)</small></button>${nextChoice ? `<span class="tag">다음: ${esc(nextChoice.type === 'custom' ? nextChoice.icon + ' ' + nextChoice.name : '루틴 선택됨')}</span>` : ''}</div></div>
-        ${sel && !(budget[sel] && budget[sel].leftMs <= 0) ? `<div class="card page-card center min-step"><span class="muted small">활동 시간 (어른이 정한 시간에서 10분씩 바꿀 수 있어요)</span><div class="row gap center"><button class="btn big" id="mdown" aria-label="10분 줄이기" ${curMin(sel) <= Math.min(10, leftMin(sel)) ? 'disabled' : ''}>− 10분</button><b class="min-now">${esc(minLabel(curMin(sel) * 60000))}</b><button class="btn big" id="mup" aria-label="10분 늘리기" ${curMin(sel) >= leftMin(sel) ? 'disabled' : ''}>+ 10분</button></div></div>` : ''}
+        ${sel && !(budget[sel] && budget[sel].leftMs <= 0) ? `<div class="card page-card center min-step"><span class="muted small">활동 시간 (어른이 정한 시간에서 10분씩 바꿀 수 있어요 · 최대 +30분)</span><div class="row gap center"><button class="btn big" id="mdown" aria-label="10분 줄이기" ${curMin(sel) <= Math.min(10, leftMin(sel)) ? 'disabled' : ''}>− 10분</button><b class="min-now">${esc(minLabel(curMin(sel) * 60000))}</b><button class="btn big" id="mup" aria-label="10분 늘리기" ${curMin(sel) >= hiMin(sel) ? 'disabled' : ''}>+ 10분</button></div></div>` : ''}
         <button class="btn primary big wide" id="start" ${sel && !(budget[sel] && budget[sel].leftMs <= 0) ? '' : 'disabled'}>▶ 시작</button>`;
       el.onclick = async (e) => {
         const a = e.target.closest('[data-act]');
@@ -95,14 +96,14 @@ export async function timerPage(el, { id }) {
           const now = Date.now(); const dbl = lastTap.id === sel && now - lastTap.t < 450; lastTap = { id: dbl ? null : sel, t: now };
           if (used) { toast('오늘은 이 시간을 다 썼어요. 내일 또 할 수 있어요'); draw(); return; }
           // 활동 그림을 빠르게 두 번 누르면(더블클릭/더블탭) 바로 시작한다
-          if (dbl) { if (await startFlow(id, sel, nextChoice, mins != null && mins < leftMin(sel) ? mins : undefined)) { nextChoice = null; sel = null; mins = null; toast('시작했어요 ⏱'); load(); } return; }
+          if (dbl) { if (await startFlow(id, sel, nextChoice, mins != null && mins !== leftMin(sel) ? mins : undefined)) { nextChoice = null; sel = null; mins = null; toast('시작했어요 ⏱'); load(); } return; }
           draw(); return;
         }
         try {
           if (e.target.closest('#next')) { const n = await nextPicker(id); if (n !== undefined) { nextChoice = n; draw(); } }
           if (e.target.closest('#mdown') && sel) { stepMin(sel, -1); draw(); return; }
           if (e.target.closest('#mup') && sel) { stepMin(sel, 1); draw(); return; }
-          if (e.target.closest('#start') && sel) { if (await startFlow(id, sel, nextChoice, mins != null && mins < leftMin(sel) ? mins : undefined)) { nextChoice = null; sel = null; mins = null; toast('시작했어요 ⏱'); load(); } }
+          if (e.target.closest('#start') && sel) { if (await startFlow(id, sel, nextChoice, mins != null && mins !== leftMin(sel) ? mins : undefined)) { nextChoice = null; sel = null; mins = null; toast('시작했어요 ⏱'); load(); } }
         } catch (x) { errToast(x); }
       };
       return;
