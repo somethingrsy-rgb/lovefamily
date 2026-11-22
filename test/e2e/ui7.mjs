@@ -53,7 +53,7 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.ok(pl[0][1], '장난 동작이 정해져 있다');
   await page.waitForTimeout(3500);
   // 빈 공간(눈에 보이는 그림 사이) = 고양이 한 마리 폭의 약 1/2
-  const g = await page.evaluate(() => { const [a, b] = [...document.querySelectorAll('.pet[data-pet=ruby] .pet-sp, .pet[data-pet=crystal] .pet-sp')].map((e) => e.getBoundingClientRect()).sort((x, y) => x.left - y.left); return { gap: b.left - a.right, w: (a.width + b.width) / 2 }; });
+  const g = await page.evaluate(() => { const [a, b] = [...document.querySelectorAll('.pet[data-pet=ruby] .pet-sp:not([style*="display: none"]), .pet[data-pet=crystal] .pet-sp:not([style*="display: none"])')].map((e) => e.getBoundingClientRect()).sort((x, y) => x.left - y.left); return { gap: b.left - a.right, w: (a.width + b.width) / 2 }; });
   assert.ok(Math.abs(g.gap / g.w - 0.25) < 0.12, `빈 공간이 한 마리 폭의 1/4 (빈 공간 ${g.gap.toFixed(1)}px / 폭 ${g.w.toFixed(1)}px = ${(g.gap / g.w).toFixed(2)})`);
   assert.ok(await page.$eval('.pet[data-pet=ruby] .pet-sp', (e) => /play-/.test(e.style.backgroundImage)), '장난 그림으로 바뀐다');
   console.log('✓ 만나면 장난');

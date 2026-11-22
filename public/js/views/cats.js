@@ -52,11 +52,27 @@ function spriteHtml(c, name, anim) {
   if (n === 1) return `<div class="pet-sp" style="${style}"></div>`;
   return `<div class="pet-sp anim" style="${style}animation-timing-function:steps(${n},jump-none);animation-duration:${anim === 'jump' ? '.9s' : '1.5s'};"></div>`;
 }
+// 그림은 한 번 만든 조각을 계속 두고 보이고 숨기기만 한다(방향을 바꿀 때 새 그림을 불러오느라 잠깐 사라지는 일이 없게)
+const keyOf = (c, name) => (/walk[LR]$/.test(name) ? name : `${name}|${c.face}`);
+function ensureSprite(c, body, name, anim) {
+  const key = keyOf(c, name);
+  let sp = [...body.children].find((x) => x.dataset.k === key);
+  if (!sp) { body.insertAdjacentHTML('beforeend', spriteHtml(c, name, anim)); sp = body.lastElementChild; sp.dataset.k = key; sp.style.display = 'none'; }
+  return sp;
+}
 function setLook(c, el, name, anim = 'walk') {
-  const key = `${name}|${c.face}`;
+  const key = keyOf(c, name);
   if (c.key === key) return;
   c.key = key;
-  el.querySelector('.pet-body').innerHTML = spriteHtml(c, name, anim);
+  const body = el.querySelector('.pet-body');
+  const sp = ensureSprite(c, body, name, anim);
+  for (const x of body.children) if (x !== sp) x.style.display = 'none';
+  sp.style.display = '';
+  if (body.firstElementChild !== sp) body.prepend(sp);
+}
+function warmUp(c, el) { // 걷는 두 방향 그림을 미리 만들어 둔다
+  const body = el.querySelector('.pet-body');
+  ensureSprite(c, body, 'walkR', 'walk'); ensureSprite(c, body, 'walkL', 'walk');
 }
 
 // ---- 주인 곁: 주인 아이가 지금 서 있는 칸(걷는 중이면 자기 방) 안쪽의 어느 자리 ----
@@ -263,7 +279,7 @@ export function mountPets(houseEl, enabled = {}) {
   layer.className = 'pets'; layer.setAttribute('aria-hidden', 'true');
   layer.innerHTML = shown.map((c) => `<div class="pet" data-pet="${c.id}" style="left:${c.x}%;top:${c.y}%"><div class="pet-body"></div></div>`).join('');
   house.appendChild(layer);
-  cats.forEach((c) => { c.key = ''; });
+  cats.forEach((c) => { c.key = ''; const e = layer.querySelector(`[data-pet="${c.id}"]`); if (e) warmUp(c, e); });
   if (!tapBound) { document.addEventListener('click', onTap, true); tapBound = true; }
   if (!running) { running = true; last = performance.now(); requestAnimationFrame(step); }
 }
