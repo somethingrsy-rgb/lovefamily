@@ -41,7 +41,7 @@ export function createSupplies(core, ctx, b) {
   });
 }
 
-// 아이가 챙겼어요 / 되돌리기: 아이별로 따로 기록, 루틴·도장과는 무관
+// 아이가 챙겼어요 / 되돌리기: 아이별로 따로 기록, 할일·도장과는 무관
 export function setChecked(core, ctx, supplyId, kidId, checked) {
   ctx.kid(kidId);
   ctx.ownOnly(kidId);

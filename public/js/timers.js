@@ -90,10 +90,10 @@ export function showAlert(kind, t, { quiet = false } = {}) {
     ${nextCards(t)}
     <p class="tp-text">${esc(kind === 'warn' ? t.texts.warn : t.texts.end)}</p>
     ${kind === 'end' && t.texts.nextEnd ? `<p class="tp-next">${esc(t.texts.nextEnd)}</p>` : ''}
-    <div class="row gap wrap center"><button class="btn primary big" data-ok>알겠어요</button>${openRoutine ? `<button class="btn big" data-open>${esc(next.name)} 루틴 열기</button>` : ''}</div>
+    <div class="row gap wrap center"><button class="btn primary big" data-ok>알겠어요</button>${openRoutine ? `<button class="btn big" data-open>${esc(next.name)} 할일 열기</button>` : ''}</div>
     ${T.sound && !audioReady() ? '<p class="small muted center">🔇 소리를 들으려면 화면을 한 번 눌러 주세요</p>' : ''}`;
   const close = () => { card.remove(); if (!host.children.length) host.remove(); };
-  // [알겠어요]는 팝업만 닫는다. 카운트다운·시간·루틴 체크에는 아무 영향이 없다.
+  // [알겠어요]는 팝업만 닫는다. 카운트다운·시간·할일 체크에는 아무 영향이 없다.
   card.querySelector('[data-ok]').onclick = close;
   card.querySelector('[data-open]')?.addEventListener('click', () => { close(); location.hash = `#/kid/${t.kidId}/today`; });
   host.appendChild(card);

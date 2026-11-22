@@ -71,7 +71,7 @@ export class Ctx {
     if (!kid || kid.kind !== 'kid' || kid.family_id !== this.familyId) throw err(404, 'not_found', '찾을 수 없어요.');
     return kid;
   }
-  // 아이 공개 정보(루틴, 도장 현황 등): 같은 가족 세션이면 접근 가능
+  // 아이 공개 정보(할일, 도장 현황 등): 같은 가족 세션이면 접근 가능
   kid(kidId) { return this.kidRow(kidId); }
   // 아이 비공개 정보(장부·사고 싶은 것·받은 편지함): 어른, 또는 해당 아이로 전환한(PIN 해제된) 공용 기기만
   ownOnly(kidId) {

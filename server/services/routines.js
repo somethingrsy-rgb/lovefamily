@@ -21,7 +21,7 @@ function resolveActivity(core, familyId, v, name) {
 export const daysArray = (mask) => [0, 1, 2, 3, 4, 5, 6].filter((d) => (mask >> d) & 1);
 const scheduledOn = (routine, date) => ((routine.days >> dow(date)) & 1) === 1;
 
-// 오늘 스냅샷을 만든다. 이미 있으면 그대로(과거·오늘 기록은 루틴 수정과 무관하게 유지).
+// 오늘 스냅샷을 만든다. 이미 있으면 그대로(과거·오늘 기록은 할일 수정과 무관하게 유지).
 export function ensureDay(core, kidId, date) {
   const exist = core.get('SELECT * FROM days WHERE kid_id = ? AND date = ?', kidId, date);
   if (exist) return exist;
@@ -65,7 +65,7 @@ export function reconcileRequest(core, day, { create = false } = {}) {
     for (const a of core.adults(day.family_id)) {
       core.notify({
         familyId: day.family_id, memberId: a.id, kind: 'stamp_request', popup: true,
-        title: `${kid.name}의 도장 확인`, body: `${day.date} 루틴을 모두 하고 도장을 요청했어요. 확인해 주세요.`,
+        title: `${kid.name}의 도장 확인`, body: `${day.date} 할일을 모두 하고 도장을 요청했어요. 확인해 주세요.`,
         url: `/#/approve/${rid}`, dedupe: `stamp-req:${rid}:${a.id}`, lock: `${kid.name} · 도장 확인 요청`,
       });
     }
@@ -78,8 +78,8 @@ export function reconcileRequest(core, day, { create = false } = {}) {
 export function dayState(core, kidId, date) {
   const kid = core.member(kidId);
   const day = ensureDay(core, kidId, date);
-  // 오늘 목록을 루틴 설정과 맞춘다: 이미 지웠거나, 오늘 요일이 아닌(예: 평일만인데 일요일) 루틴이 아직 안 한 채로 남아 있으면 정리한다.
-  // (오늘 목록은 하루 시작에 한 번 만들어 두는 것이라, 그 뒤에 루틴 요일을 바꿔도 오늘 것에는 따로 반영해야 했다.) 체크한 항목은 기록이라 남긴다.
+  // 오늘 목록을 할일 설정과 맞춘다: 이미 지웠거나, 오늘 요일이 아닌(예: 평일만인데 일요일) 할일이 아직 안 한 채로 남아 있으면 정리한다.
+  // (오늘 목록은 하루 시작에 한 번 만들어 두는 것이라, 그 뒤에 할일 요일을 바꿔도 오늘 것에는 따로 반영해야 했다.) 체크한 항목은 기록이라 남긴다.
   if (day && date === core.today() && !activeStamp(core, kidId, date)) {
     const rows = core.all('SELECT i.id, r.active, r.days FROM day_items i JOIN routines r ON r.id = i.routine_id WHERE i.day_id = ? AND i.done = 0', day.id);
     const stale = rows.filter((r) => !r.active || !scheduledOn({ days: r.days }, date)).map((r) => r.id);
@@ -98,7 +98,7 @@ export function dayState(core, kidId, date) {
   else if (stamp) status = 'approved';
   else if (pending) status = 'requested';
   else if (last?.status === 'recheck') status = 'recheck';
-  else if (done === items.length) status = 'ready'; // 루틴을 다 했어요: 도장 방에서 [도장 요청]을 눌러야 어른에게 알림이 가요
+  else if (done === items.length) status = 'ready'; // 할일을 다 했어요: 도장 방에서 [도장 요청]을 눌러야 어른에게 알림이 가요
   const out = { kidId, date, exists: true, dayId: day.id, status, items, total: items.length, done, editable: !stamp };
   if (stamp) { const p = core.member(stamp.provider_id); out.stamp = { id: stamp.id, providerId: stamp.provider_id, providerName: p?.name, at: stamp.approved_at }; }
   if (pending) out.requestId = pending.id;
@@ -119,7 +119,7 @@ export function setItemDone(core, ctx, itemId, done) {
     }
     reconcileRequest(core, core.get('SELECT * FROM days WHERE id = ?', item.did));
     const out = dayState(core, item.kid_id, item.date);
-    // 루틴을 다 끝낸 아이는 도장 방(확인방, 1행 2열)으로 걸어간다 — 모든 기기에서 같이 보인다
+    // 할일을 다 끝낸 아이는 도장 방(확인방, 1행 2열)으로 걸어간다 — 모든 기기에서 같이 보인다
     if (done && out.status === 'ready' && item.date === core.today()) {
       core.run("INSERT INTO walkers (member_id, family_id, cell, updated_at) VALUES (?,?,'12',?) ON CONFLICT(member_id) DO UPDATE SET cell = '12', updated_at = excluded.updated_at", item.kid_id, ctx.familyId, core.now());
       core.refresh(ctx.familyId, 'walkers');
@@ -134,17 +134,17 @@ export function requestStamp(core, ctx, kidId, date) {
   ctx.ownOnly(kidId);
   if (!isDate(date)) throw err(400, 'bad_date', '날짜가 올바르지 않아요.');
   const st = dayState(core, kidId, date);
-  if (!st.exists) throw err(404, 'no_day', '그날의 루틴 기록이 없어요.');
+  if (!st.exists) throw err(404, 'no_day', '그날의 할일 기록이 없어요.');
   return core.tx(() => {
     if (st.status === 'approved') return st;
-    if (st.done < st.total || !st.total) throw err(409, 'incomplete', '아직 끝내지 못한 루틴이 있어요.');
+    if (st.done < st.total || !st.total) throw err(409, 'incomplete', '아직 끝내지 못한 할일이 있어요.');
     reconcileRequest(core, core.get('SELECT * FROM days WHERE id = ?', st.dayId), { create: true });
     core.refresh(ctx.familyId, 'home', 'day');
     return dayState(core, kidId, date);
   });
 }
 
-// ---------- 루틴 정의 CRUD ----------
+// ---------- 할일 정의 CRUD ----------
 const routineOut = (r) => ({ activityId: r.activity_id || null, id: r.id, kidId: r.kid_id, name: r.name, icon: r.icon, days: daysArray(r.days), slot: r.slot, slotLabel: SLOT_LABEL[r.slot], sort: r.sort });
 
 export function listRoutines(core, ctx, kidId) {
@@ -156,7 +156,7 @@ export function createRoutines(core, ctx, b) {
   ctx.adult();
   const kidIds = (Array.isArray(b.kidIds) ? b.kidIds : [b.kidId]).map((k) => vid(k, '아이'));
   if (!kidIds.length) throw err(400, 'bad_kid', '아이를 선택해 주세요.');
-  const name = text(b.name, '루틴 이름', { max: 30 });
+  const name = text(b.name, '할일 이름', { max: 30 });
   const icon = text(b.icon || '✅', '아이콘', { max: 8 });
   const days = parseDays(b.days ?? 'daily');
   const slot = oneOf(b.slot || 'morning', SLOTS, '시간대');
@@ -168,7 +168,7 @@ export function createRoutines(core, ctx, b) {
       ensureDay(core, kidId, core.today()); // 오늘 목록은 건드리지 않도록 먼저 스냅샷
       const sort = (core.get('SELECT COALESCE(MAX(sort), -1) m FROM routines WHERE kid_id = ?', kidId).m) + 1;
       const rid = core.insert('INSERT INTO routines (family_id, kid_id, name, icon, days, slot, sort, activity_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)', ctx.familyId, kidId, name, icon, days, slot, sort, activityId, core.now(), core.now());
-      applyToday(core, core.get('SELECT * FROM routines WHERE id = ?', rid)); // 새 루틴은 오늘이 예정일이면 바로 오늘 목록에(승인 전 한정)
+      applyToday(core, core.get('SELECT * FROM routines WHERE id = ?', rid)); // 새 할일은 오늘이 예정일이면 바로 오늘 목록에(승인 전 한정)
       out.push(routineOut(core.get('SELECT * FROM routines WHERE id = ?', rid)));
     }
     core.refresh(ctx.familyId, 'routines', 'home', 'day');
@@ -193,10 +193,10 @@ function applyToday(core, routine) {
 export function updateRoutine(core, ctx, routineId, b) {
   ctx.adult();
   const r = core.get('SELECT * FROM routines WHERE id = ? AND active = 1', routineId);
-  if (!r || r.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 루틴이에요.');
+  if (!r || r.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 할일이에요.');
   return core.tx(() => {
     ensureDay(core, r.kid_id, core.today());
-    const name = b.name !== undefined ? text(b.name, '루틴 이름', { max: 30 }) : r.name;
+    const name = b.name !== undefined ? text(b.name, '할일 이름', { max: 30 }) : r.name;
     const icon = b.icon !== undefined ? text(b.icon, '아이콘', { max: 8 }) : r.icon;
     const days = b.days !== undefined ? parseDays(b.days) : r.days;
     const slot = b.slot !== undefined ? oneOf(b.slot, SLOTS, '시간대') : r.slot;
@@ -211,7 +211,7 @@ export function updateRoutine(core, ctx, routineId, b) {
 export function deleteRoutine(core, ctx, routineId, applyTodayFlag) {
   ctx.adult();
   const r = core.get('SELECT * FROM routines WHERE id = ? AND active = 1', routineId);
-  if (!r || r.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 루틴이에요.');
+  if (!r || r.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 할일이에요.');
   return core.tx(() => {
     ensureDay(core, r.kid_id, core.today());
     core.run('UPDATE routines SET active = 0, updated_at = ? WHERE id = ?', core.now(), r.id); // 소프트 삭제: 과거 기록 보존

@@ -54,7 +54,7 @@ export async function mount(el, params) {
   }
   async function dayDetail(date) {
     const d = await get(`/api/kids/${kidId}/day?date=${date}`);
-    const sh = openSheet(`<h2>${dateLabel(date)}</h2><p class="muted">${d.status === 'approved' ? `💮 도장 받았어요 (${esc(d.stamp?.providerName || '')})` : d.status === 'requested' ? '✋ 어른 확인 중' : d.status === 'none' ? '예정된 루틴이 없었어요' : `${d.done}/${d.total} 완료`}</p>
+    const sh = openSheet(`<h2>${dateLabel(date)}</h2><p class="muted">${d.status === 'approved' ? `💮 도장 받았어요 (${esc(d.stamp?.providerName || '')})` : d.status === 'requested' ? '✋ 어른 확인 중' : d.status === 'none' ? '예정된 할일이 없었어요' : `${d.done}/${d.total} 완료`}</p>
       <ul class="checks readonly">${d.items.map((i) => `<li><div class="check-item ${i.done ? 'done' : ''}"><span class="ci-icon">${esc(i.icon)}</span><span class="ci-name">${esc(i.name)} <small>${SLOT[i.slot]}</small></span><span class="ci-box">${i.done ? '✔' : ''}</span></div></li>`).join('')}</ul><div class="row end"><button class="btn primary" data-close>닫기</button></div>`);
     void sh;
   }

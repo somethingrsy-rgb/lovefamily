@@ -52,7 +52,7 @@ R('/kid/:id/supplies', supplies.kidSupplies, { tab: 'today', kid: true, nopin: t
 R('/kid/:id/family', plan.kidPick, { tab: 'today', kid: true, nopin: true });
 R('/family-activity', plan.adultPlan, { tab: 'family', adult: true });
 
-const TABS = [['today', '/', '🏠', '오늘'], ['routines', '/routines', '📝', '루틴'], ['stamps', '/stamps', '💮', '도장판'], ['family', '/family', '👨‍👩‍👧‍👦', '가족']];
+const TABS = [['today', '/', '🏠', '오늘'], ['routines', '/routines', '📝', '할일'], ['stamps', '/stamps', '💮', '도장판'], ['family', '/family', '👨‍👩‍👧‍👦', '가족']];
 
 let current = null;       // 현재 화면 컨트롤러
 let navToken = 0;

@@ -57,7 +57,7 @@ assert.match(await ipad.textContent('.kid-card:has-text("유하") .kt-time'), /^
 assert.match(await ipad.textContent('.kid-card:has-text("유하") .now-next'), /TV 보기.*잠옷 갈아입기/s);
 // 유엘은 따로: 식사하기 루틴의 [타이머 시작] 버튼으로 시작
 await ipad.click('.kid-card:has-text("유엘") .kid-main'); await ipad.waitForSelector('.kid-hub');
-await ipad.click('text=오늘 루틴'); await ipad.waitForSelector('.item-timer');
+await ipad.click('text=오늘 할일'); await ipad.waitForSelector('.item-timer');
 await ipad.click('.checks li:has-text("식사하기") .item-timer');
 await ipad.waitForSelector('.timer-big');
 await ipad.screenshot({ path: path.join(shots, '32-ipad-timer-page.png') });

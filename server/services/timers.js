@@ -169,8 +169,8 @@ export function settleTimers(core, familyId = null) {
 function resolveNext(core, ctx, kidId, n) {
   if (n == null) return { next_type: null, next_item_id: null, next_name: null, next_icon: null };
   if (n.type === 'routine') {
-    const it = core.get('SELECT i.*, d.kid_id, d.family_id, d.date FROM day_items i JOIN days d ON d.id = i.day_id WHERE i.id = ?', vid(n.itemId, '다음 루틴'));
-    if (!it || it.family_id !== ctx.familyId || it.kid_id !== kidId || it.date !== core.today()) throw err(400, 'bad_next', '오늘 이 아이의 루틴이 아니에요.');
+    const it = core.get('SELECT i.*, d.kid_id, d.family_id, d.date FROM day_items i JOIN days d ON d.id = i.day_id WHERE i.id = ?', vid(n.itemId, '다음 할일'));
+    if (!it || it.family_id !== ctx.familyId || it.kid_id !== kidId || it.date !== core.today()) throw err(400, 'bad_next', '오늘 이 아이의 할일이 아니에요.');
     return { next_type: 'routine', next_item_id: it.id, next_name: it.name, next_icon: it.icon };
   }
   if (n.type === 'custom') return { next_type: 'custom', next_item_id: null, next_name: text(n.name, '다음 활동 이름', { max: 30 }), next_icon: text(n.icon || '➡️', '아이콘', { max: 8 }) };
@@ -231,7 +231,7 @@ function loadTimer(core, ctx, tid) {
   if (!t || t.family_id !== ctx.familyId) throw err(404, 'not_found', '활동을 찾을 수 없어요.');
   return t;
 }
-// 종료 안내를 확인(아이): 카드에서 내려갈 뿐, 시간 연장이나 루틴 체크는 일어나지 않는다.
+// 종료 안내를 확인(아이): 카드에서 내려갈 뿐, 시간 연장이나 할일 체크는 일어나지 않는다.
 export function dismissTimer(core, ctx, tid) {
   const t = loadTimer(core, ctx, tid);
   ctx.kid(t.kid_id);
@@ -242,7 +242,7 @@ export function dismissTimer(core, ctx, tid) {
   if (cur.status === 'ended') { core.run("UPDATE timers SET status = 'dismissed' WHERE id = ?", t.id); core.refresh(ctx.familyId, 'timers', 'home'); }
   return { ok: true };
 }
-// 아이도 자기 활동은 직접 중단할 수 있다(어른 확인 불필요). 중단은 시간 연장이나 루틴 체크와 무관하다.
+// 아이도 자기 활동은 직접 중단할 수 있다(어른 확인 불필요). 중단은 시간 연장이나 할일 체크와 무관하다.
 export function cancelTimer(core, ctx, tid) {
   const t = loadTimer(core, ctx, tid);
   ctx.kid(t.kid_id);

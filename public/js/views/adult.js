@@ -7,7 +7,7 @@ import { back, statusButtons, bindStatus, statusLine } from '../common.js';
 export function adultPanelHtml(ah) {
   const sec = (title, count, body) => `<div class="ap-sec"><h3>${title}${count ? ` <span class="badge">${count}</span>` : ''}</h3>${body}</div>`;
   const approvals = ah.approvals.length
-    ? `<ul class="todo">${ah.approvals.map((a) => `<li style="--kc:${esc(a.kidColor)}"><span>${memberAvatar(a.kidId, 'sm', { avatar: a.kidAvatar, color: a.kidColor })} <b>${esc(a.kidName)}</b> · ${shortDate(a.date)} 루틴 완료</span><a class="btn primary small" href="#/approve/${a.id}">확인하기</a></li>`).join('')}</ul>`
+    ? `<ul class="todo">${ah.approvals.map((a) => `<li style="--kc:${esc(a.kidColor)}"><span>${memberAvatar(a.kidId, 'sm', { avatar: a.kidAvatar, color: a.kidColor })} <b>${esc(a.kidName)}</b> · ${shortDate(a.date)} 할일 완료</span><a class="btn primary small" href="#/approve/${a.id}">확인하기</a></li>`).join('')}</ul>`
     : '<p class="muted">확인할 도장이 없어요 👍</p>';
   const money = ah.money.length
     ? `<ul class="todo">${ah.money.map((m) => `<li><span><b>${esc(m.kidName)}</b> · ${m.type === 'deposit' ? '입금 확인' : m.type === 'withdraw' ? '출금' : '구매'} ${won(m.amount)} <small class="muted">${esc(m.purpose)} · ${esc(m.statusLabel)}</small></span><a class="btn small primary" href="#/money/${m.id}">처리하기</a></li>`).join('')}</ul>`

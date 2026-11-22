@@ -14,7 +14,7 @@ export async function approve(el, { id }) {
         : r.status === 'stale' ? '<div class="banner rest">체크가 바뀌어서 이 요청은 끝났어요. 아이가 다시 완료하면 새 요청이 와요.</div>'
           : r.status === 'voided' ? '<div class="banner rest">정정된 도장이에요.</div>' : '';
     el.innerHTML = `${back('/', '도장 확인')}
-      <section class="card page-card approve" style="--kc:${esc(r.kidColor)}"><div class="row gap center-v">${memberAvatar(r.kidId, 'lg', { avatar: r.kidAvatar, color: r.kidColor })}<div><h2>${esc(r.kidName)}</h2><p class="muted">${shortDate(r.date)} 루틴 · ${ago(r.createdAt)} 요청</p></div></div>
+      <section class="card page-card approve" style="--kc:${esc(r.kidColor)}"><div class="row gap center-v">${memberAvatar(r.kidId, 'lg', { avatar: r.kidAvatar, color: r.kidColor })}<div><h2>${esc(r.kidName)}</h2><p class="muted">${shortDate(r.date)} 할일 · ${ago(r.createdAt)} 요청</p></div></div>
       ${msg}
       <ul class="checks readonly">${r.items.map((i) => `<li><div class="check-item ${i.done ? 'done' : ''} ${i.flag ? 'flag' : ''}"><span class="ci-icon">${esc(i.icon)}</span><span class="ci-name">${esc(i.name)}${i.flag ? `<small>🔎 ${esc(i.flag)}</small>` : ''}</span><span class="ci-box">${i.done ? '✔' : ''}</span></div></li>`).join('')}</ul>
       <div class="row gap wrap"><button class="btn primary big grow" id="ok" ${closed ? 'disabled' : ''}>${done ? '이미 도장을 줬어요' : '도장 주기'}</button><button class="btn ghost big grow" id="re" ${closed ? 'disabled' : ''}>다시 확인</button></div></section>`;

@@ -23,7 +23,7 @@ export async function startFlow(kidId, activityId, next, minutes) {
   return true;
 }
 
-// 어른이 고르는 '다음 활동': 오늘 루틴의 미완료 항목 또는 직접 입력
+// 어른이 고르는 '다음 활동': 오늘 할일의 미완료 항목 또는 직접 입력
 export async function nextPicker(kidId) {
   if (!(await needAdult())) return undefined;
   const day = await get(`/api/kids/${kidId}/day`);
@@ -32,7 +32,7 @@ export async function nextPicker(kidId) {
   await formSheet({
     title: '다음 활동 정하기', submit: '정했어요',
     html: `<p class="muted">활동이 끝날 때쯤 아이에게 “다음은 이거예요”라고 미리 알려 줘요. 안 정해도 활동은 시작할 수 있어요.</p>
-      <div class="field"><span>오늘 루틴에서 고르기</span>${open.length ? `<div class="next-list">${open.map((i) => `<label class="next-opt"><input type="radio" name="pick" value="r${i.id}"><span>${esc(i.icon)} ${esc(i.name)}</span></label>`).join('')}</div>` : '<p class="muted small">남은 루틴이 없어요</p>'}</div>
+      <div class="field"><span>오늘 할일에서 고르기</span>${open.length ? `<div class="next-list">${open.map((i) => `<label class="next-opt"><input type="radio" name="pick" value="r${i.id}"><span>${esc(i.icon)} ${esc(i.name)}</span></label>`).join('')}</div>` : '<p class="muted small">남은 할일이 없어요</p>'}</div>
       <div class="field"><span>직접 입력</span><div class="icon-pick small">${ICONS.map((i, n) => `<label><input type="radio" name="icon" value="${i}" ${n === 0 ? 'checked' : ''}><span>${i}</span></label>`).join('')}</div><input name="custom" maxlength="30" placeholder="잠옷 갈아입기"></div>
       <label class="check"><input type="radio" name="pick" value="none" checked> <span>정하지 않을래요</span></label>`,
     onSubmit: (v) => {
@@ -86,7 +86,7 @@ export async function timerPage(el, { id }) {
       el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 활동`)}
         <p class="center big-q">무슨 시간이에요?</p>
         <div class="act-grid" role="radiogroup" aria-label="활동 고르기">${acts.map((a) => `<button class="act-card ${sel === a.id ? 'on' : ''}" role="radio" aria-checked="${sel === a.id}" data-act="${a.id}">${actPic(a.kind, a.icon, id, 'big')}<b>${esc(a.name)}</b><small>${budgetLabel(a)}</small></button>`).join('')}</div>
-        <div class="card page-card center"><div class="row gap wrap center"><button class="btn ghost" id="next">➡️ 다음 활동 정하기 <small>(어른)</small></button>${nextChoice ? `<span class="tag">다음: ${esc(nextChoice.type === 'custom' ? nextChoice.icon + ' ' + nextChoice.name : '루틴 선택됨')}</span>` : ''}</div></div>
+        <div class="card page-card center"><div class="row gap wrap center"><button class="btn ghost" id="next">➡️ 다음 활동 정하기 <small>(어른)</small></button>${nextChoice ? `<span class="tag">다음: ${esc(nextChoice.type === 'custom' ? nextChoice.icon + ' ' + nextChoice.name : '할일 선택됨')}</span>` : ''}</div></div>
         ${sel && !(budget[sel] && budget[sel].leftMs <= 0) ? `<div class="card page-card center min-step"><span class="muted small">활동 시간 (어른이 정한 시간에서 10분씩 바꿀 수 있어요 · 최대 +30분)</span><div class="row gap center"><button class="btn big" id="mdown" aria-label="10분 줄이기" ${curMin(sel) <= Math.min(10, leftMin(sel)) ? 'disabled' : ''}>− 10분</button><b class="min-now">${esc(minLabel(curMin(sel) * 60000))}</b><button class="btn big" id="mup" aria-label="10분 늘리기" ${curMin(sel) >= hiMin(sel) ? 'disabled' : ''}>+ 10분</button></div></div>` : ''}
         <button class="btn primary big wide" id="start" ${sel && !(budget[sel] && budget[sel].leftMs <= 0) ? '' : 'disabled'}>▶ 시작</button>`;
       el.onclick = async (e) => {
@@ -116,7 +116,7 @@ export async function timerPage(el, { id }) {
         ${ended ? nextCards(t) : ''}
         <p class="tp-text">${paused ? `⏸ 잠깐 멈췄어요. <b>남은 시간 ${esc(minLabel(remaining(t)))}</b> · 이어서 하면 여기서부터 다시 셀게요.` : ended ? esc(t.texts.end) : remaining(t) <= 300000 && t.warnAt ? esc(t.texts.warn) : t.next ? `다음 활동: ${esc(t.next.name)}` : '시간이 다 되면 알려 줄게요.'}</p>
         ${ended && t.texts.nextEnd ? `<p class="tp-next">${esc(t.texts.nextEnd)}</p>` : ''}
-        <div class="row gap wrap center">${ended ? `${t.next?.type === 'routine' && !t.next.done ? `<a class="btn big" href="#/kid/${id}/today">${esc(t.next.name)} 루틴 열기</a>` : ''}<button class="btn primary big" data-dismiss="${t.id}">확인했어요</button>` : ''}
+        <div class="row gap wrap center">${ended ? `${t.next?.type === 'routine' && !t.next.done ? `<a class="btn big" href="#/kid/${id}/today">${esc(t.next.name)} 할일 열기</a>` : ''}<button class="btn primary big" data-dismiss="${t.id}">확인했어요</button>` : ''}
         ${paused ? '<button class="btn primary big" id="resume">▶ 이어서 하기</button><button class="btn stop-btn" id="stop">⏹ 그만하기</button><button class="btn ghost" id="new">다른 활동 시작</button>' : !ended ? '<button class="btn primary big" id="pause">⏸ 일시 중단</button><button class="btn stop-btn" id="stop">⏹ 그만하기</button><button class="btn ghost" id="new">다른 활동 시작</button>' : ''}</div>
         ${!ended && t.dayMs ? `<p class="small muted center">오늘 남은 <b>${esc(minLabel(t.dayLeftMs))}</b> · 나눠서 해도 돼요</p>` : ''}
         ${T.sound && !audioReady() ? '<p class="small muted center">🔇 알람 소리를 들으려면 이 화면을 한 번 눌러 주세요.</p>' : ''}

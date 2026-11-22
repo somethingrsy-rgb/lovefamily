@@ -27,7 +27,7 @@ function kidCard(k) {
   const rem = k.day.remaining;
   return `<article class="kid-card" data-rk="k${k.id}" style="--kc:${esc(k.color)}"><a class="kid-main" href="#/kid/${k.id}" aria-label="${esc(k.name)} 카드 열기">
     <div class="kid-top">${avatar(k, 'xl')}<div class="kid-name"><h2>${esc(k.name)}</h2>${k.hasPin ? '<span class="lock" title="비밀번호가 있어요">🔒</span>' : ''}</div></div>
-    <div class="kid-progress" role="img" aria-label="오늘 루틴 ${k.day.done}/${k.day.total}"><div class="bar"><i style="width:${pct}%"></i></div><b>${k.day.total ? `${k.day.done}/${k.day.total}` : '–'}</b></div>
+    <div class="kid-progress" role="img" aria-label="오늘 할일 ${k.day.done}/${k.day.total}"><div class="bar"><i style="width:${pct}%"></i></div><b>${k.day.total ? `${k.day.done}/${k.day.total}` : '–'}</b></div>
     ${dayBadge(k)}
     ${rem.length && k.day.status === 'open' ? `<ul class="rem-chips">${rem.slice(0, 3).map((n) => `<li>${esc(n)}</li>`).join('')}${rem.length > 3 ? `<li class="more">+${rem.length - 3}</li>` : ''}</ul>` : ''}
     <div class="stamp-mini" aria-label="도장 ${k.board.count}/${k.board.size}"><span>💮 도장 <b>${k.board.count}</b>/${k.board.size}</span><div class="bar thin"><i style="width:${(k.board.count / k.board.size) * 100}%"></i></div></div>
@@ -98,7 +98,7 @@ function houseHtml(h) {
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
     ${adults}${walkPadHtml()}</div>`;
 }
-// 루틴을 다 한 아이가 도장 방(확인방)까지 걸어오면, 그 방에 [도장 요청] 버튼이 나타난다. 누르면 그때 어른들께 알림이 간다.
+// 할일을 다 한 아이가 도장 방(확인방)까지 걸어오면, 그 방에 [도장 요청] 버튼이 나타난다. 누르면 그때 어른들께 알림이 간다.
 function syncBankReq(col, h, reload) {
   const house = col.querySelector('.house'); if (!house) return;
   house.querySelectorAll('.bank-req').forEach((b) => b.remove());

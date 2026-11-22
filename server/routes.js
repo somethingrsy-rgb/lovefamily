@@ -43,7 +43,7 @@ export function buildRoutes(app) {
   add('GET', '/api/adult/home', (c, h) => { R.ensureToday(h.core, c.familyId); return X.adultHome(h.core, c); });
   add('PUT', '/api/status', (c, h) => X.setStatus(h.core, c, h.body));
 
-  // ---- 루틴/하루 ----
+  // ---- 할일/하루 ----
   add('GET', '/api/kids/:id/routines', (c, h) => R.listRoutines(h.core, c, P(h)));
   add('POST', '/api/routines', (c, h) => ({ status: 201, body: R.createRoutines(h.core, c, h.body) }));
   add('PATCH', '/api/routines/:id', (c, h) => R.updateRoutine(h.core, c, P(h), h.body));

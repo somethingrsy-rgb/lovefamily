@@ -19,7 +19,7 @@ export async function hub(el, { id }) {
       <section class="kid-hub" style="--kc:${esc(kid.color)}">
         <div class="hub-head">${avatar(kid, 'xxl')}<div><h1>${esc(kid.name)}</h1><p class="hub-state">${status}</p><p class="small">💮 도장 <b>${boards.count}</b>/${boards.size}</p></div></div>
         <div class="big-grid">
-          <a class="big-btn" href="#/kid/${id}/today"><span class="bi">✅</span><b>오늘 루틴</b><small>${day.done}/${day.total}</small></a>
+          <a class="big-btn" href="#/kid/${id}/today"><span class="bi">✅</span><b>오늘 할일</b><small>${day.done}/${day.total}</small></a>
           <a class="big-btn" href="#/kid/${id}/timer"><span class="bi">⏱️</span><b>활동</b><small>시작하기</small></a>
           <a class="big-btn" href="#/kid/${id}/wallet"><img class="bi-img" src="/assets/money/piggy.webp" alt="" draggable="false"><b>돼지 저금통</b><small>내 돈 보기</small></a>
           <a class="big-btn" href="#/kid/${id}/talk"><span class="bi">💌</span><b>가족에게 말하기</b><small>메시지 보내기</small></a>
@@ -31,7 +31,7 @@ export async function hub(el, { id }) {
   return { refresh: load, topics: ['day', 'stamps', 'messages', 'home'] };
 }
 
-// 오늘 루틴: 항목을 눌러 체크
+// 오늘 할일: 항목을 눌러 체크
 export async function today(el, { id }) {
   const kid = kidOf(id);
   let date = S.info.today;
@@ -47,16 +47,16 @@ export async function today(el, { id }) {
     const groups = ['morning', 'after_school', 'evening'].map((s) => [s, d.items.filter((i) => i.slot === s)]).filter(([, l]) => l.length);
     const isToday = date === S.info.today;
     const banner = {
-      ready: `<div class="banner ok">🎉 루틴을 다 했어요! 도장 방에서 <b>도장 요청</b>을 눌러요.</div>`,
+      ready: `<div class="banner ok">🎉 할일을 다 했어요! 도장 방에서 <b>도장 요청</b>을 눌러요.</div>`,
       requested: `<div class="banner wait">✋ 다 했어요 · 어른 확인 중</div>`,
       approved: `<div class="banner ok">💮 도장 받았어요! ${d.stamp ? `<small>(${esc(d.stamp.providerName)})</small>` : ''}</div>`,
       recheck: `<div class="banner warn">🔎 다시 확인해 보래요: ${esc(d.recheck?.reason || '')}<div class="small">표시된 항목을 다시 해 보고 체크해 주세요.</div></div>`,
-      none: `<div class="banner rest">😴 이 날은 예정된 루틴이 없어요</div>`,
+      none: `<div class="banner rest">😴 이 날은 예정된 할일이 없어요</div>`,
     }[d.status] || '';
-    morph(el, `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 루틴`, `<a class="btn small" href="#/kid/${id}/timer">⏱ 활동</a>`)}
+    morph(el, `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 할일`, `<a class="btn small" href="#/kid/${id}/timer">⏱ 활동</a>`)}
       <div class="day-nav"><button class="btn ghost" id="prev" aria-label="전날">‹</button><h2>${dateLabel(date)}${isToday ? ' <span class="tag">오늘</span>' : ''}</h2><button class="btn ghost" id="next" ${isToday ? 'disabled' : ''} aria-label="다음날">›</button></div>
       ${banner}
-      ${!d.exists ? '<div class="empty">이 날의 루틴 기록이 없어요</div>' : ''}
+      ${!d.exists ? '<div class="empty">이 날의 할일 기록이 없어요</div>' : ''}
       ${groups.map(([s, l]) => `<section class="slot"><h3>${SLOT[s]}</h3><ul class="checks">${l.map((i) => {
         const p = pend.get(i.id); const done = p ? p.done : i.done;
         return `<li><button class="check-item ${done ? 'done' : ''} ${i.flag ? 'flag' : ''} ${p ? 'pending' : ''}" data-id="${i.id}" data-done="${done ? 1 : 0}" ${d.editable ? '' : 'disabled'} aria-pressed="${done}">

@@ -58,7 +58,7 @@ await phone.screenshot({ path: path.join(shots, '02-phone-home-adult.png'), full
 await ipad.click('.kid-card:has-text("유엘") .kid-main');
 await ipad.waitForSelector('.kid-hub');
 await ipad.screenshot({ path: path.join(shots, '03-ipad-kid-hub.png') });
-await ipad.click('text=오늘 루틴');
+await ipad.click('text=오늘 할일');
 await ipad.waitForSelector('.check-item');
 for (const t of ['양치하기', '책가방 싸기']) { await ipad.click(`.check-item:has-text("${t}")`); await ipad.waitForTimeout(250); }
 await ipad.screenshot({ path: path.join(shots, '04-ipad-today-partial.png') });

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS idempotency (
   scope TEXT NOT NULL, key TEXT NOT NULL, status INTEGER NOT NULL, response TEXT NOT NULL, created_at INTEGER NOT NULL,
   PRIMARY KEY (scope, key));
 
--- 루틴 (정의) / 하루 스냅샷 (과거 기록은 당시 이름·요일·목록 유지)
+-- 할일 (정의) / 하루 스냅샷 (과거 기록은 당시 이름·요일·목록 유지)
 CREATE TABLE IF NOT EXISTS routines (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL REFERENCES members(id),
   name TEXT NOT NULL, icon TEXT NOT NULL, days INTEGER NOT NULL, slot TEXT NOT NULL,
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS timers (
   remain_ms INTEGER, paused_at INTEGER);
 CREATE UNIQUE INDEX IF NOT EXISTS one_running_timer ON timers(kid_id) WHERE status = 'running';
 
--- 내일 준비물 (루틴·도장과 완전히 별개)
+-- 내일 준비물 (할일·도장과 완전히 별개)
 CREATE TABLE IF NOT EXISTS supplies (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, post_id INTEGER, name TEXT NOT NULL, name_norm TEXT NOT NULL, icon TEXT NOT NULL,
   date TEXT NOT NULL, created_by INTEGER NOT NULL, created_at INTEGER NOT NULL);
