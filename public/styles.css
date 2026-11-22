@@ -684,3 +684,18 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @keyframes micpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(236, 140, 180, .6); } 50% { box-shadow: 0 0 0 10px rgba(236, 140, 180, 0); } }
 .mic-status { margin: 4px 0 0; min-height: 1.4em; }
 @media (prefers-reduced-motion: reduce) { .chat-form .mic-btn.on { animation: none; } }
+
+/* 오늘 루틴 줄: 박스 하나에 [체크 · 그림 · 이름 · 활동 시작]이 모두 들어가고, 모든 박스의 크기가 같다 */
+.checks:not(.readonly) { grid-auto-rows: 80px; }
+.checks:not(.readonly) li { position: relative; display: flex; align-items: center; gap: 8px; height: 80px; padding: 0 12px 0 6px; border: 2.5px solid var(--line); border-radius: var(--r-l); background: var(--card); box-shadow: var(--shadow); box-sizing: border-box; }
+.checks:not(.readonly) li:has(.check-item.done) { background: #e4f8ee; border-color: #8fdcb7; }
+:root[data-theme=dark] .checks:not(.readonly) li:has(.check-item.done) { background: #1f4a3b; border-color: #3aa57a; }
+.checks:not(.readonly) li:has(.check-item.flag) { border-color: var(--warn); }
+.checks:not(.readonly) li .check-item { flex: 1; min-width: 0; height: 100%; min-height: 0; padding: 0 6px; border: 0; background: transparent; box-shadow: none; gap: 12px; }
+.checks:not(.readonly) li .check-item.done { background: transparent; }
+.checks:not(.readonly) li .check-item .ci-box { flex: none; }
+.checks:not(.readonly) li .check-item .ci-icon { flex: none; width: 2.6rem; display: grid; place-items: center; }
+.checks:not(.readonly) li .check-item .ci-icon .emo { width: 2.4rem; height: 2.4rem; }
+.checks:not(.readonly) li .check-item .ci-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.checks:not(.readonly) li .item-timer { flex: none; min-height: 48px; padding: 0 12px; white-space: nowrap; }
+.checks:not(.readonly) li .check-item .ci-note { right: 8px; }

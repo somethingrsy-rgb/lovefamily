@@ -63,7 +63,7 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.equal(page.url().includes('#/kid'), false, '고양이를 눌러도 방 화면으로 넘어가지 않는다');
   console.log('✓ 집 안 고양이: 돌아다니고, 누르면 애교');
   // 연이는 장난에 끼지 않는다(고양이 두 마리끼리만)
-  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c, y]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 33.7; } r.x = 20; c.x = 80; y.x = 21; });
+  await page.evaluate(() => { const [r, c, y] = window.__pets; for (const p of [r, c, y]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 32.8; } r.x = 20; c.x = 80; y.x = 21; });
   await page.waitForTimeout(1200);
   assert.equal(await page.evaluate(() => window.__pets[2].mode), 'idle', '고양이와 연이는 만나도 장난치지 않는다');
   // 루비·크리스탈·연이를 각각 끄고 켠다
@@ -174,7 +174,7 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
 }
 // 활동 시작 전에 시간을 10분 단위로 줄이고 늘릴 수 있다
 {
-  await call('POST', '/api/routines', { kidIds: [yuel], name: '성경말씀', icon: '✝️', days: 'daily', slot: 'morning' });
+  await call('POST', '/api/routines', { kidIds: [yuel], name: '성경말씀읽기', icon: '✝️', days: 'daily', slot: 'morning' });
   await page.goto(base + `/#/kid/${yuel}/timer`); await page.waitForSelector('.act-card');
   await page.click('.act-card:has-text("게임하기")');
   assert.match(await page.textContent('.min-now'), /30분/);
@@ -194,12 +194,12 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
   await page.click('#stop'); await page.click('[data-yes]');
   console.log('✓ 활동 시간을 10분 단위로 줄이고 늘림(오늘 남은 시간 안에서)');
 }
-// 루틴 빠른 등록에 성경말씀(성경책 그림 아이콘)
+// 루틴 빠른 등록에 성경말씀읽기(성경책 그림 아이콘)
 {
   await page.waitForTimeout(600); await page.goto(base + `/#/routines`); await page.waitForSelector('[data-q]'); await page.waitForTimeout(400);
-  assert.ok(await page.$('[data-q]:has-text("성경말씀")'), '빠른 추가에 성경말씀');
-  assert.ok(await page.$('[data-q]:has-text("성경말씀") img.emo[src*="bible"]'), '성경책 그림 아이콘');
-  console.log('✓ 루틴 빠른 추가: 성경말씀(성경책 아이콘)');
+  assert.ok(await page.$('[data-q]:has-text("성경말씀읽기")'), '빠른 추가에 성경말씀읽기');
+  assert.ok(await page.$('[data-q]:has-text("성경말씀읽기") img.emo[src*="bible"]'), '성경책 그림 아이콘');
+  console.log('✓ 루틴 빠른 추가: 성경말씀읽기(성경책 아이콘)');
 }
 // 전체 리셋: 확인 글자를 써야 하고, 루틴은 남는다
 {

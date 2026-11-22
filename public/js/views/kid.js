@@ -60,8 +60,8 @@ export async function today(el, { id }) {
       ${groups.map(([s, l]) => `<section class="slot"><h3>${SLOT[s]}</h3><ul class="checks">${l.map((i) => {
         const p = pend.get(i.id); const done = p ? p.done : i.done;
         return `<li><button class="check-item ${done ? 'done' : ''} ${i.flag ? 'flag' : ''} ${p ? 'pending' : ''}" data-id="${i.id}" data-done="${done ? 1 : 0}" ${d.editable ? '' : 'disabled'} aria-pressed="${done}">
-          <span class="ci-icon">${esc(i.icon)}</span><span class="ci-name">${esc(i.name)}${i.flag ? `<small>🔎 ${esc(i.flag)}</small>` : ''}</span>
-          <span class="ci-box">${p ? (S.online ? '⏳' : '📥') : done ? '✔' : ''}</span>${p ? `<em class="ci-note">${S.online ? '저장 중' : '저장 대기'}</em>` : ''}</button>${i.activityId ? `<button class="btn small item-timer" data-tstart="${i.activityId}" aria-label="${esc(i.name)} 활동 시작">⏱ 활동 시작</button>` : ''}</li>`; }).join('')}</ul></section>`).join('')}
+          <span class="ci-box">${p ? (S.online ? '⏳' : '📥') : done ? '✔' : ''}</span><span class="ci-icon">${esc(i.icon)}</span><span class="ci-name">${esc(i.name)}${i.flag ? `<small>🔎 ${esc(i.flag)}</small>` : ''}</span>
+          ${p ? `<em class="ci-note">${S.online ? '저장 중' : '저장 대기'}</em>` : ''}</button>${i.activityId ? `<button class="btn small item-timer" data-tstart="${i.activityId}" aria-label="${esc(i.name)} 활동 시작">⏱ 활동 시작</button>` : ''}</li>`; }).join('')}</ul></section>`).join('')}
       ${d.status === 'recheck' && d.done === d.total ? `<button class="btn primary big wide" id="rereq">다시 확인 요청하기</button>` : ''}
       ${d.status === 'ready' ? `<button class="btn primary big wide" id="rereq">✋ 도장 요청하기</button>` : ''}
       ${d.exists ? `<p class="progress-line">${d.done}/${d.total} 완료 · ${d.status === 'approved' ? '도장을 받아서 바꿀 수 없어요' : '어른이 확인하면 도장을 받아요'}</p>` : ''}`);
