@@ -259,3 +259,29 @@ test('지운 루틴은 오늘 목록에서도 (아직 안 한 것은) 사라지�
     void brush;
   } finally { await f.close(); }
 });
+
+test('평일만 하는 루틴은 일요일 오늘 목록에 나오지 않고, 이미 들어가 있던 것도 정리된다(체크한 것은 기록으로 남는다)', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    f.clock.t = Date.parse('2026-11-22T03:00:00Z'); // 일요일
+    const kid = f.ids.yuel;
+    await f.mom.ok('POST', '/api/routines', { kidIds: [kid], name: '문해력', days: 'daily', slot: 'after_school' });
+    await f.mom.ok('POST', '/api/routines', { kidIds: [kid], name: '성경말씀읽기', days: 'daily', slot: 'morning' });
+    let day = await f.day(kid);
+    assert.deepEqual(day.items.map((i) => i.name).sort(), ['문해력', '성경말씀읽기']);
+    // 평일만으로 바꾼다(오늘 목록에 바로 적용 옵션 없이) — 일요일 목록에서는 사라져야 한다
+    const rts = await f.mom.ok('GET', `/api/kids/${kid}/routines`);
+    const ml = rts.find((r) => r.name === '문해력');
+    await f.mom.ok('PATCH', `/api/routines/${ml.id}`, { days: 'weekdays' });
+    day = await f.day(kid);
+    assert.deepEqual(day.items.map((i) => i.name), ['성경말씀읽기'], '일요일에는 평일 루틴이 빠진다');
+    // 월요일에는 다시 나온다
+    f.clock.t = Date.parse('2026-11-23T03:00:00Z');
+    assert.ok((await f.day(kid)).items.some((i) => i.name === '문해력'), '월요일에는 평일 루틴이 보인다');
+    // 이미 체크한 항목은 요일을 바꿔도 기록으로 남는다
+    const mon = await f.day(kid); const item = mon.items.find((i) => i.name === '문해력');
+    await f.device.ok('PUT', `/api/day-items/${item.id}`, { done: true });
+    await f.mom.ok('PATCH', `/api/routines/${ml.id}`, { days: [0] });
+    assert.ok((await f.day(kid)).items.some((i) => i.name === '문해력' && i.done), '체크한 것은 남는다');
+  } finally { await f.close(); }
+});

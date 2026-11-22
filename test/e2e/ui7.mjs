@@ -201,6 +201,20 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
   assert.ok(await page.$('[data-q]:has-text("성경말씀읽기") img.emo[src*="bible"]'), '성경책 그림 아이콘');
   console.log('✓ 루틴 빠른 추가: 성경말씀읽기(성경책 아이콘)');
 }
+// 루틴 수정 화면에서 '평일' 을 고르고 저장하면 월~금만 저장된다
+{
+  const rts = await call('GET', `/api/kids/${yuel}/routines`);
+  await page.goto(base + '/#/routines'); await page.waitForSelector('[data-q]');
+  const row = page.locator('li', { hasText: rts[0].name }).first();
+  await page.click(`[data-edit="${rts[0].id}"]`).catch(async () => { await row.getByRole('button', { name: /수정/ }).click(); });
+  await page.waitForSelector('#dayset');
+  await page.click('#dayset [data-set=weekdays]');
+  await page.click('.sheet button[type=submit]');
+  await page.waitForFunction(() => !document.querySelector('.sheet'), null, { timeout: 5000 });
+  const after = (await call('GET', `/api/kids/${yuel}/routines`)).find((r) => r.id === rts[0].id);
+  assert.deepEqual(after.days, [1, 2, 3, 4, 5], '평일 = 월~금');
+  console.log('✓ 루틴 요일을 평일로 저장');
+}
 // 전체 리셋: 확인 글자를 써야 하고, 루틴은 남는다
 {
   await page.goto(base + '/#/family'); await page.waitForSelector('#resetall');
