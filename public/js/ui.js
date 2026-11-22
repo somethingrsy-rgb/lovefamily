@@ -71,7 +71,7 @@ export function openPhoto(url, alt = '사진') {
   document.querySelector('.photo-viewer')?.remove();
   const v = document.createElement('div');
   v.className = 'photo-viewer'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', alt);
-  v.innerHTML = `<button class="pv-close" aria-label="닫기">✕</button><div class="pv-scroll"><img src="${esc(url)}" alt="${esc(alt)}" draggable="false"></div><div class="pv-hint">사진을 한 번 더 누르면 확대돼요</div>`;
+  v.innerHTML = `<button class="pv-close" aria-label="닫기"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" fill="none"/></svg><span>닫기</span></button><div class="pv-scroll"><img src="${esc(url)}" alt="${esc(alt)}" draggable="false"></div><div class="pv-hint">사진을 한 번 더 누르면 확대돼요</div>`;
   document.body.appendChild(v); document.body.classList.add('noscroll');
   const close = () => { v.remove(); document.body.classList.remove('noscroll'); window.removeEventListener('keydown', key); window.removeEventListener('hashchange', close); };
   const key = (e) => { if (e.key === 'Escape') close(); };

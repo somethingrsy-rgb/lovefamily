@@ -744,3 +744,31 @@ body { position: fixed; inset: 0; width: 100%; }
 .kt-idle > .kt-start { flex: 1 1 0; }
 .kt-idle .emo { width: 1.5em; height: 1.5em; }
 @media (max-width: 430px) { .kt-idle { flex-wrap: nowrap; } .kt-idle > .btn { flex: 1 1 0; font-size: .85rem; } }
+
+/* 사진 크게 보기: 닫기 버튼을 왼쪽 위에(상태 표시줄·노치를 피해서), 글자 '✕' 그림이 커지지 않게 SVG 로 */
+.photo-viewer .pv-close { left: calc(12px + env(safe-area-inset-left)); right: auto; top: calc(12px + env(safe-area-inset-top)); width: auto; height: 46px; padding: 0 16px 0 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 1rem; font-weight: 800; background: rgba(255, 255, 255, .26); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.photo-viewer .pv-close svg { flex: none; }
+
+/* ===== 네모 칸 사이 간격 정리: 목록과 그 아래 버튼·카드가 붙어 보이지 않게 ===== */
+.checks { margin-bottom: 14px; }
+.checks + .row, .checks + .btn, .checks + .wide { margin-top: 0; }
+.approve .row.center-v { margin-bottom: 12px; }
+.approve .banner { margin: 0 0 12px; }
+.approve .checks.readonly { margin: 0 0 16px; }
+ul + .btn, ol + .btn, ul + .row, ol + .row, .rlist + .btn, #addact { margin-top: 12px; }
+.chips.filter { margin-bottom: 12px; }
+.chips.filter + .empty, .chips.filter + .card { margin-top: 12px; }
+.cal, .cal-grid, .cal.big { gap: 6px; }
+/* 박스 사이 기본 간격은 최소 10px */
+.status-btns { gap: 10px; }
+.rlist { gap: 10px; }
+.chips { gap: 10px; }
+.kid-tabs { margin: 14px 0 12px; gap: 10px; }
+.page-head + .kid-tabs { margin-top: 14px; }
+.cell-grid, .board { gap: 10px; }
+.cal, .cal.big { gap: 8px; }
+.stamp-grid { gap: 10px; } .stamp-grid.small { gap: 6px; }
+.back { margin-bottom: 12px; }
+.notif, .notif-list, ul.notif { gap: 10px; }
+.rem-chips { gap: 8px; }
+.wallet-nav, .month-nav { gap: 10px; }
