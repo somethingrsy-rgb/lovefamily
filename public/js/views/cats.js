@@ -1,7 +1,9 @@
-// 집 그림 안을 돌아다니는 반려동물: 고양이 두 마리(루비·크리스탈)와 강아지 연이.
+// 집 그림 안을 돌아다니는 반려동물: 고양이 두 마리(다이아·크리스탈)와 강아지 귀요미.
+// 다이아는 유엘이, 귀요미는 유하가 주인이라 그 아이 곁에 자주 가 있는다. 간식 주기·산책 버튼은 홈의 아이 카드에 있다.
 // 층 바닥선을 걷다가 앉고·자고·털을 핥고, 기둥 통로에서는 폴짝 뛰어 다른 층으로 오간다. 누르면 애교를 부린다.
 // 사람 캐릭터처럼 정해진 위치를 서버와 맞추지는 않는다(기기마다 자기 마음대로 돌아다닌다).
-import { FLOOR_Y, PILLAR_X } from './walkers.js';
+import { FLOOR_Y, PILLAR_X, COL_X, GARDEN, walkerCell, walkerPos, gardenWalk } from './walkers.js';
+import { S, bus, post } from '../api.js';
 
 // 그림 시트(가로로 이어 붙인 프레임): { 너비, 높이, 프레임 수 } — public/assets/cats/*.webp
 const SHEET = {
@@ -11,16 +13,19 @@ const SHEET = {
   'crystal-sit': [124, 149, 1], 'crystal-sleep': [159, 109, 1], 'crystal-groom': [139, 150, 1], 'crystal-aegyo': [169, 127, 1], 'crystal-stand': [158, 130, 1],
   'ruby-play-sniff': [156, 132, 12], 'ruby-play-tap': [142, 146, 12], 'ruby-play-bow': [153, 134, 12], 'ruby-play-roll': [174, 153, 12], 'ruby-play-dash': [168, 140, 12], 'ruby-play-sneak': [158, 132, 12],
   'crystal-play-sniff': [141, 139, 12], 'crystal-play-tap': [138, 142, 12], 'crystal-play-bow': [154, 136, 12], 'crystal-play-roll': [163, 153, 12], 'crystal-play-dash': [176, 133, 12], 'crystal-play-sneak': [162, 130, 12],
-  // 강아지 연이 (public/assets/dog/dog-*.webp). 오르내리기는 뛰는 그림 하나를 같이 쓴다
+  // 강아지 귀요미 (public/assets/dog/dog-*.webp). 오르내리기는 뛰는 그림 하나를 같이 쓴다
   'yeoni-walkR': [140, 121, 12], 'yeoni-walkL': [140, 121, 12], 'yeoni-up': [137, 121, 12], 'yeoni-down': [137, 121, 12],
   'yeoni-sit': [102, 135, 1], 'yeoni-sleep': [125, 97, 1], 'yeoni-groom': [107, 132, 1], 'yeoni-aegyo': [114, 127, 1], 'yeoni-stand': [124, 131, 1], 'yeoni-roll': [145, 114, 1],
 };
 const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groom', 'stand'], yeoni: ['sit', 'sleep', 'groom', 'stand', 'roll'] };
-// 그림 파일 경로: 고양이는 cats/, 강아지(연이)는 dog/dog-이름.webp, 오르내리기는 dog-jump 하나
+// 그림 파일 경로: 고양이는 cats/, 강아지(귀요미)는 dog/dog-이름.webp, 오르내리기는 dog-jump 하나
 const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' || name === 'down' ? 'jump' : name}.webp` : `/assets/cats/${id}-${name}.webp`);
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
-const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(연이는 15% 크게)
-const PLAY_GAP_RATIO = 0.5;      // 장난칠 때 두 마리 사이 빈 공간 = 고양이 한 마리 폭의 이만큼(0.5 = 1/2)
+const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(귀요미는 15% 크게)
+const PLAY_GAP_RATIO = 0.25;     // 장난칠 때 두 마리 사이 빈 공간 = 고양이 한 마리 폭의 이만큼(0.25 = 1/4)
+const OWNER = { ruby: 0, yeoni: 1 }; // 주인: 다이아(ruby)=첫째 아이(유엘), 귀요미(yeoni)=둘째 아이(유하)
+const OWNER_PULL = 0.55;         // 움직일 때 주인 곁으로 갈 확률
+const HOME_CELL = ['10', '11'];  // 아이 순서별 자기 방 칸
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
 const MIN_X = 9, MAX_X = 91;     // 방 안쪽 범위
@@ -54,6 +59,15 @@ function setLook(c, el, name, anim = 'walk') {
   el.querySelector('.pet-body').innerHTML = spriteHtml(c, name, anim);
 }
 
+// ---- 주인 곁: 주인 아이가 지금 서 있는 칸(걷는 중이면 자기 방) 안쪽의 어느 자리 ----
+function ownerSpot(c) {
+  const idx = OWNER[c.id]; if (idx === undefined) return null;
+  const kid = S.info?.kids?.[idx]; if (!kid) return null;
+  const wc = walkerCell(kid.id); const cell = wc && !wc.moving ? wc.cell : HOME_CELL[idx];
+  const row = Number(cell[0]); const col = Number(cell[1]);
+  return { row, x: Math.min(MAX_X, Math.max(MIN_X, COL_X[col] + rnd(-9, 9))) };
+}
+
 // ---- 다음 행동 정하기 ----
 function chooseNext(c, now) {
   const r = floorIdx(c.y);
@@ -61,9 +75,11 @@ function chooseNext(c, now) {
   if (reduce() || roll < 0.3) { // 쉰다
     c.mode = 'idle'; c.pose = pick(POSES[c.id].filter((p) => p !== c.pose)); c.until = now + rnd(6000, 15000); return;
   }
-  const x1 = rnd(MIN_X, MAX_X);
+  let x1 = rnd(MIN_X, MAX_X);
   let r1 = r;
   if (roll > 0.72) r1 = pick([0, 1, 2].filter((i) => i !== r)); // 다른 층으로
+  const spot = Math.random() < OWNER_PULL ? ownerSpot(c) : null; // 주인이 있는 방 쪽으로
+  if (spot) { r1 = spot.row; x1 = spot.x; }
   const pts = [[c.x, FLOOR_Y[r]]];
   if (r1 !== r) {
     const px = PILLAR_X.reduce((b, p) => (Math.abs(c.x - p) + Math.abs(x1 - p) < Math.abs(c.x - b) + Math.abs(x1 - b) ? p : b), PILLAR_X[0]);
@@ -82,7 +98,7 @@ function tryPlay(now) {
     const a = cats[i]; const b = cats[j];
     if (a.id === 'yeoni' || b.id === 'yeoni') continue; // 장난은 고양이 두 마리끼리만
     if (!document.querySelector(`[data-pet="${a.id}"]`) || !document.querySelector(`[data-pet="${b.id}"]`)) continue; // 숨긴 쪽이 있으면 놀지 않는다
-    if (a.mode === 'play' || b.mode === 'play' || a.mode === 'aegyo' || b.mode === 'aegyo') continue;
+    if (['play', 'aegyo', 'snack', 'garden'].some((m) => a.mode === m || b.mode === m)) continue;
     if (Math.abs(a.y - b.y) > 0.5 || Math.abs(a.x - b.x) > 16) continue;
     const key = `${a.id}|${b.id}`;
     if (now - (lastPlay.get(key) ?? -1e9) < 45000) continue;
@@ -108,7 +124,12 @@ function step(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   for (const c of cats) {
     const el = layer.querySelector(`[data-pet="${c.id}"]`); if (!el) continue;
-    if (c.mode === 'play') {
+    if (c.mode === 'snack') {
+      if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2500, 5000); c.key = ''; el.classList.remove('hop'); }
+      else if (now >= c.eatAt) { setLook(c, el, 'aegyo'); el.classList.add('hop'); }
+    } else if (c.mode === 'garden') {
+      gardenFollow(c, el, dt);
+    } else if (c.mode === 'play') {
       if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2000, 5000); c.key = ''; c.tx = null; el.classList.remove('hop'); }
       else if (c.playKind === 'dog') { setLook(c, el, Math.floor((now - (c.until - 6200)) / 1100) % 2 ? 'roll' : 'aegyo'); el.classList.add('hop'); }
       else setLook(c, el, `play-${c.playKind}`);
@@ -140,6 +161,70 @@ function step(now) {
   }
   requestAnimationFrame(step);
 }
+
+// ---- 간식 주기: 쿠키가 아이 방에서 반려동물에게 날아가고, 받은 동물은 제자리에서 신나게 폴짝 ----
+const seenAct = new Set();
+const petOfKid = (kidId) => { const idx = (S.info?.kids || []).findIndex((k) => k.id === kidId); return cats.find((c) => OWNER[c.id] === idx) || null; };
+function snack(c, kidId) {
+  const layer = document.querySelector('.pets'); const el = layer?.querySelector(`[data-pet="${c.id}"]`);
+  if (!el || c.mode === 'garden' || c.mode === 'snack') return;
+  const now = performance.now();
+  const from = walkerPos(kidId) || [c.x, c.y - 12];
+  const cookie = document.createElement('img'); cookie.className = 'snack-cookie'; cookie.src = '/assets/emoji/cookie.webp'; cookie.alt = '';
+  const hy = c.y - 4; // 동물 머리 위쪽
+  cookie.style.cssText = `left:${from[0]}%;top:${from[1] - 7}%`;
+  layer.appendChild(cookie);
+  const FLY = 900;
+  cookie.animate([
+    { left: `${from[0]}%`, top: `${from[1] - 7}%`, transform: 'translate(-50%,-50%) scale(.8) rotate(0deg)' },
+    { left: `${(from[0] + c.x) / 2}%`, top: `${Math.min(from[1] - 7, hy) - 10}%`, transform: 'translate(-50%,-50%) scale(1.1) rotate(180deg)', offset: .5 },
+    { left: `${c.x}%`, top: `${hy}%`, transform: 'translate(-50%,-50%) scale(.9) rotate(360deg)' },
+  ], { duration: FLY, easing: 'ease-in-out', fill: 'forwards' }).onfinish = () => cookie.remove();
+  c.mode = 'snack'; c.key = ''; c.path = []; c.eatAt = now + FLY; c.until = now + FLY + 2600;
+  setLook(c, el, 'sit');
+  setTimeout(() => { const h = document.createElement('i'); h.className = 'pet-heart'; h.textContent = '💕'; el.appendChild(h); setTimeout(() => h.remove(), 1600); }, FLY);
+}
+
+// ---- 산책: 주인 아이와 함께 정원을 15초 돈다. 동물은 아이 뒤를 졸졸 따라간다 ----
+const WALK_MS = 15000;
+function startWalk(c, kidId) {
+  const layer = document.querySelector('.pets'); const el = layer?.querySelector(`[data-pet="${c.id}"]`);
+  if (c.mode === 'garden') return;
+  const ok = gardenWalk(kidId, WALK_MS, () => endWalk(c));
+  if (!ok) return;
+  if (!el) return;
+  c.mode = 'garden'; c.save = { x: c.x, y: c.y, face: c.face }; c.kid = kidId; c.key = ''; c.path = []; c.gstage = 'out';
+  el.classList.remove('hop'); el.style.transition = 'opacity .28s ease'; el.style.opacity = '0';
+  setTimeout(() => { c.x = GARDEN.door[0] - 6; c.y = GARDEN.door[1]; c.gstage = 'follow'; c.key = ''; el.style.opacity = '1'; }, 300);
+}
+function gardenFollow(c, el, dt) {
+  if (c.gstage !== 'follow') return;
+  const pos = walkerPos(c.kid); if (!pos) return;
+  const side = c.face >= 0 ? -1 : 1;
+  const tx = pos[0] + side * 7; const ty = pos[1] + 0.4;
+  const dx = tx - c.x; const dy = ty - c.y;
+  const sp = 8 * dt; // 아이 걷는 속도(약 6.5%/초)보다 조금 빠르게 따라붙는다
+  if (Math.abs(dx) > 0.4) { c.x += Math.sign(dx) * Math.min(Math.abs(dx), sp); c.face = dx >= 0 ? 1 : -1; }
+  if (Math.abs(dy) > 0.2) c.y += Math.sign(dy) * Math.min(Math.abs(dy), sp);
+  const moving = Math.abs(dx) > 1.2;
+  setLook(c, el, moving ? (c.face > 0 ? 'walkR' : 'walkL') : 'sit', 'walk');
+}
+function endWalk(c) {
+  const el = document.querySelector(`.pets [data-pet="${c.id}"]`);
+  if (el) { el.style.opacity = '0'; }
+  setTimeout(() => {
+    if (c.save) { c.x = c.save.x; c.y = c.save.y; c.face = c.save.face; }
+    c.mode = 'idle'; c.pose = 'sit'; c.until = performance.now() + rnd(2000, 5000); c.key = ''; c.gstage = null; c.save = null;
+    const e = document.querySelector(`.pets [data-pet="${c.id}"]`); if (e) { e.style.left = `${c.x}%`; e.style.top = `${c.y}%`; e.style.opacity = '1'; }
+  }, 300);
+}
+bus.on('pet', (ev) => {
+  if (seenAct.has(ev.key)) return; seenAct.add(ev.key);
+  if (!document.querySelector('.house .pets')) return;
+  const c = petOfKid(ev.kidId); if (!c) { if (ev.kind === 'walk') gardenWalk(ev.kidId, WALK_MS); return; }
+  if (ev.kind === 'snack') snack(c, ev.kidId); else startWalk(c, ev.kidId);
+});
+export const petName = (kidIdx) => ['다이아', '귀요미'][kidIdx] || '';
 
 // ---- 누르면 애교 ----
 function onTap(e) {

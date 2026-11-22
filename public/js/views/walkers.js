@@ -113,6 +113,40 @@ function snapSprites(root = document) {
     sp.style.width = `${w}px`; sp.style.height = `${h}px`; sp.style.backgroundSize = `${w * 12}px ${h}px`;
   });
 }
+// ===== 정원 산책: 현관(아치)으로 나가 정원을 돌고 15초 뒤 다시 들어와 자기 방에 선다(서버의 방 위치는 바꾸지 않는다) =====
+export const GARDEN = { door: [50.2, 83.2], pts: [[27, 89.5], [73, 91], [50.2, 87.5]] };
+export const walkerPos = (id) => { const el = document.querySelector(`[data-walker="${id}"]`); return el ? [parseFloat(el.style.left), parseFloat(el.style.top)] : null; };
+const fadeEl = (id, to) => { const el = document.querySelector(`[data-walker="${id}"]`); if (!el) return; el.style.transition = 'opacity .28s ease'; el.style.opacity = String(to); };
+export function gardenWalk(id, ms = 15000, onDone) {
+  const w = W.get(id); const p = P.find((x) => x.id === id);
+  if (!w || !p || w.moving || w.garden || !document.querySelector(`[data-walker="${id}"]`)) return false;
+  const path = [GARDEN.door, ...GARDEN.pts, GARDEN.door];
+  const lens = path.slice(1).map((pt, i) => segLen(path[i], pt)); const total = lens.reduce((a, b) => a + b, 0);
+  w.garden = true; clearTimeout(idleTimer); deselect();
+  fadeEl(id, 0); // 방에서 사라져 현관으로 나온다
+  setTimeout(() => {
+    w.moving = true; w.x = path[0][0]; w.y = path[0][1]; w.face = 1;
+    refreshOne(p); const el0 = document.querySelector(`[data-walker="${id}"]`); if (el0) { el0.style.opacity = '0'; void el0.offsetWidth; el0.style.transition = 'opacity .28s ease'; el0.style.opacity = '1'; }
+    const t0 = performance.now();
+    const tick = (now) => {
+      const f = Math.min(1, (now - t0) / ms); const d = f * total;
+      let acc = 0; let seg = 0; while (seg < lens.length - 1 && d > acc + lens[seg]) { acc += lens[seg]; seg++; }
+      const a = path[seg]; const b = path[seg + 1]; const u = lens[seg] ? (d - acc) / lens[seg] : 1;
+      w.x = a[0] + (b[0] - a[0]) * u; w.y = a[1] + (b[1] - a[1]) * u;
+      if (b[0] !== a[0]) { const face = b[0] > a[0] ? 1 : -1; if (face !== w.face) { w.face = face; const sp = document.querySelector(`[data-walker="${id}"] .wk-sprite`); if (sp) sp.style.transform = `scaleX(${face})`; } }
+      const el = document.querySelector(`[data-walker="${id}"]`); if (el) { el.style.left = `${w.x}%`; el.style.top = `${w.y}%`; }
+      if (f < 1) return raf(tick);
+      fadeEl(id, 0); // 현관으로 들어가 자기 방으로
+      setTimeout(() => {
+        w.moving = false; w.garden = false; w.face = 1; refreshOne(p); relayout();
+        const el = document.querySelector(`[data-walker="${id}"]`); if (el) { el.style.opacity = '0'; void el.offsetWidth; el.style.transition = 'opacity .28s ease'; el.style.opacity = '1'; }
+        onDone?.();
+      }, 300);
+    };
+    raf(tick);
+  }, 300);
+  return true;
+}
 export const walkerCell = (id) => { const w = W.get(id); return w ? { cell: w.cell, moving: w.moving } : null; };
 export const walkPadHtml = () => ''; // 선택 안내창은 쓰지 않는다(캐릭터를 다시 누르면 선택 해제)
 

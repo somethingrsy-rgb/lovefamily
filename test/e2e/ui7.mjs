@@ -33,7 +33,7 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
 // 집 그림 안을 돌아다니는 고양이 두 마리: 있고, 시간이 지나면 움직이고, 누르면 애교(하트), 가족 설정에서 끌 수 있다
 {
   assert.ok(await page.evaluate(() => Number(getComputedStyle(document.querySelector('.pets')).zIndex) > Number(getComputedStyle(document.querySelector('.walkers')).zIndex)), '고양이·강아지가 사람보다 앞에 그려진다');
-  assert.deepEqual(await page.$$eval('.house .pets .pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal', 'yeoni'], '루비·크리스탈·연이');
+  assert.deepEqual(await page.$$eval('.house .pets .pet', (e) => e.map((x) => x.dataset.pet)), ['ruby', 'crystal', 'yeoni'], '다이아·크리스탈·귀요미');
   const snap = () => page.$$eval('.pet', (e) => e.map((x) => `${x.style.left}|${x.style.top}|${x.querySelector('.pet-sp')?.style.backgroundImage}`).join(','));
   // 연이는 같은 그림 기준으로 15% 크게 그려진다(그림 크기 비율로 확인)
   const sizeOf = () => page.$eval('.pet[data-pet=yeoni] .pet-sp', (e) => ({ w: parseFloat(e.style.width), h: parseFloat(e.style.height), img: e.style.backgroundImage }));
@@ -54,7 +54,7 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   await page.waitForTimeout(3500);
   // 빈 공간(눈에 보이는 그림 사이) = 고양이 한 마리 폭의 약 1/2
   const g = await page.evaluate(() => { const [a, b] = [...document.querySelectorAll('.pet[data-pet=ruby] .pet-sp, .pet[data-pet=crystal] .pet-sp')].map((e) => e.getBoundingClientRect()).sort((x, y) => x.left - y.left); return { gap: b.left - a.right, w: (a.width + b.width) / 2 }; });
-  assert.ok(Math.abs(g.gap / g.w - 0.5) < 0.12, `빈 공간이 한 마리 폭의 1/2 (빈 공간 ${g.gap.toFixed(1)}px / 폭 ${g.w.toFixed(1)}px = ${(g.gap / g.w).toFixed(2)})`);
+  assert.ok(Math.abs(g.gap / g.w - 0.25) < 0.12, `빈 공간이 한 마리 폭의 1/4 (빈 공간 ${g.gap.toFixed(1)}px / 폭 ${g.w.toFixed(1)}px = ${(g.gap / g.w).toFixed(2)})`);
   assert.ok(await page.$eval('.pet[data-pet=ruby] .pet-sp', (e) => /play-/.test(e.style.backgroundImage)), '장난 그림으로 바뀐다');
   console.log('✓ 만나면 장난');
   await page.evaluate(() => { window.__pets.forEach((p) => { p.mode = 'idle'; p.until = performance.now() + 1000; }); });
@@ -69,9 +69,9 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.equal(await page.evaluate(() => window.__pets[2].mode), 'idle', '고양이와 연이는 만나도 장난치지 않는다');
   // 루비·크리스탈·연이를 각각 끄고 켠다
   const only = async (pets, expect, msg) => { await call('PATCH', '/api/family', { pets }); await page.reload(); await page.waitForSelector('.kid-card'); await page.waitForTimeout(500); assert.deepEqual(await page.$$eval('.pet', (e) => e.map((x) => x.dataset.pet)), expect, msg); };
-  await only({ ruby: false }, ['crystal', 'yeoni'], '루비만 끄면');
+  await only({ ruby: false }, ['crystal', 'yeoni'], '다이아만 끄면');
   await only({ ruby: true, crystal: false }, ['ruby', 'yeoni'], '크리스탈만 끄면');
-  await only({ crystal: true, yeoni: false }, ['ruby', 'crystal'], '연이만 끄면');
+  await only({ crystal: true, yeoni: false }, ['ruby', 'crystal'], '귀요미만 끄면');
   await only({ ruby: false, crystal: false }, [], '모두 끄면');
   await only({ ruby: true, crystal: true, yeoni: true }, ['ruby', 'crystal', 'yeoni'], '다시 모두 켜면');
   await call('PATCH', '/api/family', { showCats: true });

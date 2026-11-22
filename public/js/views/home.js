@@ -22,7 +22,16 @@ const dayBadge = (k) => {
   return `<div class="kid-state">${d.total - d.done}개 남았어요</div>`;
 };
 
-function kidCard(k) {
+const PET_NAME = ['다이아', '귀요미']; // 첫째 아이(유엘)의 고양이 다이아, 둘째 아이(유하)의 강아지 귀요미
+function petBtns(k, i) {
+  const n = PET_NAME[i]; if (!n) return '';
+  return `<button type="button" class="btn kt-pet" data-pet-act="snack" data-kid="${k.id}" aria-label="${n}에게 간식 주기">🍪 간식주기</button><button type="button" class="btn kt-pet" data-pet-act="walk" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${n} 산책하기">🌳 산책하기</button>`;
+}
+function kidTimerRow(k, i) { // 쉬는 중이면 [활동][간식주기][산책하기]가 한 줄, 활동 중이면 타이머 아래에 두 버튼
+  const pets = petBtns(k, i); const t = kidTimerHtml(k);
+  return /kt-start/.test(t) ? `<div class="kt-idle">${t}${pets}</div>` : `${t}${pets ? `<div class="kt-idle">${pets}</div>` : ''}`;
+}
+function kidCard(k, i) {
   const pct = k.day.total ? Math.round((k.day.done / k.day.total) * 100) : 0;
   const rem = k.day.remaining;
   return `<article class="kid-card" data-rk="k${k.id}" style="--kc:${esc(k.color)}"><a class="kid-main" href="#/kid/${k.id}" aria-label="${esc(k.name)} 카드 열기">
@@ -31,7 +40,7 @@ function kidCard(k) {
     ${dayBadge(k)}
     ${rem.length && k.day.status === 'open' ? `<ul class="rem-chips">${rem.slice(0, 3).map((n) => `<li>${esc(n)}</li>`).join('')}${rem.length > 3 ? `<li class="more">+${rem.length - 3}</li>` : ''}</ul>` : ''}
     <div class="stamp-mini" aria-label="도장 ${k.board.count}/${k.board.size}"><span>💮 도장 <b>${k.board.count}</b>/${k.board.size}</span><div class="bar thin"><i style="width:${(k.board.count / k.board.size) * 100}%"></i></div></div>
-  </a>${kidTimerHtml(k)}</article>`;
+  </a>${kidTimerRow(k, i)}</article>`;
 }
 
 function adultCard(a, meId, canEdit) {
@@ -202,6 +211,15 @@ export async function mount(el) {
       lastDay.set(k.id, k.day.status);
     }
     bindDismiss($('.kids', el), load);
+    $('.kids', el)?.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-pet-act]'); if (!b) return;
+      e.preventDefault();
+      const idx = h.kids.findIndex((k) => k.id === Number(b.dataset.kid)); const pn = PET_NAME[idx];
+      try {
+        await post('/api/pets/act', { kidId: Number(b.dataset.kid), kind: b.dataset.petAct });
+        toast(b.dataset.petAct === 'snack' ? `${pn}에게 간식을 줬어요 🍪` : `${pn}랑 산책 가요 🌳`);
+      } catch (x) { errToast(x); }
+    });
     $('.supplies', el)?.addEventListener('click', supplyClick);
     if (ah) bindAdultPanel($('.adult-panel', el), load);
     bindStatus($('.adult-cards', el), load);

@@ -144,6 +144,7 @@ export function connectStream() {
     else if (ev.t === 'timer') bus.emit('timer', ev);
     else if (ev.t === 'stamp') bus.emit('stamp', ev);
     else if (ev.t === 'coins') bus.emit('coins', ev);
+    else if (ev.t === 'pet') bus.emit('pet', ev);
   };
 }
 export function disconnectStream() { es?.close(); es = null; esKid = undefined; }

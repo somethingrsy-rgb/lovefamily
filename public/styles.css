@@ -656,7 +656,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   main#main { padding-bottom: 60px; }
 }
 
-/* ===== 집 안을 돌아다니는 고양이(루비·크리스탈) ===== */
+/* ===== 집 안을 돌아다니는 고양이(다이아·크리스탈)와 강아지 귀요미 ===== */
 .pets { position: absolute; inset: 0; z-index: 12; pointer-events: none; overflow: hidden; }
 .pet { position: absolute; transform: translate(-50%, -100%); will-change: left, top; }
 .pet-body { position: relative; }
@@ -719,3 +719,28 @@ body { position: fixed; inset: 0; width: 100%; }
 .check-item.done .ci-name { text-decoration: none; }
 .checks:not(.readonly) li:has(.check-item.done), :root[data-theme=dark] .checks:not(.readonly) li:has(.check-item.done) { background: var(--card); border-color: var(--line); }
 :root[data-theme=dark] .check-item .ci-box { color: #b79cff; }
+
+/* 간식주기·산책하기 버튼: 활동 버튼과 한 줄 */
+.kt-idle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+.kt-idle .kt-start, .kt-idle .kt-pet { align-self: auto; min-height: 44px; white-space: nowrap; }
+.kt-pet { background: rgba(255, 255, 255, .8); color: #3a3252; padding: 0 14px; }
+.kt-pet .emo { width: 1.3em; height: 1.3em; vertical-align: -.25em; }
+.snack-cookie { position: absolute; width: 5.2cqw; height: 5.2cqw; transform: translate(-50%, -50%); pointer-events: none; filter: drop-shadow(0 .4cqw .4cqw rgba(70, 40, 110, .3)); }
+.kt-idle { flex-wrap: nowrap; gap: 6px; }
+.kt-idle > .btn { flex: 1 1 0; min-width: 0; padding: 0 8px; font-size: .92rem; justify-content: center; }
+.kt-idle > .kt-start { flex: 0.8 1 0; }
+@media (max-width: 420px) { .kt-idle { flex-wrap: wrap; } .kt-idle > .btn { flex: 1 1 30%; } }
+.kids > .kid-card { min-width: 0; }
+.kt-idle { flex-wrap: wrap; }
+.kt-idle > .btn { flex: 1 1 auto; white-space: nowrap; }
+/* 활동 · 간식주기 · 산책하기: 카드가 좁아도 한 줄 유지(글자를 조금 줄인다). 아주 좁은 폰에서만 줄바꿈 */
+.kt-idle { flex-wrap: nowrap; gap: 4px; }
+.kt-idle > .btn { flex: 1 1 0; min-width: 0; padding: 0 4px; font-size: clamp(.7rem, 1.55vw, .92rem); gap: 2px; overflow: hidden; text-overflow: clip; }
+.kt-idle > .kt-start { flex: .85 1 0; }
+.kt-idle .emo { width: 1.15em; height: 1.15em; flex: none; }
+@media (max-width: 430px) { .kt-idle { flex-wrap: wrap; } .kt-idle > .btn { flex: 1 1 30%; font-size: .9rem; padding: 0 8px; } }
+/* 세 버튼은 그림 위·글자 아래로 쌓아서 좁은 카드에서도 글자가 잘리지 않고 한 줄에 들어간다 */
+.kt-idle > .btn { flex-direction: column; justify-content: center; min-height: 58px; padding: 4px 2px; gap: 1px; font-size: clamp(.72rem, 1.4vw, .88rem); line-height: 1.15; text-overflow: clip; overflow: visible; }
+.kt-idle > .kt-start { flex: 1 1 0; }
+.kt-idle .emo { width: 1.5em; height: 1.5em; }
+@media (max-width: 430px) { .kt-idle { flex-wrap: nowrap; } .kt-idle > .btn { flex: 1 1 0; font-size: .85rem; } }
