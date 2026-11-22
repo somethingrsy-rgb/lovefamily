@@ -52,6 +52,7 @@ await page.waitForFunction((id) => document.querySelector(`[data-walker="${id}"]
 await page.waitForFunction(() => window.__pets[2].mode === 'garden', null, { timeout: 3000 });
 await page.waitForTimeout(4000);
 const at = await page.evaluate((id) => { const w = document.querySelector(`[data-walker="${id}"]`); const d = document.querySelector('.pet[data-pet=yeoni]'); return { wy: parseFloat(w.style.top), dy: parseFloat(d.style.top), wx: parseFloat(w.style.left), dx: parseFloat(d.style.left), o: d.style.opacity }; }, yuha);
+for (let i = 0; i < 6; i++) { assert.ok(await page.$eval('.pet[data-pet=yeoni] .pet-sp', (e) => /walk[LR]/.test(e.style.backgroundImage)), '산책 중에는 앉지 않고 걷는 그림'); await page.waitForTimeout(500); }
 assert.ok(at.wy > 80 && at.dy > 80, `정원(집 아래쪽)에 있다 (아이 ${at.wy}, 강아지 ${at.dy})`);
 assert.ok(Math.abs(at.wx - at.dx) < 14, `둘이 함께 다닌다 (간격 ${Math.abs(at.wx - at.dx).toFixed(1)}%)`);
 await page.waitForFunction((id) => !document.querySelector(`[data-walker="${id}"]`)?.classList.contains('moving'), yuha, { timeout: 20000 });
