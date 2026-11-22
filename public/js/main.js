@@ -63,13 +63,11 @@ export function go(path) { location.hash = path; }
 window.__go = go;
 
 function themeApply() {
-  const pref = lsGet('theme', 'auto');
-  const h = kstParts(Date.now()).h;
-  const night = pref === 'dark' || (pref === 'auto' && (h >= 19 || h < 7));
+  const night = lsGet('theme', 'light') === 'dark'; // 자동 없음: 낮/밤만 직접 고른다
   document.documentElement.dataset.theme = night ? 'dark' : 'light';
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', night ? '#241d3a' : '#f3dff3');
 }
-themeApply(); setInterval(themeApply, 60000);
+themeApply();
 bus.on('theme', themeApply);
 
 async function loadInfo() {

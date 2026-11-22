@@ -57,7 +57,7 @@ export async function mount(el) {
     S.info = await get('/api/me');
     const info = S.info; const dev = isDevice(); const adult = !dev || isAdultNow();
     const ps = adult ? await pushState().catch(() => ({ s: 'unsupported', msg: '' })) : null;
-    const theme = lsGet('theme', 'auto');
+    const theme = (lsGet('theme', 'light') === 'dark' ? 'dark' : 'light');
     const acts = adult ? await get('/api/activities').catch(() => []) : [];
     const code = info.family.code;
     const myId = info.me?.id || S.elev?.memberId || null;
@@ -69,7 +69,7 @@ export async function mount(el) {
       ${adult ? `<section class="card page-card reset-card"><h3>⚠️ 전체 리셋</h3><p class="muted small">테스트하다 쌓인 기록을 한꺼번에 지워요. <b>도장·저금통·알림장·메시지·알림·타이머·준비물·일정</b>이 모두 사라지고 되돌릴 수 없어요. <b>할일·가족·얼굴 사진·활동 종류·설정</b>은 그대로 남아요.</p><button class="btn danger" id="resetall">🧹 전체 리셋</button></section>` : ''}
       ${adult && code ? `<section class="card page-card"><h3>가족 초대</h3><p class="muted small">어른은 각자 계정으로 같은 가족에 연결해요.</p><div class="code-box"><b id="code">${esc(code)}</b></div><div class="row gap wrap"><button class="btn primary" id="share">초대 링크 보내기</button><button class="btn ghost" id="copy">코드 복사</button><button class="btn ghost" id="rot">코드 새로 만들기</button></div></section>` : ''}
       <section class="card page-card"><h3>화면·알림 설정</h3>
-        <div class="field"><span>테마</span><div class="seg">${[['auto', '자동(밤 7시~아침 7시)'], ['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
+        <div class="field"><span>테마</span><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
         ${adult ? `<label class="check"><input type="checkbox" id="gs" ${info.family.showGrandmaStatus ? 'checked' : ''}> <span>거실 보드에 할머니 상태 카드 표시</span></label>` : ''}
         ${ps ? `<div class="field"><span>휴대폰 알림</span>${ps.s === 'on' ? '<p class="ok">✅ 이 기기에서 알림을 받고 있어요</p><div class="row gap wrap"><button class="btn" id="ptest">🔔 테스트 알림 보내기</button><button class="btn ghost" id="poff">알림 끄기</button></div><p class="small muted">앱을 닫거나 화면을 꺼도 알림이 와요. 안 오면 위 버튼으로 점검해 보세요.</p><details class="push-help"><summary>🔒 잠금 화면에 알림이 안 보여요</summary><ol class="small"><li>설정 → 알림 → <b>우리집</b>을 엽니다. (목록에 없으면 홈 화면 앱에서 먼저 알림을 켜 주세요)</li><li><b>알림 허용</b>을 켭니다.</li><li>알림 표시에서 <b>잠금 화면</b>, 알림 센터, 배너를 모두 체크합니다.</li><li>방해 금지·집중 모드가 켜져 있으면 알림이 숨겨져요. 이 앱을 허용 앱에 넣어 주세요.</li><li><b>안드로이드</b>: 설정 → 앱 → 우리집(또는 Chrome) → 알림에서 알림을 켜고, ‘잠금 화면’을 <b>모든 알림 내용 표시</b>로 바꿔 주세요. 중요도는 ‘소리 및 팝업’(긴급)이 좋아요. 배터리 설정에서 이 앱을 ‘제한 없음’으로 두면 앱을 닫아도 더 잘 와요.</li><li>위의 <b>테스트 알림</b> 버튼을 눌러 잠금 화면에 오는지 확인해요.</li></ol></details>' : ps.s === 'off' ? '<button class="btn primary" id="pon">🔔 알림 허용</button>' : `<p class="muted small">${esc(ps.msg)}</p>`}</div>` : (dev ? '<p class="muted small">이 기기에서 활동 알림(앱이 닫혀 있거나 잠겨 있을 때)을 받으려면 먼저 어른 확인(🔑)을 한 뒤 이 화면에서 알림을 허용해 주세요.</p><button class="btn ghost" id="adultMode">🔑 어른 확인</button>' : '')}
       </section>
