@@ -93,6 +93,7 @@ function chooseNext(c, now) {
 // ---- 만나면 장난: 같은 층에서 가까워지면(약 1분에 한 번쯤) 마주 보고 몇 초 논다 ----
 const PLAYS = ['sniff', 'tap', 'bow', 'roll', 'dash', 'sneak'];
 const lastPlay = new Map(); // 'a|b' → 마지막 장난 시각
+window.__lastPlay = lastPlay; // 시험용
 function tryPlay(now) {
   for (let i = 0; i < cats.length; i++) for (let j = i + 1; j < cats.length; j++) {
     const a = cats[i]; const b = cats[j];
@@ -107,6 +108,7 @@ function tryPlay(now) {
     const left = a.x <= b.x ? a : b; const right = left === a ? b : a;
     const kind = pick(PLAYS); // 두 마리가 같은 동작으로 논다
     left.face = 1; right.face = -1;
+    if (kind === 'dash') { const d = Math.random() < 0.5 ? 1 : -1; left.face = right.face = d; left.dash = right.dash = d; } // 달리기는 마주 보지 않고 한쪽 방향으로 함께 달린다
     // 너무 붙어서 겹치지 않게, 가운데를 기준으로 서로 고양이 한 마리 폭의 1/2(PLAY_GAP_RATIO)만큼 비워 선다(천천히 걸어서 벌어진다)
     // 두 마리 사이의 빈 공간 = 고양이 한 마리 폭의 1/2 (폭은 이번 장난 그림의 실제 폭). 가운데 사이 거리 = 폭 + 폭/2
     const wOf = (c) => SHEET[`${c.id}-play-${kind}`][0] * U;
@@ -133,6 +135,12 @@ function step(now) {
       if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2000, 5000); c.key = ''; c.tx = null; el.classList.remove('hop'); }
       else if (c.playKind === 'dog') { setLook(c, el, Math.floor((now - (c.until - 6200)) / 1100) % 2 ? 'roll' : 'aegyo'); el.classList.add('hop'); }
       else setLook(c, el, `play-${c.playKind}`);
+      if (c.playKind === 'dash' && c.tx != null) { // 같은 방향으로 달려 간다(벽에 닿으면 함께 돌아서 반대쪽으로)
+        const o = cats.find((x) => x.mode === 'play' && x !== c && x.playKind === 'dash');
+        c.tx += c.dash * H_SPEED * 1.5 * dt;
+        if (c.tx > MAX_X || c.tx < MIN_X) { c.tx = Math.min(MAX_X, Math.max(MIN_X, c.tx)); c.dash = -c.dash; c.face = c.dash; if (o) { o.dash = c.dash; o.face = c.dash; } }
+        if (Math.abs(c.tx - c.x) > 0.2) c.x += Math.sign(c.tx - c.x) * Math.min(Math.abs(c.tx - c.x), H_SPEED * 2.4 * dt);
+      } else
       if (c.tx != null && Math.abs(c.tx - c.x) > 0.2) c.x += Math.sign(c.tx - c.x) * Math.min(Math.abs(c.tx - c.x), H_SPEED * dt); // 장난 자리로 벌어진다
     } else if (c.mode === 'aegyo') {
       if (now > c.until) { c.mode = 'idle'; c.until = now + rnd(2000, 5000); c.pose = 'sit'; }

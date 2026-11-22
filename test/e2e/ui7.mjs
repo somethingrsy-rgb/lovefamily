@@ -57,6 +57,17 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.ok(Math.abs(g.gap / g.w - 0.25) < 0.12, `빈 공간이 한 마리 폭의 1/4 (빈 공간 ${g.gap.toFixed(1)}px / 폭 ${g.w.toFixed(1)}px = ${(g.gap / g.w).toFixed(2)})`);
   assert.ok(await page.$eval('.pet[data-pet=ruby] .pet-sp', (e) => /play-/.test(e.style.backgroundImage)), '장난 그림으로 바뀐다');
   console.log('✓ 만나면 장난');
+  // 달리기 장난은 마주 보지 않고 한쪽 방향으로 함께 달린다
+  await page.evaluate(() => { const [r, c] = window.__pets; for (const p of [r, c]) { p.mode = 'idle'; p.until = performance.now() + 60000; p.y = 54.2; p.tx = null; } r.x = 40; c.x = 50; window.__lastPlay.clear(); const q = [0, 0.7, 0.2]; Math.random = () => (q.length ? q.shift() : 0); });
+  await page.waitForFunction(() => window.__pets[0].mode === 'play' && window.__pets[1].mode === 'play', null, { timeout: 8000 });
+  const d1 = await page.evaluate(() => window.__pets.slice(0, 2).map((p) => [p.face, p.playKind, p.x]));
+  assert.equal(d1[0][1], 'dash', '달리기');
+  assert.equal(d1[0][0], d1[1][0], `둘이 같은 방향을 본다 (${d1[0][0]}, ${d1[1][0]})`);
+  await page.waitForTimeout(1500);
+  const d2 = await page.evaluate(() => window.__pets.slice(0, 2).map((p) => [p.face, p.x]));
+  assert.equal(d2[0][0], d2[1][0], '계속 같은 방향');
+  assert.ok(Math.sign(d2[0][1] - d1[0][2]) === d2[0][0] || Math.abs(d2[0][1] - d1[0][2]) < 3, '보는 쪽으로 달려 간다');
+  console.log('✓ 달리기는 한쪽 방향으로');
   await page.evaluate(() => { window.__pets.forEach((p) => { p.mode = 'idle'; p.until = performance.now() + 1000; }); });
   const rb = await page.$eval('.pet[data-pet=ruby]', (e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await page.mouse.click(rb.x, rb.y);
