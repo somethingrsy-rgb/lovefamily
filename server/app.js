@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCore } from './core.js';
@@ -57,6 +58,13 @@ export function createApp(opts = {}) {
     res.end(payload);
   };
 
+  let build = null;
+  const buildId = () => { // public 아래 모든 앱 파일(코드·스타일·html)의 이름·크기·수정 시각으로 만든 짧은 번호(서버가 켜진 뒤 한 번 계산)
+    if (build) return build;
+    const h = crypto.createHash('sha1');
+    const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) { const f = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== 'assets' && e.name !== 'icons') walk(f); } else { const st = fs.statSync(f); h.update(`${f}|${st.size}|${Math.floor(st.mtimeMs)}`); } } };
+    walk(PUBLIC_DIR); build = h.digest('hex').slice(0, 10); return build;
+  };
   const COMPRESSIBLE = new Set(['.js', '.css', '.html', '.json', '.svg', '.webmanifest']);
   const ZCACHE = new Map();
   function serveStatic(req, res, pathname) {
@@ -64,6 +72,11 @@ export function createApp(opts = {}) {
     if (rel === '/' || !path.extname(rel)) rel = '/index.html';
     const file = path.normalize(path.join(PUBLIC_DIR, rel));
     if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404, SEC_HEADERS); return res.end('Not found'); }
+    if (rel === '/sw.js') { // 서비스 워커에 '빌드 번호'를 넣는다: 앱 파일이 하나라도 바뀌면 번호가 바뀌어 폰이 새 파일을 한꺼번에 받는다
+      const body = fs.readFileSync(file, 'utf8').replace("'__BUILD__'", `'${buildId()}'`);
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache', ...SEC_HEADERS });
+      return res.end(body);
+    }
     const ext = path.extname(file);
     const stat = fs.statSync(file);
     const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;

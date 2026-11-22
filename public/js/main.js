@@ -52,7 +52,7 @@ R('/kid/:id/supplies', supplies.kidSupplies, { tab: 'today', kid: true, nopin: t
 R('/kid/:id/family', plan.kidPick, { tab: 'today', kid: true, nopin: true });
 R('/family-activity', plan.adultPlan, { tab: 'family', adult: true });
 
-const TABS = [['today', '/', '🏠', '오늘'], ['routines', '/routines', '📝', '할일'], ['stamps', '/stamps', '💮', '도장판'], ['family', '/family', '👨‍👩‍👧‍👦', '가족']];
+const TABS = [['today', '/', '🏠', '우리집'], ['routines', '/routines', '📝', '할일'], ['stamps', '/stamps', '💮', '도장판'], ['family', '/family', '👨‍👩‍👧‍👦', '가족']];
 
 let current = null;       // 현재 화면 컨트롤러
 let navToken = 0;
@@ -73,8 +73,8 @@ themeApply(); setInterval(themeApply, 60000);
 bus.on('theme', themeApply);
 
 async function loadInfo() {
-  try { S.info = await get('/api/me', { noPrompt: true }); return true; }
-  catch (e) { if (e instanceof ApiError && e.status === 401) { S.info = null; return false; } throw e; }
+  try { S.info = await get('/api/me', { noPrompt: true }); lsSet('infoCache', S.info); return true; }
+  catch (e) { if (e instanceof ApiError && e.status === 401) { S.info = null; lsSet('infoCache', null); lsSet('homeCache', null); return false; } throw e; }
 }
 bus.on('reloadInfo', async () => { await loadInfo(); });
 
@@ -196,30 +196,20 @@ navigator.serviceWorker?.addEventListener('message', (e) => {
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { bus.emit('refresh', ['all']); flushOutbox(); } });
 
-hooks.loginRequired = () => { S.info = null; disconnectStream(); go('/login'); };
+hooks.loginRequired = () => { S.info = null; lsSet('infoCache', null); lsSet('homeCache', null); disconnectStream(); go('/login'); };
 
-// 아이폰 홈 화면 앱에서 키보드를 열었다 닫은 뒤 등에, 화면 보이는 영역과 앱의 영역이 어긋나 하단 메뉴가 화면 가운데로 떠 보이는 일이 있다.
-// 보이는 영역(visualViewport)의 아래쪽 끝에 하단 메뉴를 다시 맞춘다. 키보드가 열려 있는 동안에는 건드리지 않는다.
-export function fixTabs() {
-  const tabs = document.querySelector('.tabs'); const vv = window.visualViewport;
-  if (!tabs || !vv) return;
-  const a = document.activeElement;
-  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; // 키보드가 열려 있음
-  const gap = Math.round(window.innerHeight - (vv.offsetTop + vv.height)); // 0이면 정상
-  if (Math.abs(gap) < 3) { if (tabs.style.bottom) tabs.style.bottom = ''; return; }
-  tabs.style.bottom = `${gap}px`;
-}
-window.__fixTabs = fixTabs;
-let fixTimer = null;
-const scheduleFixTabs = () => { clearTimeout(fixTimer); fixTimer = setTimeout(fixTabs, 120); };
-window.visualViewport?.addEventListener('resize', scheduleFixTabs);
-window.visualViewport?.addEventListener('scroll', scheduleFixTabs);
-window.addEventListener('orientationchange', scheduleFixTabs);
-window.addEventListener('pageshow', scheduleFixTabs);
-document.addEventListener('focusout', () => { setTimeout(() => { window.scrollTo(window.scrollX, window.scrollY); fixTabs(); }, 200); }, true); // 키보드를 닫은 뒤 보이는 영역을 다시 계산하게 한다
 export async function boot() {
   initReorder();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // 빠른 시작: 지난번에 받아 둔 가족 정보로 화면을 먼저 그리고(불러오는 중 없이), 서버 확인은 뒤에서 한다. 로그인이 풀렸으면 그때 로그인 화면으로 보낸다.
+  const cached = lsGet('infoCache', null);
+  if (cached?.session) {
+    S.info = cached;
+    if (!location.hash || location.hash === '#') location.hash = '#/';
+    render();
+    loadInfo().then((ok) => { if (ok) { connectStream(); startTimerManager(); syncPush(); bus.emit('refresh', ['family']); } else { disconnectStream(); go('/login'); } }).catch(() => { connectStream(); });
+    return;
+  }
   if (await loadInfo()) { connectStream(); startTimerManager(); syncPush(); }
   if (!location.hash || location.hash === '#') { if (!S.info) go('/login'); }
   render();
@@ -233,6 +223,7 @@ export async function afterLogin() {
 }
 export async function logout() {
   try { await post('/api/auth/logout', {}, { noPrompt: true }); } catch {}
+  lsSet('infoCache', null); lsSet('homeCache', null);
   S.info = null; S.actKid = null; S.elev = null; disconnectStream(); app.innerHTML = ''; go('/login'); render();
 }
 window.__app = { afterLogin, logout, go, render };

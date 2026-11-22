@@ -1,31 +1,39 @@
-// 서비스 워커: 앱 껍데기 캐시(오프라인 대비) + 푸시 알림 표시/클릭 처리
-const CACHE = 'lovefamily-shell-v7';
-const SHELL = ['/', '/styles.css', '/js/main.js', '/manifest.webmanifest', '/icons/icon-192.png'];
+// 서비스 워커: 앱 껍데기(코드·스타일)를 폰에 통째로 저장해 두고 바로 열고, 그림은 한 번 받으면 계속 쓴다. 푸시 알림 표시/클릭 처리도 한다.
+// 빌드 번호는 서버가 넣어 준다: 앱 파일이 바뀌면 번호가 바뀌고, 새 번호의 파일 묶음을 '전부' 받은 뒤에야 바꿔 끼운다(옛 코드와 새 코드가 섞이지 않는다).
+const BUILD = '__BUILD__';
+const CODE_CACHE = `lovefamily-code-${BUILD}`;
+const IMG_CACHE = 'lovefamily-img-v1'; // 그림·아이콘: 빌드가 바뀌어도 유지
 
-self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
+async function precache() {
+  const c = await caches.open(CODE_CACHE);
+  const html = await (await fetch('/', { cache: 'reload' })).text();
+  const urls = new Set(['/', '/styles.css', '/manifest.webmanifest']);
+  for (const m of html.matchAll(/href="(\/[^"]+\.js)"/g)) urls.add(m[1]);
+  await Promise.all([...urls].map(async (u) => { const r = await fetch(u, { cache: 'reload' }); if (!r.ok) throw new Error(`precache ${u} ${r.status}`); await c.put(u, r); }));
+}
+self.addEventListener('install', (e) => { e.waitUntil(precache().then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('lovefamily-') && k !== CODE_CACHE && k !== IMG_CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-// 이미지·아이콘: 캐시에 있으면 바로 보여 주고 뒤에서 새로 받아 둔다(다음에 반영). 그 밖의 앱 파일: 네트워크 우선, 3초 안에 안 오면 캐시로.
-// API 와 사진은 캐시하지 않는다(비공개 데이터).
-const put = (req, res) => { if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); } return res; };
+// API 와 사진(비공개)은 건드리지 않는다. 코드는 저장해 둔 것을 바로(네트워크 대기 없음), 그림은 저장해 둔 것을 바로 + 뒤에서 확인.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/') || url.pathname === '/sw.js') return;
   if (/^\/(assets|icons)\//.test(url.pathname)) {
-    e.respondWith(caches.match(e.request).then((hit) => {
-      const net = fetch(e.request, { cache: 'no-cache' }).then((res) => put(e.request, res)).catch(() => hit);
+    e.respondWith(caches.open(IMG_CACHE).then(async (c) => {
+      const hit = await c.match(e.request, { ignoreSearch: false });
+      const net = fetch(e.request, { cache: 'no-cache' }).then((res) => { if (res.ok) c.put(e.request, res.clone()); return res; }).catch(() => hit);
       return hit || net;
     }));
     return;
   }
-  e.respondWith(new Promise((resolve) => {
-    let done = false;
-    const fromCache = () => caches.match(e.request).then((r) => r || caches.match('/'));
-    const timer = setTimeout(() => fromCache().then((r) => { if (r && !done) { done = true; resolve(r); } }), 3000);
-    fetch(e.request).then((res) => { clearTimeout(timer); put(e.request, res); if (!done) { done = true; resolve(res); } })
-      .catch(() => { clearTimeout(timer); fromCache().then((r) => { if (!done) { done = true; resolve(r || Response.error()); } }); });
+  e.respondWith(caches.open(CODE_CACHE).then(async (c) => {
+    const key = e.request.mode === 'navigate' ? '/' : e.request;
+    const hit = await c.match(key);
+    if (hit) return hit;
+    try { const res = await fetch(e.request); if (res.ok && url.pathname !== '/') c.put(e.request, res.clone()); return res; }
+    catch { return (await c.match('/')) || Response.error(); }
   }));
 });
 

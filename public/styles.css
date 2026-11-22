@@ -699,3 +699,14 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .checks:not(.readonly) li .check-item .ci-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .checks:not(.readonly) li .item-timer { flex: none; min-height: 48px; padding: 0 12px; white-space: nowrap; }
 .checks:not(.readonly) li .check-item .ci-note { right: 8px; }
+
+/* ===== 하단 메뉴 고정: 화면 전체는 움직이지 않고, 가운데 내용만 스크롤된다(아이폰에서 끝까지 당겨도 메뉴가 같이 끌려 다니지 않게) ===== */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+#app { height: 100%; }
+.shell { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: env(safe-area-inset-top) 0 0; }
+.shell > #main { flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scroll-padding-bottom: 20px; }
+.shell > .tabs { position: relative; flex: 0 0 auto; left: auto; right: auto; bottom: auto; padding-bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 20; }
+.shell > .conn-banner { flex: 0 0 auto; }
+@media (max-height: 560px) and (orientation: landscape) { .shell > #main { padding-bottom: 14px; } }
+/* 문서 자체는 절대 스크롤되지 않게 고정(아이폰에서 끝까지 당겨도 하단 메뉴가 같이 끌려 다니지 않는다) */
+body { position: fixed; inset: 0; width: 100%; }

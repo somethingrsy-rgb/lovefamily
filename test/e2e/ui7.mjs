@@ -160,17 +160,18 @@ for (const [name, opts] of [['iPhone 가로', { ...devices['iPhone 14 landscape'
   await lp.close();
 }
 console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
-// 아이폰 앱에서 보이는 영역이 어긋나 하단 메뉴가 떠 보일 때 보이는 영역의 아래 끝에 다시 맞춘다(보이는 영역을 흉내 내서 확인)
+// 하단 메뉴는 화면 아래에 고정: 내용을 스크롤해도, 끝까지 당겨도 위치가 변하지 않는다
 {
   const vp = await (await browser.newContext({ ...devices['iPhone 14'] })).newPage();
-  await vp.addInitScript(() => { let h = 664, top = 0; Object.defineProperty(window, '__vv', { value: { set(a, b) { h = a; top = b; } } }); const real = window.visualViewport; Object.defineProperty(window, 'visualViewport', { configurable: true, get() { return { get height() { return h; }, get offsetTop() { return top; }, addEventListener() {}, removeEventListener() {}, real }; } }); });
   await vp.goto(base + '/#/login'); await vp.fill('input[name=loginId]', 'mom@t'); await vp.fill('input[name=password]', 'secret1'); await vp.click('button[type=submit]'); await vp.waitForSelector('.tabs');
-  await vp.evaluate(() => { window.__vv.set(window.innerHeight - 90, 0); window.__fixTabs(); });
-  assert.equal(await vp.$eval('.tabs', (e) => e.style.bottom), '90px', '보이는 영역이 90px 짧아지면 하단 메뉴도 그만큼 올려 맞춘다');
-  await vp.evaluate(() => { window.__vv.set(window.innerHeight, 0); window.__fixTabs(); });
-  assert.equal(await vp.$eval('.tabs', (e) => e.style.bottom), '', '정상이면 원래 위치');
+  await vp.goto(base + '/#/family'); await vp.waitForSelector('#resetall'); await vp.waitForTimeout(400);
+  const pos = () => vp.$eval('.tabs', (e) => { const r = e.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: window.innerHeight }; });
+  const p0 = await pos();
+  assert.equal(p0.bottom, p0.h, '하단 메뉴는 화면 맨 아래에 붙어 있다');
+  for (const y of [300, 1200, 99999, 0]) { await vp.evaluate((v) => { (document.querySelector('#main') || document.scrollingElement).scrollTo(0, v); window.scrollTo(0, v); }, y); await vp.waitForTimeout(150); assert.deepEqual(await pos(), p0, `스크롤(${y})해도 하단 메뉴 위치가 그대로`); }
+  assert.deepEqual(await vp.$$eval('.tabs .tab span:last-child', (e) => e.map((x) => x.textContent.trim())), ['우리집', '할일', '도장판', '가족'], '첫 탭 이름은 우리집');
   await vp.close();
-  console.log('✓ 하단 메뉴가 떠 있을 때 보이는 영역 끝으로 다시 맞춤');
+  console.log('✓ 하단 메뉴 고정(스크롤해도 안 움직임), 첫 탭 우리집');
 }
 // 활동 시작 전에 시간을 10분 단위로 줄이고 늘릴 수 있다
 {

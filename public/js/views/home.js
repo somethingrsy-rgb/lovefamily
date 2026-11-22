@@ -1,4 +1,4 @@
-import { $, $$, esc, dateLabel, timeLabel, kstParts, shortDate } from '../util.js';
+import { $, $$, esc, dateLabel, timeLabel, kstParts, shortDate, lsGet, lsSet } from '../util.js';
 import { S, get, post, put, isDevice, isAdultNow, bus, boundKid } from '../api.js';
 import { avatar, memberAvatar, toast, errToast, toastAction, openSheet, openPhoto } from '../ui.js';
 import { loadTimers } from '../timers.js';
@@ -92,7 +92,7 @@ function houseHtml(h) {
     return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${a.status ? ` · ${esc(a.status.label)}` : ''}"></button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
-    <img src="/assets/house.webp?v=2" alt="" class="house-img" width="1086" height="1448">
+    <img src="/assets/house.webp?v=3" alt="" class="house-img" width="1086" height="1448">
     <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기 (알림장)"></button>
     ${kidRooms}
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
@@ -163,6 +163,7 @@ export async function mount(el) {
     if (sig === lastSig && el.querySelector('.house')) { syncWalkers(home); return; }
     lastSig = sig;
     draw(home, ah);
+    lsSet('homeCache', { home, ah, kid: boundKid() || 0, adult: adultUser ? 1 : 0 });
   }
   function draw(h, ah) {
     const p = kstParts(h.now);
@@ -210,6 +211,8 @@ export async function mount(el) {
       try { await post('/api/notes', { text: t }); toast('남겼어요'); load(); } catch (x) { errToast(x); }
     });
   }
+  // 빠른 첫 화면: 지난번 홈 내용이 있으면 바로 그려 두고(같은 사용자 유형일 때만), 새 내용은 뒤에서 받아 바꾼다
+  { const c = lsGet('homeCache', null); if (c?.home && c.kid === (boundKid() || 0) && c.adult === (adultUser ? 1 : 0)) { try { draw(c.home, c.ah); } catch { /* 옛 형식이면 건너뛴다 */ } } }
   await load();
   timer = setInterval(() => { const c = $('#clock', el); if (c) c.textContent = timeLabel(Date.now()); }, 15000);
   return { refresh: () => { if (anyMoving()) { deferred = true; return Promise.resolve(); } return load(); }, topics: ['home', 'status', 'family', 'approvals', 'requests', 'messages', 'posts', 'notes', 'calendar', 'day', 'stamps', 'timers', 'supplies', 'famact', 'walkers'], destroy: () => clearInterval(timer) };
