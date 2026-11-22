@@ -2,8 +2,8 @@ import { $, $$, esc, DOW, SLOT, DAYSETS, daysText } from '../util.js';
 import { S, get, post, patch, del, put } from '../api.js';
 import { avatar, toast, errToast, formSheet, confirmDialog } from '../ui.js';
 
-const QUICK = [['양치하기', '🪥', 'morning'], ['책가방 싸기', '🎒', 'morning'], ['숙제하기', '📚', 'after_school'], ['씻기', '🛁', 'evening'], ['내일 옷 꺼내 두기', '👕', 'evening'], ['장난감 정리', '🧸', 'evening'], ['잠옷 입기', '👚', 'evening'], ['물 마시기', '💧', 'after_school']];
-const ICONS = ['🪥', '🎒', '📚', '🛁', '👕', '🧸', '👚', '💧', '🍽️', '🧹', '🎹', '🛏️', '🐶', '📖', '✏️', '🧦', '🥛', '🚿', '⚽', '✅'];
+const QUICK = [['성경말씀', '✝️', 'morning'], ['양치하기', '🪥', 'morning'], ['책가방 싸기', '🎒', 'morning'], ['숙제하기', '📚', 'after_school'], ['씻기', '🛁', 'evening'], ['내일 옷 꺼내 두기', '👕', 'evening'], ['장난감 정리', '🧸', 'evening'], ['잠옷 입기', '👚', 'evening'], ['물 마시기', '💧', 'after_school']];
+const ICONS = ['✝️', '🪥', '🎒', '📚', '🛁', '👕', '🧸', '👚', '💧', '🍽️', '🧹', '🎹', '🛏️', '🐶', '📖', '✏️', '🧦', '🥛', '🚿', '⚽', '✅'];
 
 const routineForm = (r = {}, { showBoth, kids, acts = [] } = {}) => `
   <label class="field">루틴 이름<input name="name" maxlength="30" value="${esc(r.name || '')}" required></label>

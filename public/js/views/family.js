@@ -66,6 +66,7 @@ export async function mount(el) {
       <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a><a class="big-btn small" href="#/family-activity"><span class="bi">🎈</span><b>가족 활동</b></a><button class="big-btn small" id="addsup"><span class="bi">🎒</span><b>준비물 직접 추가</b></button></div></section>
       ${adult ? `<section class="card page-card"><h3>⏱ 활동 설정</h3><p class="muted small">활동 이름과 기본 시간을 바꿀 수 있어요. 30분 이상 활동은 5분 전에 한 번 알려 줘요.</p><ul class="rlist">${(acts || []).map((a) => `<li><span class="ri">${esc(a.icon)}</span><div class="grow"><b>${esc(a.name)}</b><div class="small muted">기본 ${a.minutes}분</div></div><button class="btn ghost small" data-act="${a.id}">수정</button><button class="btn ghost small" data-actdel="${a.id}" aria-label="삭제">🗑</button></li>`).join('')}</ul><div class="row gap wrap"><button class="btn ghost" id="addact">+ 활동 추가</button></div>
         <label class="check"><input type="checkbox" id="tsound" ${info.family.timerSound ? 'checked' : ''}> <span>활동 알람 소리 사용 <small class="muted">(거실 iPad에서 한 번 울려요)</small></span></label>${[['ruby', '루비', '고양이'], ['crystal', '크리스탈', '고양이'], ['yeoni', '연이', '강아지']].map(([k, n, kind]) => `<label class="check"><input type="checkbox" data-pet-toggle="${k}" ${info.family.pets?.[k] !== false ? 'checked' : ''}> <span>집 그림 안에 ${n} 보이기 <small class="muted">(${kind})</small></span></label>`).join('')}</section>` : ''}
+      ${adult ? `<section class="card page-card reset-card"><h3>⚠️ 전체 리셋</h3><p class="muted small">테스트하다 쌓인 기록을 한꺼번에 지워요. <b>도장·저금통·알림장·메시지·알림·타이머·준비물·일정</b>이 모두 사라지고 되돌릴 수 없어요. <b>루틴·가족·얼굴 사진·활동 종류·설정</b>은 그대로 남아요.</p><button class="btn danger" id="resetall">🧹 전체 리셋</button></section>` : ''}
       ${adult && code ? `<section class="card page-card"><h3>가족 초대</h3><p class="muted small">어른은 각자 계정으로 같은 가족에 연결해요.</p><div class="code-box"><b id="code">${esc(code)}</b></div><div class="row gap wrap"><button class="btn primary" id="share">초대 링크 보내기</button><button class="btn ghost" id="copy">코드 복사</button><button class="btn ghost" id="rot">코드 새로 만들기</button></div></section>` : ''}
       <section class="card page-card"><h3>화면·알림 설정</h3>
         <div class="field"><span>테마</span><div class="seg">${[['auto', '자동(밤 7시~아침 7시)'], ['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
@@ -85,6 +86,15 @@ export async function mount(el) {
     $('#adultMode', el)?.addEventListener('click', async () => { if (await needAdult()) load(); });
     $('#tsound', el)?.addEventListener('change', run(() => patch('/api/family', { timerSound: $('#tsound', el).checked })));
     $$('[data-pet-toggle]', el).forEach((c) => c.addEventListener('change', run(() => patch('/api/family', { pets: { [c.dataset.petToggle]: c.checked } }))));
+    $('#resetall', el)?.addEventListener('click', async () => {
+      if (!(await needAdult())) return;
+      try {
+        const done = await formSheet({ title: '전체 리셋', submit: '모두 지우기', danger: true,
+          html: '<p class="muted">도장, 저금통 기록, 알림장, 메시지, 알림, 타이머, 준비물, 일정이 <b>모두 지워지고 되돌릴 수 없어요.</b><br>루틴·가족·활동 종류·설정은 남아요.</p><label class="field">계속하려면 <b>리셋</b> 이라고 입력하세요<input name="confirm" autocomplete="off" required></label>',
+          onSubmit: async (v) => { await post('/api/family/reset', { confirm: v.confirm }); toast('리셋했어요'); } });
+        if (done) { window.location.hash = '#/'; location.reload(); }
+      } catch (e) { errToast(e); }
+    });
     $('#addsup', el)?.addEventListener('click', () => supplySheet({}));
     $('#addact', el)?.addEventListener('click', run(() => formSheet({ title: '활동 추가', submit: '추가', html: '<label class="field">활동 이름<input name="name" maxlength="20" required></label><label class="field">아이콘<input name="icon" maxlength="4" value="⏱️"></label><label class="field">기본 시간(분)<input name="minutes" inputmode="numeric" value="30"></label>', onSubmit: (v) => post('/api/activities', { name: v.name, icon: v.icon, minutes: Number(v.minutes) }) })));
     $('#logout', el).onclick = async () => { if (await confirmDialog('로그아웃할까요?')) window.__app.logout(); };

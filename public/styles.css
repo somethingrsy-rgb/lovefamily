@@ -675,3 +675,5 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .room-time { left: auto; right: 1cqw; top: 1cqw; bottom: auto; transform: none; padding: .3cqw 1.2cqw; font-size: 2.3cqw; max-width: calc(100% - 2cqw); overflow: hidden; text-overflow: ellipsis; }
 .room-time.ended { font-size: 2.1cqw; }
 .room-time .emo { width: 2.3cqw; height: 2.3cqw; vertical-align: -.35cqw; }
+
+.min-step { margin: 8px 0; } .min-step .row { align-items: center; margin-top: 6px; } .min-now { font-size: 1.5rem; min-width: 7.5ch; text-align: center; font-variant-numeric: tabular-nums; }

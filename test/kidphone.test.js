@@ -272,3 +272,22 @@ test('활동 알림 푸시: 5분 전은 짧은 진동, 시간이 끝났을 때�
     assert.ok(end[0].payload.vibrate.length >= 5); assert.equal(end[0].payload.sticky, true);
   } finally { await f.close(); }
 });
+
+test('활동 시간: 아이도 시작할 때 10분 단위로 줄일 수 있지만 어른이 정한 오늘 남은 시간을 넘길 수 없다', async () => {
+  const f = await setup();
+  try {
+    const kid = f.ids.yuel; const url = `/api/kids/${kid}/timers`;
+    const a = Object.fromEntries((await f.mom.ok('GET', '/api/activities')).map((x) => [x.kind, x]));
+    const H = {};
+    assert.equal(a.game.minutes, 30);
+    assert.equal((await f.device.post(url, { activityId: a.game.id, minutes: 45 }, H)).status, 400, '남은 시간(30분)보다 길게는 못 한다');
+    assert.equal((await f.device.post(url, { activityId: a.game.id, minutes: 15 }, H)).status, 400, '10분 단위가 아니면 안 된다');
+    const t = await f.device.ok('POST', url, { activityId: a.game.id, minutes: 20 }, H);
+    assert.equal(t.remainingMs, 20 * 60000, '10분 줄여 20분');
+    await f.device.ok('POST', `/api/timers/${t.id}/cancel`, {}, H);
+    const b = (await f.device.ok('GET', `/api/kids/${kid}/activity-budget`, undefined, H)).find((x) => x.activityId === a.game.id);
+    assert.equal(b.leftMs, 30 * 60000, '바로 그만하면 남은 시간은 그대로');
+    const t2 = await f.device.ok('POST', url, { activityId: a.game.id, minutes: 30 }, H);
+    assert.equal(t2.remainingMs, 30 * 60000, '남은 시간 전체도 가능');
+  } finally { await f.close(); }
+});

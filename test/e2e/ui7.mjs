@@ -172,6 +172,43 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
   await vp.close();
   console.log('✓ 하단 메뉴가 떠 있을 때 보이는 영역 끝으로 다시 맞춤');
 }
+// 활동 시작 전에 시간을 10분 단위로 줄이고 늘릴 수 있다
+{
+  await call('POST', '/api/routines', { kidIds: [yuel], name: '성경말씀', icon: '✝️', days: 'daily', slot: 'morning' });
+  await page.goto(base + `/#/kid/${yuel}/timer`); await page.waitForSelector('.act-card');
+  await page.click('.act-card:has-text("게임하기")');
+  assert.match(await page.textContent('.min-now'), /30분/);
+  await page.click('#mdown');
+  assert.match(await page.textContent('.min-now'), /20분/, '− 10분');
+  await page.click('#mdown');
+  assert.equal(await page.$eval('#mdown', (e) => e.disabled), true, '10분 밑으로는 못 줄인다');
+  await page.click('#mup'); await page.click('#mup');
+  assert.equal(await page.$eval('#mup', (e) => e.disabled), true, '오늘 남은 시간(30분)보다 늘릴 수 없다');
+  await page.click('#mdown'); await page.click('#start');
+  await page.waitForSelector('.big-digits');
+  assert.match(await page.textContent('.big-digits'), /^(20:00|19:5\d)/, '20분짜리로 시작');
+  await page.click('#stop'); await page.click('[data-yes]');
+  console.log('✓ 활동 시간을 10분 단위로 줄이고 늘림(오늘 남은 시간 안에서)');
+}
+// 루틴 빠른 등록에 성경말씀(성경책 그림 아이콘)
+{
+  await page.goto(base + `/#/routines`); await page.waitForSelector('[data-q]');
+  assert.ok(await page.$('[data-q]:has-text("성경말씀")'), '빠른 추가에 성경말씀');
+  assert.ok(await page.$('[data-q]:has-text("성경말씀") img.emo[src*="bible"]'), '성경책 그림 아이콘');
+  console.log('✓ 루틴 빠른 추가: 성경말씀(성경책 아이콘)');
+}
+// 전체 리셋: 확인 글자를 써야 하고, 루틴은 남는다
+{
+  await page.goto(base + '/#/family'); await page.waitForSelector('#resetall');
+  await page.click('#resetall'); await page.waitForSelector('input[name=confirm]');
+  await page.fill('input[name=confirm]', '아니요'); await page.click('.sheet button[type=submit]');
+  await page.waitForSelector('.form-err:not([hidden])');
+  assert.ok((await call('GET', `/api/kids/${yuel}/routines`)).length >= 1);
+  await page.fill('input[name=confirm]', '리셋'); await page.click('.sheet button[type=submit]');
+  await page.waitForFunction(async (id) => (await (await fetch(`/api/kids/${id}/ledger`)).json()).entries.length === 0, yuel, { timeout: 8000 });
+  assert.ok((await call('GET', `/api/kids/${yuel}/routines`)).length >= 1, '리셋해도 루틴은 남는다');
+  console.log('✓ 전체 리셋(확인 글자 입력, 루틴은 유지)');
+}
 await browser.close(); await app.close();
 if (errors.length) { console.error('브라우저 오류:\n' + errors.join('\n')); process.exit(1); }
 console.log('UI E2E 7 통과 · 스크린샷:', shots);

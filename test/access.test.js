@@ -180,3 +180,35 @@ test('화면 배열: 어른만 바꿀 수 있고(거실 기기는 어른 확인)
     assert.deepEqual((await f.mom.ok('GET', '/api/me')).family.layout, {});
   } finally { await f.close(); }
 });
+
+test('전체 리셋: 어른만, ‘리셋’을 쳐야 하고, 루틴·가족·활동 종류·설정은 남기고 기록(도장·저금통·알림장·메시지 등)은 모두 지운다', async () => {
+  const f = await setup({ withRoutines: true });
+  try {
+    const kid = f.ids.yuel;
+    await f.completeAndRequest(kid);
+    const rid = (await f.mom.ok('GET', '/api/approvals')).pending[0].id;
+    await f.mom.ok('POST', `/api/stamp-requests/${rid}/approve`);
+    await f.addMoney(kid, 3000);
+    await f.mom.ok('POST', '/api/posts', { title: '알림장', body: 'x' });
+    await f.mom.ok('POST', '/api/notes', { text: '한마디' });
+    await f.mom.ok('PUT', '/api/layout', { layout: { tabs: ['family', 'today'] } });
+    const routinesBefore = (await f.mom.ok('GET', `/api/kids/${kid}/routines`)).length;
+    assert.ok(routinesBefore >= 2);
+    assert.equal((await f.device.post('/api/family/reset', { confirm: '리셋' })).status, 401, '어른 확인 전에는 못 한다');
+    assert.equal((await f.mom.post('/api/family/reset', {})).status, 400, '확인 글자가 없으면 거절');
+    assert.equal((await f.mom.post('/api/family/reset', { confirm: '아니요' })).status, 400);
+    assert.equal(f.core.get('SELECT COUNT(*) c FROM stamps').c, 1, '거절되면 아무것도 지워지지 않는다');
+    const r = await f.mom.ok('POST', '/api/family/reset', { confirm: '리셋' });
+    assert.equal(r.ok, true);
+    for (const t of ['stamps', 'stamp_requests', 'ledger', 'posts', 'notes', 'notifications', 'money_requests']) assert.equal(f.core.get(`SELECT COUNT(*) c FROM ${t}`).c, 0, `${t} 비움`);
+    assert.equal((await f.mom.ok('GET', `/api/kids/${kid}/wallet`)).balance, 0);
+    assert.equal((await f.mom.ok('GET', `/api/kids/${kid}/stamps`)).count, 0);
+    assert.equal((await f.mom.ok('GET', `/api/kids/${kid}/routines`)).length, routinesBefore, '루틴은 그대로');
+    const day = await f.day(kid);
+    assert.ok(day.items.length >= 1 && day.items.every((i) => !i.done), '오늘 목록은 루틴으로 새로 만들어지고 체크는 비어 있다');
+    const me = await f.mom.ok('GET', '/api/me');
+    assert.equal(me.kids.length, 2); assert.ok(me.adults.length >= 3, '가족은 그대로');
+    assert.deepEqual(me.family.layout, { tabs: ['family', 'today'] }, '화면 배열 설정은 그대로');
+    assert.ok((await f.mom.ok('GET', '/api/activities')).length >= 7, '활동 종류는 그대로');
+  } finally { await f.close(); }
+});

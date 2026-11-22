@@ -191,6 +191,7 @@ export function startTimer(core, ctx, kidId, b) {
   const adult = ctx.adultOrNull();
   // 시간 조정과 '다음 활동' 선택은 어른만
   const override = b.minutes !== undefined && adult ? money(b.minutes, '시간(분)', { min: 1, max: 240 }) : null;
+  const kidMinutes = b.minutes !== undefined && !adult ? money(b.minutes, '시간(분)', { min: 1, max: 240 }) : null; // 아이는 아래에서 '남은 시간 안에서 10분 단위로'만 허용
   const next = b.next != null ? (adult ? resolveNext(core, ctx, kidId, b.next) : (() => { ctx.adult(); })()) : resolveNext(core, ctx, kidId, null);
   return core.tx(() => {
     settleTimers(core, ctx.familyId);
@@ -208,7 +209,14 @@ export function startTimer(core, ctx, kidId, b) {
     const now = core.now();
     const left = budgetFor(core, kidId, act, now).leftMs;
     if (override == null && left <= 0) throw err(409, 'budget_used', `오늘 ${act.name} 시간은 다 썼어요. 내일 또 할 수 있어요.`);
-    const dur = override != null ? override * 60000 : left;
+    let dur = override != null ? override * 60000 : left;
+    if (kidMinutes != null) {
+      // 아이가 줄이는 것: 어른이 정한 하루 시간(오늘 남은 시간) 안에서, 10분 단위(남은 시간 전체도 가능)
+      const leftMin = Math.ceil(left / 60000);
+      const ok = kidMinutes >= Math.min(10, leftMin) && kidMinutes <= leftMin && (kidMinutes % 10 === 0 || kidMinutes === leftMin);
+      if (!ok) throw err(400, 'bad_minutes', `시간은 10분 단위로, 오늘 남은 ${leftMin}분 안에서 정할 수 있어요.`);
+      dur = kidMinutes === leftMin ? left : kidMinutes * 60000;
+    }
     const tid = core.insert(`INSERT INTO timers (family_id, kid_id, activity_id, name, icon, kind, duration_ms, started_at, ends_at, status, next_type, next_item_id, next_name, next_icon, created_at)
       VALUES (?,?,?,?,?,?,?,?,?, 'running', ?,?,?,?, ?)`, ctx.familyId, kidId, act.id, act.name, act.icon, act.kind, dur, now, now + dur, next.next_type, next.next_item_id, next.next_name, next.next_icon, now);
     core.refresh(ctx.familyId, 'timers', 'home');

@@ -96,6 +96,7 @@ const PAIRS = [
   ['🚌', 'bus'],
   ['🚗', 'car'],
   ['🐰', 'avatar-rabbit'],
+  ['✝', 'bible'],
   ['🐱', 'avatar-cat'],
 ];
 const MAP = new Map(PAIRS.map(([e, f]) => [e, f]));

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { err, text, oneOf, hashPassword, verifyPassword, randToken, randCode, sha256 } from '../util.js';
 import { ELEVATION_MS, UNLOCK_MS } from '../ctx.js';
 import { seedActivities } from './timers.js';
@@ -219,6 +221,41 @@ export function setLayout(core, ctx, b) {
   core.run('UPDATE families SET layout = ? WHERE id = ?', JSON.stringify(out), ctx.familyId);
   core.refresh(ctx.familyId, 'family', 'home');
   return { layout: out };
+}
+// ---------- 전체 리셋(어른) ----------
+// 루틴 정의·가족 구성·얼굴 사진·로그인/연결된 기기·활동 종류·설정(배열·알림 소리·고양이 등)·가족 활동 선택지는 그대로 두고,
+// 그동안 쌓인 기록(오늘 체크·도장·저금통·알림장·메시지·알림·타이머·준비물 등)을 모두 지운다. 되돌릴 수 없다.
+export const RESET_WORD = '리셋';
+export function resetFamilyData(core, ctx, b) {
+  ctx.adult();
+  if (String(b?.confirm || '').trim() !== RESET_WORD) throw err(400, 'confirm_required', `확인을 위해 ‘${RESET_WORD}’ 라고 입력해 주세요.`);
+  const fid = ctx.familyId;
+  const memberIds = core.all('SELECT id FROM members WHERE family_id = ?', fid).map((m) => m.id);
+  const kidIds = core.kids(fid).map((k) => k.id);
+  const ph = (a) => a.map(() => '?').join(',') || 'NULL';
+  const files = [];
+  core.tx(() => {
+    const byFamily = ['stamp_requests', 'stamps', 'praises', 'ledger', 'money_requests', 'settlements', 'wishes', 'missions', 'posts', 'notes', 'events', 'messages', 'notifications', 'walkers', 'timers', 'supplies', 'fam_picks', 'fam_plans'];
+    // 자식 표를 먼저(참조하는 쪽 → 참조되는 쪽)
+    if (kidIds.length) {
+      core.run(`DELETE FROM day_items WHERE day_id IN (SELECT id FROM days WHERE family_id = ?)`, fid);
+      core.run(`DELETE FROM board_rewards WHERE kid_id IN (${ph(kidIds)})`, ...kidIds);
+      core.run(`DELETE FROM goal_moves WHERE kid_id IN (${ph(kidIds)})`, ...kidIds);
+      core.run(`DELETE FROM achievements WHERE kid_id IN (${ph(kidIds)})`, ...kidIds);
+      core.run(`DELETE FROM supply_kids WHERE kid_id IN (${ph(kidIds)})`, ...kidIds);
+    }
+    core.run('DELETE FROM post_reads WHERE post_id IN (SELECT id FROM posts WHERE family_id = ?)', fid);
+    core.run('DELETE FROM supply_kids WHERE supply_id IN (SELECT id FROM supplies WHERE family_id = ?)', fid);
+    for (const t of ['stamps', 'stamp_requests']) core.run(`DELETE FROM ${t} WHERE family_id = ?`, fid);
+    core.run('DELETE FROM days WHERE family_id = ?', fid);
+    for (const t of byFamily.filter((x) => !['stamps', 'stamp_requests'].includes(x))) core.run(`DELETE FROM ${t} WHERE family_id = ?`, fid);
+    core.run(`DELETE FROM statuses WHERE member_id IN (${ph(memberIds)})`, ...memberIds);
+    // 알림장·사고 싶은 것 사진은 지우고, 얼굴(avatar) 사진은 남긴다
+    for (const ph2 of core.all("SELECT id, path FROM photos WHERE family_id = ? AND kind != 'avatar'", fid)) { files.push(ph2.path); core.run('DELETE FROM photos WHERE id = ?', ph2.id); }
+    core.refresh(fid, 'all');
+  });
+  if (core.dataDir) for (const f of files) { try { fs.unlinkSync(path.join(core.dataDir, 'photos', f)); } catch { /* 이미 없으면 넘어간다 */ } }
+  return { ok: true, photosRemoved: files.length };
 }
 export function updateFamily(core, ctx, b) {
   const adult = ctx.adult();
