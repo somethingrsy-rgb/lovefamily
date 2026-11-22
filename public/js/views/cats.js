@@ -20,7 +20,7 @@ const POSES = { ruby: ['sit', 'sleep', 'groom'], crystal: ['sit', 'sleep', 'groo
 const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' || name === 'down' ? 'jump' : name}.webp` : `/assets/cats/${id}-${name}.webp`);
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
 const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(연이는 15% 크게)
-const PLAY_GAP = 22;             // 장난칠 때 두 마리 사이 거리(집 너비 %): 고양이 한 마리 폭의 두 배쯤
+const PLAY_GAP_RATIO = 0.5;      // 장난칠 때 두 마리 사이 빈 공간 = 고양이 한 마리 폭의 이만큼(0.5 = 1/2)
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
 const MIN_X = 9, MAX_X = 91;     // 방 안쪽 범위
@@ -89,11 +89,14 @@ function tryPlay(now) {
     lastPlay.set(key, now);
     if (Math.random() > 0.6) continue;
     const left = a.x <= b.x ? a : b; const right = left === a ? b : a;
-    left.face = 1; right.face = -1;
-    // 너무 붙어서 겹치지 않게, 가운데를 기준으로 서로 PLAY_GAP 만큼 떨어져 선다(천천히 걸어서 벌어진다)
-    const mid = Math.min(Math.max((a.x + b.x) / 2, MIN_X + PLAY_GAP / 2), MAX_X - PLAY_GAP / 2);
-    left.tx = mid - PLAY_GAP / 2; right.tx = mid + PLAY_GAP / 2;
     const kind = pick(PLAYS); // 두 마리가 같은 동작으로 논다
+    left.face = 1; right.face = -1;
+    // 너무 붙어서 겹치지 않게, 가운데를 기준으로 서로 고양이 한 마리 폭의 1/2(PLAY_GAP_RATIO)만큼 비워 선다(천천히 걸어서 벌어진다)
+    // 두 마리 사이의 빈 공간 = 고양이 한 마리 폭의 1/2 (폭은 이번 장난 그림의 실제 폭). 가운데 사이 거리 = 폭 + 폭/2
+    const wOf = (c) => SHEET[`${c.id}-play-${kind}`][0] * U;
+    const avgW = (wOf(a) + wOf(b)) / 2; const dist = avgW * (1 + PLAY_GAP_RATIO);
+    const mid = Math.min(Math.max((a.x + b.x) / 2, MIN_X + dist / 2), MAX_X - dist / 2);
+    left.tx = mid - dist / 2; right.tx = mid + dist / 2;
     for (const c of [a, b]) { c.mode = 'play'; c.until = now + 6200; c.path = []; c.key = ''; c.playKind = kind; c.hop = 0; }
   }
 }

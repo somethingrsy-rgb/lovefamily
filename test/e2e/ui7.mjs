@@ -51,9 +51,10 @@ assert.deepEqual(await names(page), ['유엘', '유하'], '처음 순서');
   assert.equal(pl[0][0], 1); assert.equal(pl[1][0], -1, '서로 마주 본다');
   assert.equal(pl[0][1], pl[1][1], '두 마리가 같은 동작으로 논다');
   assert.ok(pl[0][1], '장난 동작이 정해져 있다');
-  await page.waitForTimeout(2500);
-  const gap = await page.evaluate(() => Math.abs(window.__pets[1].x - window.__pets[0].x));
-  assert.ok(gap >= 20, `장난칠 때 두 마리는 서로 떨어져 선다(간격 ${gap.toFixed(1)}%)`);
+  await page.waitForTimeout(3500);
+  // 빈 공간(눈에 보이는 그림 사이) = 고양이 한 마리 폭의 약 1/2
+  const g = await page.evaluate(() => { const [a, b] = [...document.querySelectorAll('.pet[data-pet=ruby] .pet-sp, .pet[data-pet=crystal] .pet-sp')].map((e) => e.getBoundingClientRect()).sort((x, y) => x.left - y.left); return { gap: b.left - a.right, w: (a.width + b.width) / 2 }; });
+  assert.ok(Math.abs(g.gap / g.w - 0.5) < 0.12, `빈 공간이 한 마리 폭의 1/2 (빈 공간 ${g.gap.toFixed(1)}px / 폭 ${g.w.toFixed(1)}px = ${(g.gap / g.w).toFixed(2)})`);
   assert.ok(await page.$eval('.pet[data-pet=ruby] .pet-sp', (e) => /play-/.test(e.style.backgroundImage)), '장난 그림으로 바뀐다');
   console.log('✓ 만나면 장난');
   await page.evaluate(() => { window.__pets.forEach((p) => { p.mode = 'idle'; p.until = performance.now() + 1000; }); });
