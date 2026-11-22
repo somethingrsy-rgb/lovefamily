@@ -146,7 +146,7 @@ function step(now) {
       if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2500, 5000); c.key = ''; el.classList.remove('hop'); }
       else if (now >= c.eatAt) { setLook(c, el, 'aegyo'); el.classList.add('hop'); }
     } else if (c.mode === 'garden') {
-      gardenFollow(c, el, dt);
+      gardenFollow(c, el, dt, now);
     } else if (c.mode === 'play') {
       if (now > c.until) { c.mode = 'idle'; c.pose = 'sit'; c.until = now + rnd(2000, 5000); c.key = ''; c.tx = null; el.classList.remove('hop'); }
       else if (c.playKind === 'dog') { setLook(c, el, Math.floor((now - (c.until - 6200)) / 1100) % 2 ? 'roll' : 'aegyo'); el.classList.add('hop'); }
@@ -217,19 +217,22 @@ function startWalk(c, kidId) {
   const ok = gardenWalk(kidId, WALK_MS, () => endWalk(c));
   if (!ok) return;
   if (!el) return;
-  c.mode = 'garden'; c.save = { x: c.x, y: c.y, face: c.face }; c.kid = kidId; c.key = ''; c.path = []; c.gstage = 'out';
+  c.mode = 'garden'; c.save = { x: c.x, y: c.y, face: c.face }; c.kid = kidId; c.key = ''; c.path = []; c.gstage = 'out'; c.trail = [];
   el.classList.remove('hop'); el.style.transition = 'opacity .28s ease'; el.style.opacity = '0';
   setTimeout(() => { c.x = GARDEN.door[0] - 6; c.y = GARDEN.door[1]; c.gstage = 'follow'; c.key = ''; el.style.opacity = '1'; }, 300);
 }
-function gardenFollow(c, el, dt) {
+const TRAIL_MS = 900; // 아이가 0.9초 전에 있던 자리로 따라간다(아이가 방향을 바꿔도 동물이 좌우로 흔들리지 않고, 아이가 지나간 길을 그대로 걷는다)
+function gardenFollow(c, el, dt, now) {
   if (c.gstage !== 'follow') return;
   const pos = walkerPos(c.kid); if (!pos) return;
-  const side = c.face >= 0 ? -1 : 1;
-  const tx = pos[0] + side * 7; const ty = pos[1] + 0.4;
+  const tr = (c.trail ||= []); tr.push([now, pos[0], pos[1]]);
+  while (tr.length > 2 && tr[1][0] <= now - TRAIL_MS) tr.shift();
+  const [, tx, ty] = tr[0]; // 약 0.9초 전 아이 자리
   const dx = tx - c.x; const dy = ty - c.y;
   const sp = 8 * dt; // 아이 걷는 속도(약 6.5%/초)보다 조금 빠르게 따라붙는다
-  if (Math.abs(dx) > 0.4) { c.x += Math.sign(dx) * Math.min(Math.abs(dx), sp); c.face = dx >= 0 ? 1 : -1; }
+  if (Math.abs(dx) > 0.3) c.x += Math.sign(dx) * Math.min(Math.abs(dx), sp);
   if (Math.abs(dy) > 0.2) c.y += Math.sign(dy) * Math.min(Math.abs(dy), sp);
+  if (Math.abs(dx) > 1.5) c.face = dx >= 0 ? 1 : -1; // 어느 정도 멀어졌을 때만 방향을 바꾼다(작은 떨림에는 그대로)
   setLook(c, el, c.face > 0 ? 'walkR' : 'walkL', 'walk'); // 산책 중에는 앉지 않고 계속 걷는 모습
 }
 function endWalk(c) {

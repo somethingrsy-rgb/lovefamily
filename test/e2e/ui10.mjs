@@ -47,6 +47,7 @@ await page.waitForFunction(() => window.__pets[2].mode === 'idle', null, { timeo
 
 // 3) 산책하기: 유하와 귀요미가 정원(집 아래쪽)을 약 15초 돈다
 const t0 = Date.now();
+await page.evaluate(() => { window.__fs = []; window.__fi = setInterval(() => { const c = window.__pets[2]; if (c.mode === 'garden' && c.gstage === 'follow') window.__fs.push([c.face, c.x]); }, 30); });
 await page.click(`.kid-card:nth-child(2) [data-pet-act=walk]`);
 await page.waitForFunction((id) => document.querySelector(`[data-walker="${id}"]`)?.classList.contains('moving'), yuha, { timeout: 3000 });
 await page.waitForFunction(() => window.__pets[2].mode === 'garden', null, { timeout: 3000 });
@@ -56,6 +57,9 @@ for (let i = 0; i < 6; i++) { assert.ok(await page.$eval('.pet[data-pet=yeoni] .
 assert.ok(at.wy > 80 && at.dy > 80, `정원(집 아래쪽)에 있다 (아이 ${at.wy}, 강아지 ${at.dy})`);
 assert.ok(Math.abs(at.wx - at.dx) < 14, `둘이 함께 다닌다 (간격 ${Math.abs(at.wx - at.dx).toFixed(1)}%)`);
 await page.waitForFunction((id) => !document.querySelector(`[data-walker="${id}"]`)?.classList.contains('moving'), yuha, { timeout: 20000 });
+const fs_ = await page.evaluate(() => { clearInterval(window.__fi); return window.__fs; });
+const turns = fs_.filter((v, i) => i && v[0] !== fs_[i - 1][0]).length;
+assert.ok(turns <= 6, `산책 중 동물이 좌우로 흔들리지 않는다(방향 바뀜 ${turns}번, 아이는 3~4번 돈다)`);
 const secs = (Date.now() - t0) / 1000;
 assert.ok(secs > 13 && secs < 19, `산책은 15초 안팎 (${secs.toFixed(1)}초)`);
 await page.waitForFunction(() => window.__pets[2].mode === 'idle', null, { timeout: 4000 });
