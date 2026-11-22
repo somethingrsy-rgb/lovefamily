@@ -17,22 +17,38 @@ await call('POST', '/api/auth/register', { loginId: 'mom@t', password: 'secret1'
 const me = (await call('GET', '/api/me')).body; const [yuel, yuha] = me.kids.map((k) => k.id);
 assert.equal((await call('POST', '/api/pets/act', { kidId: yuel, kind: 'fly' })).status, 400, '모르는 동작은 거절');
 
+const codeY = (await call('POST', `/api/kids/${yuel}/pair-code`)).body.code; const codeH = (await call('POST', `/api/kids/${yuha}/pair-code`)).body.code;
+// 어른(엄마 계정)은 요청 자체가 거절된다: 간식·산책은 아이 본인 폰에서만
+assert.equal((await call('POST', '/api/pets/act', { kidId: yuel, kind: 'snack' })).status, 403, '어른 계정은 누를 수 없다');
+
 const browser = await chromium.launch({ args: ['--disable-dev-shm-usage', '--disable-gpu'] });
 const errors = [];
+const kidPhone = async (code) => {
+  const pg = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
+  pg.on('pageerror', (e) => errors.push(e.message));
+  await pg.goto(base + '/#/pair'); await pg.fill('input', code); await pg.click('button[type=submit]');
+  await pg.goto(base + '/#/'); await pg.waitForSelector('.pet-bar', { timeout: 8000 }); await pg.waitForTimeout(400);
+  return pg;
+};
 const page = await (await browser.newContext({ viewport: { width: 1180, height: 820 } })).newPage();
 page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(base + '/#/login'); await page.fill('input[name=loginId]', 'mom@t'); await page.fill('input[name=password]', 'secret1'); await page.check('input[name=device]');
 await page.click('button[type=submit]'); await page.waitForSelector('.kid-card'); await page.waitForSelector('.pet'); await page.waitForTimeout(600);
 
-// 1) 아이 카드마다 [활동][간식주기][산책하기]가 한 줄
-const row = await page.$$eval('.kid-card', (cs) => cs.map((c) => [...c.querySelectorAll('.kt-idle > *')].map((b) => ({ t: b.textContent.trim(), y: Math.round(b.getBoundingClientRect().top) }))));
-for (const r of row) { assert.deepEqual(r.map((b) => b.t), ['활동', '간식주기', '산책하기'], '버튼 3개'); assert.ok(r.every((b) => b.y === r[0].y), '한 줄'); }
-assert.ok(await page.$('.kid-card .kt-pet img.emo'), '쿠키·나무 그림 아이콘');
-console.log('✓ 아이마다 활동 · 간식주기 · 산책하기 버튼');
+// 1) 어른·거실 화면에는 간식·산책 버튼이 없고, 아이 폰에는 자기 것 [간식][산책] 두 버튼만 있다
+assert.equal(await page.$('.pet-bar'), null, '거실 기기에는 버튼 없음'); assert.equal(await page.$('[data-pet-act]'), null);
+const phY = await kidPhone(codeY); const phH = await kidPhone(codeH);
+for (const ph of [phY, phH]) {
+  assert.deepEqual(await ph.$$eval('.pet-bar-btn', (e) => e.map((x) => x.textContent.trim())), ['간식', '산책']);
+  assert.ok(await ph.$('.pet-bar-btn img.emo'), '쿠키·나무 그림 아이콘');
+}
+assert.equal(await phY.$$eval('[data-pet-act]', (e) => [...new Set(e.map((x) => x.dataset.kid))].join()), String(yuel), '유엘 폰에는 유엘 것만');
+assert.equal(await phH.$$eval('[data-pet-act]', (e) => [...new Set(e.map((x) => x.dataset.kid))].join()), String(yuha), '유하 폰에는 유하 것만');
+console.log('✓ 아이 폰에만 [간식][산책] 버튼');
 
 // 2) 간식주기: 유엘 → 다이아(ruby), 쿠키가 날아가고 제자리에서 폴짝
 await page.evaluate(() => { const p = window.__pets; p.forEach((c) => { c.mode = 'idle'; c.until = performance.now() + 60000; c.pose = 'sit'; }); });
-await page.click(`.kid-card:nth-child(1) [data-pet-act=snack]`);
+await phY.click('[data-pet-act=snack]');
 await page.waitForSelector('.snack-cookie', { timeout: 3000 });
 await page.waitForFunction(() => window.__pets[0].mode === 'snack', null, { timeout: 3000 });
 await page.waitForTimeout(1300);
@@ -40,7 +56,7 @@ assert.ok(await page.$eval('.pet[data-pet=ruby]', (e) => e.classList.contains('h
 assert.ok(await page.$eval('.pet[data-pet=yeoni]', (e) => !e.classList.contains('hop')), '다른 동물은 가만히');
 await page.waitForFunction(() => window.__pets[0].mode === 'idle', null, { timeout: 6000 });
 console.log('✓ 유엘 간식 → 다이아가 쿠키 받고 제자리에서 폴짝');
-await page.click(`.kid-card:nth-child(2) [data-pet-act=snack]`);
+await phH.click('[data-pet-act=snack]');
 await page.waitForFunction(() => window.__pets[2].mode === 'snack', null, { timeout: 3000 });
 console.log('✓ 유하 간식 → 귀요미');
 await page.waitForFunction(() => window.__pets[2].mode === 'idle', null, { timeout: 6000 });
@@ -48,7 +64,7 @@ await page.waitForFunction(() => window.__pets[2].mode === 'idle', null, { timeo
 // 3) 산책하기: 유하와 귀요미가 정원(집 아래쪽)을 약 15초 돈다
 const t0 = Date.now();
 await page.evaluate(() => { window.__fs = []; window.__fi = setInterval(() => { const c = window.__pets[2]; if (c.mode === 'garden' && c.gstage === 'follow') window.__fs.push([c.face, c.x]); const L = window.__fs; if (L.length > 1) { const dx = L[L.length - 1][1] - L[L.length - 2][1]; if (Math.abs(dx) > 0.02) window.__back = (window.__back || 0) + (Math.sign(dx) !== L[L.length - 1][0] ? 1 : 0); } }, 30); });
-await page.click(`.kid-card:nth-child(2) [data-pet-act=walk]`);
+await phH.click('[data-pet-act=walk]');
 await page.waitForFunction((id) => document.querySelector(`[data-walker="${id}"]`)?.classList.contains('moving'), yuha, { timeout: 3000 });
 await page.waitForFunction(() => window.__pets[2].mode === 'garden', null, { timeout: 3000 });
 await page.waitForTimeout(4000);
