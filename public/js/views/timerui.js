@@ -47,7 +47,7 @@ export async function nextPicker(kidId) {
 // 아이 카드/오늘 화면에 쓰는 요약
 export function kidTimerHtml(kid) {
   const t = timerOf(kid.id);
-  if (!t) return `<a class="btn kt-start" href="#/kid/${kid.id}/timer">⏱ 활동</a>`;
+  if (!t) return ''; // 쉬는 중에는 카드 아래 바로가기 줄(활동 포함)을 쓴다
   if (t.state === 'ended') {
     return `<div class="kid-timer ended"><div class="kt-row"><span class="kt-alarm" aria-hidden="true">⏰</span><div class="grow"><b>${esc(t.name)} 시간이 끝났어요</b>${t.texts.nextEnd ? `<div class="small">${esc(t.texts.nextEnd)}</div>` : ''}</div><button class="btn small primary" data-dismiss="${t.id}">확인</button></div></div>`;
   }

@@ -780,3 +780,15 @@ ul + .btn, ol + .btn, ul + .row, ol + .row, .rlist + .btn, #addact { margin-top:
 .pet-bar-btn b { font-weight: 800; white-space: nowrap; }
 .pet-bar-btn .emo { width: 1.9em; height: 1.9em; }
 .pet-bar-btn:active { transform: scale(.96); }
+
+/* 아이 카드 바로가기 4칸 */
+.kid-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 2px; }
+.kid-links .kl { min-height: 70px; padding: 6px 2px; border-radius: var(--r-s, 10px); background: rgba(255, 255, 255, .85); color: #3a3252; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; text-decoration: none; text-align: center; font-size: .78rem; line-height: 1.15; min-width: 0; }
+.kid-links .kl b { font-weight: 800; }
+.kid-links .kl small { font-size: .7rem; font-weight: 700; color: var(--muted); line-height: 1; }
+.kid-links .kl .emo { width: 1.8em; height: 1.8em; }
+.kid-links .kl:active { transform: scale(.97); }
+.kid-links { gap: 6px; }
+.kid-links .kl { font-size: clamp(.66rem, 1.5vw, .78rem); word-break: keep-all; letter-spacing: -.03em; padding: 6px 1px; }
+.kid-links .kl b { white-space: nowrap; }
+.kid-links .kl b:has(br) { white-space: normal; }

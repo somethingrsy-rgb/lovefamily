@@ -28,6 +28,11 @@ function petBtns(k, i) {
   if (!boundKid() || boundKid() !== k.id || !PET_NAME[i]) return '';
   return `<div class="kid-pet-btns"><button type="button" class="pet-bar-btn" data-pet-act="snack" data-kid="${k.id}" aria-label="${PET_NAME[i]}에게 간식 주기">🍪<b>간식주기</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${PET_NAME[i]} 산책하기">🌳<b>산책하기</b></button></div>`;
 }
+// 아이 카드 아래 바로가기 4칸: 오늘 할일 · 활동 · 저금통 · 가족에게 말하기 (아이 허브 화면과 같은 순서)
+function kidLinks(k) {
+  const done = `${k.day.done}/${k.day.total}`;
+  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>오늘<br>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"><b>저금통</b></a><a class="kl" href="#/kid/${k.id}/talk">💌<b>가족에게<br>말하기</b></a></nav>`;
+}
 function kidCard(k, i) {
   const pct = k.day.total ? Math.round((k.day.done / k.day.total) * 100) : 0;
   const rem = k.day.remaining;
@@ -37,7 +42,7 @@ function kidCard(k, i) {
     ${dayBadge(k)}
     ${rem.length && k.day.status === 'open' ? `<ul class="rem-chips">${rem.slice(0, 3).map((n) => `<li>${esc(n)}</li>`).join('')}${rem.length > 3 ? `<li class="more">+${rem.length - 3}</li>` : ''}</ul>` : ''}
     <div class="stamp-mini" aria-label="도장 ${k.board.count}/${k.board.size}"><span>💮 도장 <b>${k.board.count}</b>/${k.board.size}</span><div class="bar thin"><i style="width:${(k.board.count / k.board.size) * 100}%"></i></div></div>
-  </a>${petBtns(k, i)}${kidTimerHtml(k)}</article>`;
+  </a>${petBtns(k, i)}${kidTimerHtml(k)}${kidLinks(k)}</article>`;
 }
 
 function suppliesHtml(list) {
