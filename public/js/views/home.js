@@ -31,7 +31,7 @@ function petBtns(k, i) {
 // 아이 카드 아래 바로가기 4칸: 오늘 할일 · 활동 · 저금통 · 가족에게 말하기 (아이 허브 화면과 같은 순서)
 function kidLinks(k) {
   const done = `${k.day.done}/${k.day.total}`;
-  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>오늘<br>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"><b>저금통</b></a><a class="kl" href="#/kid/${k.id}/talk">💌<b>가족에게<br>말하기</b></a></nav>`;
+  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"><b>통장</b></a><a class="kl" href="#/kid/${k.id}/talk">💌<b>메시지</b></a></nav>`;
 }
 function kidCard(k, i) {
   const pct = k.day.total ? Math.round((k.day.done / k.day.total) * 100) : 0;
