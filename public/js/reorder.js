@@ -25,6 +25,7 @@ export function applyLayout(root = document) {
   applying = true;
   try {
     root.querySelectorAll('[data-rc]').forEach((c) => {
+      if (boundKid() && c.dataset.rc === 'home.kids') return; // 아이 폰은 저장된 순서와 상관없이 본인 카드가 맨 위
       const order = lay[c.dataset.rc];
       if (!order?.length) return;
       const kids = [...c.children].filter((x) => x.dataset.rk);

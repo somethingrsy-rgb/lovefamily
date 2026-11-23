@@ -37,6 +37,8 @@ await page.click('button[type=submit]'); await page.waitForSelector('.kid-card')
 
 // 1) 어른·거실 화면에는 간식·산책 버튼이 없고, 아이 폰에는 자기 것 [간식][산책] 두 버튼만 있다
 assert.equal(await page.$('.kid-pet-btns'), null, '거실 기기에는 버튼 없음'); assert.equal(await page.$('[data-pet-act]'), null);
+// 어른이 저장한 카드 순서가 [유엘, 유하]여도, 아이 폰에서는 본인 카드가 맨 위
+await call('PUT', '/api/layout', { layout: { 'home.kids': [`k${yuel}`, `k${yuha}`] } });
 const phY = await kidPhone(codeY); const phH = await kidPhone(codeH);
 for (const ph of [phY, phH]) {
   assert.deepEqual(await ph.$$eval('.pet-bar-btn', (e) => e.map((x) => x.textContent.trim())), ['간식주기', '산책하기']);
@@ -48,6 +50,8 @@ for (const ph of [phY, phH]) {
 }
 assert.equal(await phY.$$eval('[data-pet-act]', (e) => [...new Set(e.map((x) => x.dataset.kid))].join()), String(yuel), '유엘 폰에는 유엘 것만');
 assert.equal(await phH.$$eval('[data-pet-act]', (e) => [...new Set(e.map((x) => x.dataset.kid))].join()), String(yuha), '유하 폰에는 유하 것만');
+assert.equal(await phH.$eval('.kids .kid-card:first-child', (e) => e.dataset.rk), `k${yuha}`, '유하 폰에는 유하 카드가 맨 위');
+assert.equal(await phY.$eval('.kids .kid-card:first-child', (e) => e.dataset.rk), `k${yuel}`, '유엘 폰에는 유엘 카드가 맨 위');
 console.log('✓ 아이 폰에만 [간식][산책] 버튼');
 
 // 2) 간식주기: 유엘 → 다이아(ruby), 쿠키가 날아가고 제자리에서 폴짝
