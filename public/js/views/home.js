@@ -40,12 +40,6 @@ function kidCard(k, i) {
   </a>${petBtns(k, i)}${kidTimerHtml(k)}</article>`;
 }
 
-function adultCard(a, meId, canEdit) {
-  const mine = canEdit;
-  return `<div class="adult-card" data-rk="a${a.id}" style="--kc:${esc(a.color)}">${avatar(a, 'md')}<div class="adult-info"><b>${esc(a.name)}</b><div class="adult-status">${statusLine(a.status)}</div>
-    </div></div>`;
-}
-
 function suppliesHtml(list) {
   return list.map((k) => `<div class="sup-kid" style="--kc:${esc(k.kidColor)}"><div class="sup-head">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })} <b>${esc(k.kidName)}</b></div>${k.cards.length ? k.cards.map((c) => `<div class="sup-card"><div class="small"><b>${esc(c.label)}</b> · ${c.checked}/${c.total} 챙겼어요</div>${c.allDone && !c.items.length ? '<div class="ok"><b>다 챙겼어요 ✅</b></div>' : ''}<div class="sup-chips">${c.items.map((i) => `<span class="sup-chip ${i.checked ? 'on' : ''}"><button class="sc-btn" data-sup="${i.id}" data-kid="${k.kidId}" data-checked="${i.checked ? 1 : 0}" aria-pressed="${i.checked}" aria-label="${esc(i.name)} ${i.checked ? '챙김' : '안 챙김'}">${i.checked ? '✔' : esc(i.icon)} ${esc(i.name)}</button>${i.photoUrl ? `<button class="sc-photo" data-photo="${esc(i.photoUrl)}" aria-label="알림장 사진 보기">📷</button>` : ''}</span>`).join('')}</div></div>`).join('') : '<p class="muted small">챙길 것이 없어요</p>'}</div>`).join('') || '<p class="muted">아이를 추가해 주세요</p>';
 }
@@ -177,12 +171,12 @@ export async function mount(el) {
     el.innerHTML = `<div class="home ${dev ? 'is-device' : ''}">
       <aside class="house-col">${houseHtml(h)}</aside>
       <div class="home-main" data-rc="home.sections">
-      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${(kidPhone ? [...h.kids].sort((x, y) => (y.id === boundKid()) - (x.id === boundKid())) : h.kids).map((k) => kidCard(k, h.kids.indexOf(k))).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
       ${kidPhone ? '' : `<header class="topbar" data-rk="topbar" data-section="1">
         <div class="clock"><div class="date">${dateLabel(h.today)}</div><div class="time" id="clock">${timeLabel(Date.now())}</div><div class="fam">${esc(h.family.name)}</div></div>
         ${isDevice() ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
       </header>
-      <section class="adult-row" aria-label="부모님 상태" data-rk="adults" data-section="1"><div class="adult-cards" data-rc="home.adults">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>`}
+      `}
+      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${(kidPhone ? [...h.kids].sort((x, y) => (y.id === boundKid()) - (x.id === boundKid())) : h.kids).map((k) => kidCard(k, h.kids.indexOf(k))).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
       ${ah ? `<section class="adult-panel card" aria-label="내 할 일" data-rk="panel" data-section="1">${adultPanelHtml(ah)}</section>` : ''}
       <section class="lower" data-rk="lower" data-section="1" data-rc="home.lower">
         <div class="panel card" data-rk="schedule"><h3>📅 오늘 일정</h3>${scheduleHtml(h.schedule)}</div>
@@ -219,7 +213,6 @@ export async function mount(el) {
     }));
     $('.supplies', el)?.addEventListener('click', supplyClick);
     if (ah) bindAdultPanel($('.adult-panel', el), load);
-    if (!kidPhone) bindStatus($('.adult-cards', el), load);
     $('#adultMenu', el)?.addEventListener('click', () => { location.hash = '#/adult'; });
     $('.note-form', el)?.addEventListener('submit', async (e) => {
       e.preventDefault(); const t = e.target.text.value.trim(); if (!t) return;
