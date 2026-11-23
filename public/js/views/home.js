@@ -191,7 +191,7 @@ export async function mount(el) {
       </section>
       <section class="lower2" data-rk="lower2" data-section="1" data-rc="home.lower2">
         <div class="panel card supplies" data-rk="supplies"><h3>🎒 챙길 것</h3>${suppliesHtml(h.supplies)}</div>
-        <div class="panel card famact" data-rk="famact"><h3>🎈 이번 주 가족 활동 <a class="small" href="#/family-activity">어른 관리</a></h3>${h.famActivity.kids.map((k) => `<a class="pick-line" href="#/kid/${k.kidId}/family">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></a>`).join('')}</div>
+        <div class="panel card famact" data-rk="famact"><h3>🎈 이번 주 가족 활동 ${kidPhone ? "" : `<a class="small" href="#/family-activity">어른 관리</a>`}</h3>${h.famActivity.kids.map((k) => `<a class="pick-line" href="#/kid/${k.kidId}/family">${memberAvatar(k.kidId, 'sm', { avatar: k.kidAvatar, color: k.kidColor })}<div><b>${esc(k.kidName)}</b> · ${kidLine(k)}</div></a>`).join('')}</div>
       </section></div></div>`;
     bindHouse($('.house-col', el), load, h);
     const col = $('.house-col', el);
