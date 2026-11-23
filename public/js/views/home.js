@@ -177,13 +177,13 @@ export async function mount(el) {
     el.innerHTML = `<div class="home ${dev ? 'is-device' : ''}">
       <aside class="house-col">${houseHtml(h)}</aside>
       <div class="home-main" data-rc="home.sections">
+      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${(kidPhone ? [...h.kids].sort((x, y) => (y.id === boundKid()) - (x.id === boundKid())) : h.kids).map((k) => kidCard(k, h.kids.indexOf(k))).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
       ${kidPhone ? '' : `<header class="topbar" data-rk="topbar" data-section="1">
         <div class="clock"><div class="date">${dateLabel(h.today)}</div><div class="time" id="clock">${timeLabel(Date.now())}</div><div class="fam">${esc(h.family.name)}</div></div>
         ${isDevice() ? `<button class="btn ghost adult-menu" id="adultMenu">🔑 어른 메뉴</button>` : ''}
       </header>
       <section class="adult-row" aria-label="부모님 상태" data-rk="adults" data-section="1"><div class="adult-cards" data-rc="home.adults">${h.adults.map((a) => adultCard(a, S.info.me?.id, adultUser && S.info.me?.id === a.id)).join('')}</div></section>`}
       ${ah ? `<section class="adult-panel card" aria-label="내 할 일" data-rk="panel" data-section="1">${adultPanelHtml(ah)}</section>` : ''}
-      <section class="kids" aria-label="아이들" data-rk="kids" data-section="1" data-rc="home.kids">${(kidPhone ? [...h.kids].sort((x, y) => (y.id === boundKid()) - (x.id === boundKid())) : h.kids).map((k) => kidCard(k, h.kids.indexOf(k))).join('') || '<p class="empty">아이를 추가해 주세요 (가족 탭)</p>'}</section>
       <section class="lower" data-rk="lower" data-section="1" data-rc="home.lower">
         <div class="panel card" data-rk="schedule"><h3>📅 오늘 일정</h3>${scheduleHtml(h.schedule)}</div>
         <div class="panel card" data-rk="notes"><h3>💬 가족 한마디</h3><ul class="notes">${h.notes.map((n) => `<li><span class="n-av">${memberAvatar(n.authorId, 'sm', { avatar: n.authorAvatar || '🙂', color: '#e8e0f5' })}</span><div><b>${esc(n.authorName)}</b> ${esc(n.text)}</div></li>`).join('') || '<li class="muted">첫 한마디를 남겨 보세요</li>'}</ul>
