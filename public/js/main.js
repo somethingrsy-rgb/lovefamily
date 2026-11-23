@@ -168,7 +168,7 @@ const markSeen = (id) => { seen.add(id); lsSet('seenNotifs', [...seen].slice(-20
 export async function openNotification(n) {
   if (n.url?.startsWith('/#')) go(n.url.slice(2)); else if (n.url) go(n.url);
 }
-bus.on('stamp', (ev) => { if (isDevice()) playStamp({ provider: ev.provider, key: ev.stampId }); });
+bus.on('stamp', (ev) => { if (boundKid() && ev.kidId !== boundKid()) return; if (isDevice()) playStamp({ provider: ev.provider, key: ev.stampId }); });
 // 용돈·보상이 들어오면 어느 화면에 있든 '저금통에 쏙' 모션(그 아이 폰, 거실 기기). 거실 기기에서는 금액은 가린다.
 const coinSeen = new Set();
 bus.on('coins', (ev) => {

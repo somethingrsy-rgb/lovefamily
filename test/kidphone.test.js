@@ -130,7 +130,7 @@ test('아이 폰 푸시: 그 아이에게 온 알림만 그 폰으로(잠금화�
   } finally { await f.close(); }
 });
 
-test('아이 폰은 실시간 도장 쾅 신호와 자기 알림 팝업을 받고, 형제의 활동 알림은 받지 않는다', async () => {
+test('아이 폰은 자기 도장 쾅 신호와 알림 팝업만 받고, 형제의 도장·활동 알림은 받지 않는다', async () => {
   const f = await setup();
   try {
     const A = await pairPhone(f, f.ids.yuel); const B = await pairPhone(f, f.ids.yuha);
@@ -149,7 +149,7 @@ test('아이 폰은 실시간 도장 쾅 신호와 자기 알림 팝업을 받�
     await f.mom.post(`/api/stamp-requests/${rid}/approve`);
     await new Promise((r) => setTimeout(r, 150));
     const of = (s, t) => s.ev.filter((e) => e.t === t);
-    assert.equal(of(sa, 'stamp').length, 1); assert.equal(of(sb, 'stamp').length, 1, '도장 쾅은 모두에게');
+    assert.equal(of(sa, 'stamp').length, 1, '도장 받은 아이 폰에는 도장 쾅'); assert.equal(of(sb, 'stamp').length, 0, '형제 폰에는 보내지 않는다');
     assert.equal(of(sa, 'timer').length, 1, '내 활동 종료 알림'); assert.equal(of(sb, 'timer').length, 0, '형제 활동 알림은 안 받는다');
     assert.equal(of(sa, 'notify').filter((e) => e.kind === 'stamp_approved').length, 1);
     assert.equal(of(sb, 'notify').filter((e) => e.kind === 'stamp_approved').length, 0);
