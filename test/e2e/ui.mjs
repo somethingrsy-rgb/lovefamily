@@ -91,7 +91,7 @@ await ipad.screenshot({ path: path.join(shots, '08-ipad-home-stamped.png') });
 // 저금통(아이 화면): 어른 재인증 없이 보인다
 await ipad.click('.kid-card:has-text("유엘") .kid-main'); await ipad.click('text=돼지 저금통');
 await ipad.waitForSelector('.piggy-hero');
-assert.match(await ipad.textContent('#total'), /12,000원/);
+await ipad.waitForFunction(() => /12,000원/.test(document.querySelector('#total')?.innerText || ''), null, { timeout: 8000 }); // 숫자가 올라가는 중일 수 있다
 await ipad.screenshot({ path: path.join(shots, '09-ipad-wallet.png'), fullPage: true });
 // 출금 요청(그림 버튼 + 직접 입력)
 await ipad.click('#wd');

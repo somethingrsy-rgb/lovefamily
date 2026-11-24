@@ -15,9 +15,12 @@ export async function mount(el, { id }) {
   let month = S.info.today.slice(0, 7);
   const asKid = () => isDevice() && S.actKid === Number(id);
   let lastBal = null; // 이 화면에서 마지막으로 본 잔액
+  let shown = 0; // 큰 숫자에 마지막으로 보여 준 값(여기서부터 새 잔액까지 올라간다)
+  let raf = 0;
   async function load() {
     const [w, led, reqs] = await Promise.all([get(`/api/kids/${id}/wallet`), get(`/api/kids/${id}/ledger?month=${month}`), get(`/api/kids/${id}/requests`)]);
     draw(w, led, reqs);
+    countUp(w.balance);
     // 서버에서 확정된 변화만 애니메이션으로 보여 준다
     if (asKid()) {
       // 이 화면을 열어 둔 채로 잔액이 바뀐 경우에만(그것도 실시간 신호로 이미 보여 주지 않았을 때만). 예전에 저장해 둔 잔액과 비교하면
@@ -26,12 +29,31 @@ export async function mount(el, { id }) {
       lastBal = w.balance;
     }
   }
+  // 큰 숫자가 0(또는 이전 값)에서 지금 잔액까지 올라가고, 그동안 돼지가 통통 튀며 기뻐한다
+  function countUp(to) {
+    cancelAnimationFrame(raf);
+    const t = $('#total', el); const pig = $('.piggy-img', el);
+    if (!t) return;
+    const from = shown; shown = to;
+    if (from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) { t.textContent = won(to); return; }
+    const up = to > from; const dur = Math.min(1600, 700 + Math.abs(to - from) / 40); const t0 = performance.now();
+    t.textContent = won(from); t.classList.add('counting');
+    if (up) pig?.classList.add('happy');
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / dur); const e = 1 - (1 - p) ** 3; // 처음엔 빠르게, 끝에서 천천히
+      t.textContent = won(Math.round(from + (to - from) * e));
+      if (p < 1) { raf = requestAnimationFrame(step); return; }
+      t.textContent = won(to); t.classList.remove('counting');
+      if (up) { t.classList.add('pop'); setTimeout(() => { pig?.classList.remove('happy'); t.classList.remove('pop'); }, 600); }
+    };
+    raf = requestAnimationFrame(step);
+  }
   function draw(w, led, reqs) {
     const adult = !isDevice() || isAdultNow();
     const active = reqs.filter((r) => ['pending', 'approved'].includes(r.status));
     const recent = reqs.filter((r) => ['rejected', 'canceled'].includes(r.status)).slice(0, 2);
     el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 돼지 저금통`)}
-      <section class="piggy-hero card" style="--kc:${esc(kid.color)}"><img class="piggy-img" src="/assets/money/piggy.webp" alt="" draggable="false"><div><p class="muted">내 돈</p><div class="total" id="total">${won(w.balance)}</div></div></section>
+      <section class="piggy-hero card" style="--kc:${esc(kid.color)}"><img class="piggy-img" src="/assets/money/piggy.webp" alt="" draggable="false"><div><p class="muted">내 돈</p><div class="total" id="total">${won(shown)}</div></div></section>
       <section class="money-cards"><div class="mcard"><span>지금 쓸 수 있는 돈</span><b>${won(w.available)}</b></div>
         <a class="mcard link" href="#/kid/${id}/wishes"><span>목표에 모아둔 돈</span><b>${won(w.goalSaved)}</b></a>
         ${w.waiting ? `<div class="mcard wait"><span>지급 기다리는 돈</span><b>${won(w.waiting)}</b></div>` : ''}</section>

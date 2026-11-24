@@ -814,3 +814,16 @@ h1, h2, h3 { word-break: keep-all; overflow-wrap: anywhere; }
 .page-head h1 { min-width: 0; font-size: clamp(1.15rem, 5.6vw, 1.7rem); }
 @media (max-width: 380px) { .kid-pet-btns { position: static; width: 100%; } .kid-pet-btns .pet-bar-btn { flex: 1; width: auto; min-height: 56px; flex-direction: row; justify-content: center; gap: 6px; } .kid-pet-btns .pet-bar-btn .emo { width: 1.5em; height: 1.5em; } }
 .famact h3 a.small { display: inline-block; padding: 10px 8px; margin: -10px -8px; }
+
+/* 저금통 화면: 숫자가 올라가는 동안 돼지가 통통 튀며 기뻐한다 */
+.piggy-img { transform-origin: 50% 100%; }
+.piggy-img.happy { animation: piggyjoy .55s ease-in-out infinite; will-change: transform; }
+@keyframes piggyjoy {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.06, .92); }
+  45% { transform: translate3d(0, -16px, 0) scale(.96, 1.06) rotate(-4deg); }
+  75% { transform: translate3d(0, -6px, 0) scale(1, 1) rotate(3deg); }
+}
+.total.counting { font-variant-numeric: tabular-nums; }
+.total.pop { animation: totalpop .5s ease-out; }
+@keyframes totalpop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .piggy-img.happy, .total.pop { animation: none; } }
