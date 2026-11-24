@@ -93,9 +93,9 @@ export async function adultThread(el, { kidId, adultId }) {
     const msgs = await get(`/api/threads/${kidId}/${adultId}`);
     if (msgs.some((m) => m.senderId !== Number(adultId) && !m.readAt)) post(`/api/threads/${kidId}/${adultId}/read`).catch(() => {}); // 안 읽은 게 있을 때만
     const first = !$('.chat', el);
-    morph(el, `${back('/inbox', `${avatar(kid, 'sm')} ${esc(kid.name)}와의 대화`)}<section class="chat card">${bubbles(msgs, Number(adultId))}</section>
-      <div class="phrases">${['알겠어요 😊', '곧 갈게요', '사랑해 💕', '조금만 기다려요'].map((p) => `<button class="chip" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
-      <form class="chat-form" novalidate><input name="body" maxlength="500" placeholder="답장 쓰기" autocomplete="off" aria-label="답장"><button class="btn primary">보내기</button></form>`);
+    morph(el, `${back('/', `${avatar(kid, 'sm')} ${esc(kid.name)}와의 대화`)}<section class="chat card">${bubbles(msgs, Number(adultId))}</section>
+      <div class="phrases">${['사랑해 💕', '잘했어요 👍', '곧 갈게요', '밥 먹어요', '숙제 먼저 해요', '알겠어요 😊'].map((p) => `<button class="chip" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
+      <form class="chat-form" novalidate><input name="body" maxlength="500" placeholder="${esc(kid.name)}에게 메시지 쓰기" autocomplete="off" aria-label="메시지"><button class="btn primary">보내기</button></form>`);
     const list = $('.bubbles', el); if (first || list.scrollHeight - list.scrollTop - list.clientHeight < 80) list.scrollTop = list.scrollHeight;
     const send = async (body) => { try { await post('/api/messages', { kidId: Number(kidId), adultId: Number(adultId), body }); const inp = $('.chat-form input', el); if (inp) inp.value = ''; load(); } catch (e) { errToast(e); } };
     el.onclick = (e) => { const p = e.target.closest('[data-p]'); if (p) send(p.dataset.p); };

@@ -49,6 +49,7 @@ export async function inbox(el) {
   async function load() {
     const [th, nt] = await Promise.all([get('/api/threads'), get('/api/notifications')]);
     el.innerHTML = `${back('/', '받은 편지함', nt.unread ? '<button class="btn small ghost" id="readall">모두 읽음</button>' : '')}
+      <section class="card page-card"><h3>✏️ 아이에게 메시지 보내기</h3><div class="row gap wrap">${S.info.kids.map((k) => `<a class="btn big grow" href="#/messages/${k.id}/${S.info.me?.id}">${memberAvatar(k.id, 'sm', k)} ${esc(k.name)}에게</a>`).join('')}</div></section>
       <section class="card page-card"><h3>💌 아이들 메시지</h3>${th.length ? `<ul class="threads">${th.map((t) => `<li><a href="#/messages/${t.kidId}/${t.adultId}">${memberAvatar(t.kidId, 'sm', { avatar: t.kidAvatar, color: '#e8e0f5' })}<div class="grow"><b>${esc(t.kidName)}</b><div class="small ${t.unread ? '' : 'muted'}">${esc(t.last.body.slice(0, 40))}</div></div>${t.unread ? `<span class="badge">${t.unread}</span>` : ''}<span class="muted small">${ago(t.last.at)}</span></a></li>`).join('')}</ul>` : '<p class="muted">아직 메시지가 없어요</p>'}</section>
       <section class="card page-card"><h3>🔔 알림</h3>${nt.items.length ? `<ul class="notif">${nt.items.map((n) => `<li class="${n.read ? '' : 'unread'}" data-id="${n.id}" data-url="${esc(n.url)}"><b>${esc(n.title)}</b><div class="small muted">${esc(n.body)}</div><span class="small muted">${ago(n.at)}</span></li>`).join('')}</ul>` : '<p class="muted">알림이 없어요</p>'}</section>`;
     $('#readall', el)?.addEventListener('click', async () => { await post('/api/notifications/read-all'); load(); });
