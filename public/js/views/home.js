@@ -1,4 +1,4 @@
-import { $, $$, esc, dateLabel, timeLabel, kstParts, shortDate, lsGet, lsSet } from '../util.js';
+import { $, $$, esc, dateLabel, timeLabel, kstParts, shortDate, lsGet, lsSet, houseSrc } from '../util.js';
 import { S, get, post, put, isDevice, isAdultNow, bus, boundKid } from '../api.js';
 import { avatar, memberAvatar, toast, errToast, toastAction, openSheet, openPhoto } from '../ui.js';
 import { loadTimers } from '../timers.js';
@@ -97,7 +97,7 @@ function houseHtml(h) {
     return `<button class="room adult" style="${box(ADULT_ROOM[role])}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${a.status ? ` · ${esc(a.status.label)}` : ''}"></button>`;
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
-    <img src="/assets/house.webp?v=4" alt="" class="house-img" width="1086" height="1448">
+    <img src="${houseSrc()}" alt="" class="house-img" width="1086" height="1448">
     <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기 (알림장)"></button>
     ${kidRooms}
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>

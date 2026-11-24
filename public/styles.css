@@ -827,3 +827,4 @@ h1, h2, h3 { word-break: keep-all; overflow-wrap: anywhere; }
 .total.pop { animation: totalpop .5s ease-out; }
 @keyframes totalpop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .piggy-img.happy, .total.pop { animation: none; } }
+.house-grid { grid-template-columns: repeat(2, minmax(0, 150px)); } .house-thumb { aspect-ratio: 3 / 4; background-color: transparent; background-size: contain; }
