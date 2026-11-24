@@ -17,8 +17,14 @@ body { margin: 0; font-family: var(--font); color: var(--ink); line-height: 1.45
   background: var(--bg); background-attachment: fixed; }
 body.noscroll { overflow: hidden; }
 /* 배경화면: 솜구름·별 (밝은 테마). iOS 는 background-attachment: fixed 를 무시해서 고정 레이어로 깐다. 어두운 테마는 기존 색 유지 */
-body::before { content: ''; position: fixed; inset: 0; z-index: -1; background: #e6d3cd url(/assets/bg.webp) center / cover no-repeat; pointer-events: none; }
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; background: #e6d3cd var(--wall, url(/assets/bg/cloud.webp)) center / cover no-repeat; pointer-events: none; }
 :root[data-theme=dark] body::before { display: none; }
+.wall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 10px; margin-top: 6px; }
+.wall-opt { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; } .wall-opt input { position: absolute; opacity: 0; pointer-events: none; } .wall-opt b { font-size: .85rem; }
+.wall-thumb { width: 100%; aspect-ratio: 9 / 14; border-radius: 14px; background: #eadff5 center / cover no-repeat; border: 3px solid var(--line); box-shadow: var(--shadow); }
+.wall-thumb.none { display: grid; place-items: center; background: var(--bg); }
+.wall-opt input:checked + .wall-thumb { border-color: var(--accent2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent2) 35%, transparent); }
+.wall-opt input:focus-visible + .wall-thumb { outline: 3px solid var(--accent2); outline-offset: 2px; }
 a { color: var(--accent2); text-decoration: none; }
 h1, h2, h3, h4 { margin: 0 0 .4rem; line-height: 1.25; }
 h1 { font-size: 1.5rem; } h2 { font-size: 1.25rem; } h3 { font-size: 1.05rem; }

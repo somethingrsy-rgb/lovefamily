@@ -1,4 +1,4 @@
-import { $, esc, lsGet, lsSet } from '../util.js';
+import { $, esc, lsGet, lsSet, wallPickerHtml, wallCur } from '../util.js';
 import { S, boundKid, kidById, bus } from '../api.js';
 import { avatar, toast, errToast, confirmDialog } from '../ui.js';
 import { pushState, enablePush, disablePush, testPush } from './family.js';
@@ -17,12 +17,14 @@ export async function mount(el) {
               : ps.s === 'denied' ? '<p class="muted">알림이 꺼져 있어요. 폰 설정에서 이 앱의 알림을 허용해 주세요.</p>'
                 : `<p class="muted small">${esc(ps.msg || '이 폰에서는 알림을 켤 수 없어요.')}</p>`}
       </section>
-      <section class="card page-card"><h3>화면</h3><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></section>
+      <section class="card page-card"><h3>화면</h3><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
+        <h3 style="margin-top:14px">배경화면</h3>${wallPickerHtml(wallCur())}</section>
       <section class="card page-card"><button class="btn ghost wide" id="logout">이 폰 연결 끊기</button><p class="muted small center">다시 쓰려면 어른에게 새 코드를 받아야 해요.</p></section>`;
     $('#pon', el)?.addEventListener('click', async () => { try { await enablePush(ps); toast('알림을 켰어요'); load(); } catch (e) { errToast(e); } });
     $('#poff', el)?.addEventListener('click', async () => { try { await disablePush(ps); load(); } catch (e) { errToast(e); } });
     $('#ptest', el)?.addEventListener('click', async () => { try { await testPush(); } catch (e) { errToast(e); } });
     el.querySelectorAll('input[name=theme]').forEach((r) => r.addEventListener('change', () => { lsSet('theme', r.value); bus.emit('theme'); }));
+    el.querySelectorAll('input[name=wall]').forEach((r) => r.addEventListener('change', () => { lsSet('wall', r.value); bus.emit('theme'); }));
     $('#logout', el).onclick = async () => { if (await confirmDialog('이 폰의 연결을 끊을까요?', { danger: true, yes: '끊기' })) window.__app.logout(); };
   }
   await load();
