@@ -904,7 +904,7 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 /* 지낼 방 고르기 */
 .room-pick { display: grid; gap: 6px; } .room-floor { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; } .room-floor b { min-width: 58px; font-size: .85rem; color: var(--muted); }
 .room-chip input { position: absolute; opacity: 0; pointer-events: none; } .room-chip span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card2); font-weight: 700; font-size: .9rem; }
-.room-chip input:checked + span { background: linear-gradient(135deg, #ffd5e8, #e4d6ff); border-color: var(--accent2); color: #3d2f6e; } .room-chip input:focus-visible + span { outline: 3px solid var(--accent2); }
+.room-chip input:checked + span { background: #e4d6ff; border-color: var(--accent2); color: #3d2f6e; } /* 단색 */ .room-chip input:focus-visible + span { outline: 3px solid var(--accent2); }
 /* 가족 목록: 이름 칸이 버튼에 눌려 세로로 쪼개지지 않게. 좁으면 버튼이 이름 아래 줄로 내려간다 */
 .members li { align-items: flex-start; }
 .members li > .grow { flex: 1 1 130px; min-width: 110px; word-break: keep-all; align-self: center; }
@@ -951,5 +951,7 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .room-nums .room-chip.base { grid-column: 1 / -1; }
 .room-chip.num span { flex-direction: column; justify-content: center; min-height: 54px; padding: 4px 2px; width: 100%; text-align: center; line-height: 1.15; } .room-chip.num b { font-size: 1.15rem; } .room-chip.num small { font-size: .62rem; color: var(--muted); font-weight: 700; word-break: keep-all; }
 .room-chip.num { display: block; } .room-chip.num input:checked + span small { color: inherit; }
-.room-chip.full span { opacity: .45; text-decoration: none; background: repeating-linear-gradient(135deg, var(--card2), var(--card2) 6px, var(--line) 6px, var(--line) 7px); }
+.room-chip.full span { opacity: .45; text-decoration: none; background: var(--line); }
 @media (max-width: 330px) { .room-pick2 { flex-direction: column; align-items: center; } .room-guide { width: 62%; } .room-nums { width: 100%; } }
+/* 시간표 화면의 요일별·주간표 전환 버튼도 단색 */
+.tt-seg .seg-opt input:checked + span { background: #e4d6ff; border-color: var(--accent2); color: #3d2f6e; }

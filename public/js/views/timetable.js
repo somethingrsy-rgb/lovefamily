@@ -50,7 +50,7 @@ export async function mount(el, { id }) {
 
   function draw() {
     el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 시간표`, canEdit ? '<button class="btn primary small" id="add">+ 수업 추가</button>' : '')}
-      <div class="seg wide" role="tablist"><label class="seg-opt"><input type="radio" name="v" value="today" ${view === 'today' ? 'checked' : ''}><span>요일별</span></label><label class="seg-opt"><input type="radio" name="v" value="week" ${view === 'week' ? 'checked' : ''}><span>주간표</span></label></div>
+      <div class="seg wide tt-seg" role="tablist"><label class="seg-opt"><input type="radio" name="v" value="today" ${view === 'today' ? 'checked' : ''}><span>요일별</span></label><label class="seg-opt"><input type="radio" name="v" value="week" ${view === 'week' ? 'checked' : ''}><span>주간표</span></label></div>
       ${view === 'today' ? `<div class="tt-days" role="tablist">${shownDays().map((d) => `<button type="button" class="chip ${d === day ? 'on' : ''} ${d === kstNow().dow ? 'is-today' : ''}" data-day="${d}">${DOWS[d]}</button>`).join('')}</div><section class="card page-card">${listHtml()}</section>` : `<section class="card page-card tt-wrap">${gridHtml()}</section>`}
       ${canEdit && !data.items.length ? '<p class="muted small center">+ 수업 추가로 학교·학원·방과후 시간표를 넣어 보세요. 같은 수업을 여러 요일에 한 번에 넣을 수 있어요.</p>' : ''}`;
     $$('input[name=v]', el).forEach((r) => r.addEventListener('change', () => { view = r.value; lsSet('ttview', view); draw(); }));
