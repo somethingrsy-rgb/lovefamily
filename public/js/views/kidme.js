@@ -19,7 +19,7 @@ export async function mount(el) {
                 : `<p class="muted small">${esc(ps.msg || '이 폰에서는 알림을 켤 수 없어요.')}</p>`}
       </section>
       ${PET_IDS.some(petEnabled) ? `<section class="card page-card"><h3>🐾 내 반려동물</h3><p class="muted small">내 반려동물로 고르면 홈에서 <b>간식주기·산책하기</b>를 할 수 있어요. 한 마리는 한 명만 주인이 될 수 있어요.</p>
-        <div class="pet-own-grid">${PET_IDS.filter(petEnabled).map((id) => { const o = petOwnerKidId(id); const mine = o === kid.id; const other = o && !mine ? kidById(o) : null;
+        <div class="pet-own-grid">${PET_IDS.filter(petEnabled).map((id) => { const o = petOwnerKidId(id); const mine = o === kid.id; const other = o && !mine ? ([...S.info.kids, ...S.info.adults].find((x) => x.id === o) || null) : null;
           return `<button type="button" class="pet-own ${mine ? 'mine' : ''}" data-pet-own="${id}" ${other ? 'disabled' : ''} aria-pressed="${mine}"><img src="${PET_IMG[id]}" alt="" draggable="false"><b>${esc(petLabel(id))}</b><small>${mine ? '✅ 내 반려동물 (누르면 놓아 줘요)' : other ? `${esc(other.name)}의 반려동물` : '내 반려동물로 고르기'}</small></button>`; }).join('')}</div></section>` : ''}
       <section class="card page-card"><h3>화면</h3><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
         <h3 style="margin-top:14px">배경화면</h3>${wallPickerHtml(wallCur())}</section>

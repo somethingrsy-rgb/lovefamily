@@ -360,3 +360,28 @@ test('방 선택은 어른이면 누구나(부모님 권한 없는 어른도 다
     assert.equal((await mom.ok('GET', '/api/me')).adults.find((a) => a.id === momId).homeCell, '22');
   } finally { await app.close(); }
 });
+
+test('반려동물 주인은 어른도 될 수 있다(어른이 정하고, 아이 폰은 어른을 주인으로 못 정하며, 어른을 삭제하면 주인 없음)', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm'); const gma = new Client(base, 'g');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'adultpet@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }], pets: { ruby: true, crystal: true, yeoni: true } });
+    const me = await mom.ok('GET', '/api/me'); const kid = me.kids[0].id; const momId = me.me.id;
+    await gma.ok('POST', '/api/auth/join', { code: me.family.code, loginId: 'gma@ap', password: 'secret2', role: 'grandma' });
+    const gmaId = (await gma.ok('GET', '/api/me')).me.id;
+    // 어른이 어른(엄마·할머니)을 주인으로
+    assert.equal((await mom.ok('PUT', '/api/pets/ruby/owner', { kidId: momId })).petOwners.ruby, momId);
+    assert.equal((await gma.ok('PUT', '/api/pets/crystal/owner', { kidId: gmaId })).petOwners.crystal, gmaId, '부모님 권한이 없는 어른도 정할 수 있다');
+    assert.equal((await mom.ok('GET', '/api/me')).family.petOwners.ruby, momId);
+    // 다른 가족 사람·없는 사람은 거절
+    assert.equal((await mom.call('PUT', '/api/pets/yeoni/owner', { kidId: 999999 })).status, 404);
+    // 아이 폰: 어른을 주인으로 정하거나, 어른의 동물을 가져갈 수 없다
+    const p = new Client(base, 'p'); await p.ok('POST', '/api/auth/kid-pair', { code: (await mom.ok('POST', `/api/kids/${kid}/pair-code`)).code });
+    assert.equal((await p.call('PUT', '/api/pets/yeoni/owner', { kidId: momId })).status, 403);
+    assert.equal((await p.call('PUT', '/api/pets/ruby/owner', { kidId: kid })).status, 409, '엄마의 동물');
+    assert.equal((await p.call('POST', '/api/pets/act', { kidId: kid, kind: 'snack', pet: 'ruby' })).status, 403, '어른이 주인인 동물에게 간식은 못 준다');
+    // 어른(할머니)을 삭제하면 그 동물은 주인 없음
+    assert.equal((await mom.call('DELETE', `/api/members/${gmaId}`)).status, 200);
+    assert.equal((await mom.ok('GET', '/api/me')).family.petOwners.crystal, null);
+  } finally { await app.close(); }
+});

@@ -970,3 +970,8 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 @media (min-width: 1000px) { .kid-hub .row.wrap.center .btn { font-size: .95rem; gap: .25rem; } }
 .photo-viewer .pv-close img.emo { width: 26px; height: 26px; flex: none; }
 .btn img.emo { height: 1.2em; width: auto; vertical-align: -.2em; }
+
+/* 설정 탭 '반려동물' 칸 */
+.pet-card2 { display: flex; gap: 12px; align-items: flex-start; } .pet-pic { width: 64px; height: 64px; object-fit: contain; flex: none; background: var(--card2); border-radius: 16px; padding: 4px; }
+.pet-card2 .pet-line { flex-wrap: wrap; justify-content: flex-start; } .pet-title { font-size: 1.05rem; }
+.pet-card2 .check { margin: 2px 0; min-height: 0; } .pet-card2 .pet-owner { margin: 0; padding-left: 0; } .pet-card2 .pet-owner select { min-height: 42px; }

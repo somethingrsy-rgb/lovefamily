@@ -382,6 +382,7 @@ export function removeAdult(core, ctx, memberId) {
     }
     const userId = m.user_id;
     core.run('UPDATE members SET removed = 1, user_id = NULL, is_guardian = 0 WHERE id = ?', m.id);
+    { const f = core.get('SELECT pet_owners FROM families WHERE id = ?', ctx.familyId); const o = petOwnersOf(f); let ch = false; for (const k of Object.keys(o)) if (o[k] === m.id) { o[k] = null; ch = true; } if (ch) core.run('UPDATE families SET pet_owners = ? WHERE id = ?', JSON.stringify(o), ctx.familyId); }
     core.run('DELETE FROM push_subs WHERE member_id = ?', m.id);
     core.run('DELETE FROM elevations WHERE member_id = ?', m.id);
     core.run('DELETE FROM statuses WHERE member_id = ?', m.id);
@@ -513,8 +514,9 @@ export function setPetOwner(core, ctx, petId, kidId) {
   if (!PET_IDS.includes(petId)) throw err(404, 'not_found', '반려동물을 찾을 수 없어요.');
   const fam = core.get('SELECT * FROM families WHERE id = ?', ctx.familyId);
   const owners = petOwnersOf(fam);
-  const kid = kidId == null || kidId === '' ? null : core.member(Number(kidId));
-  if (kid && (kid.family_id !== ctx.familyId || kid.kind !== 'kid' || kid.removed)) throw err(404, 'not_found', '아이를 찾을 수 없어요.');
+  const kid = kidId == null || kidId === '' ? null : core.member(Number(kidId)); // 주인은 아이 또는 어른(변수 이름만 kid)
+  if (kidId != null && kidId !== '' && (!kid || kid.family_id !== ctx.familyId || kid.removed)) throw err(404, 'not_found', '가족을 찾을 수 없어요.');
+  if (kid && kid.kind === 'adult' && ctx.boundKid) throw err(403, 'forbidden', '내 반려동물만 고를 수 있어요.');
   if (ctx.boundKid) {
     if (kid && kid.id !== ctx.boundKid) throw err(403, 'forbidden', '내 반려동물만 고를 수 있어요.');
     if (owners[petId] && owners[petId] !== ctx.boundKid) throw err(409, 'pet_taken', '다른 아이의 반려동물이에요. 어른에게 바꿔 달라고 해요.');

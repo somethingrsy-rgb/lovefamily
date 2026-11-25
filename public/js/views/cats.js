@@ -3,7 +3,7 @@
 // 층 바닥선을 걷다가 앉고·자고·털을 핥고, 기둥 통로에서는 폴짝 뛰어 다른 층으로 오간다. 누르면 애교를 부린다.
 // 사람 캐릭터처럼 정해진 위치를 서버와 맞추지는 않는다(기기마다 자기 마음대로 돌아다닌다).
 import { FLOOR_Y, PILLAR_X, COL_X, GARDEN, walkerCell, walkerPos, gardenWalk } from './walkers.js';
-import { petOwnerIdx, homeOf } from '../layout.js';
+import { petOwnerMember, homeOf } from '../layout.js';
 import { S, bus, post } from '../api.js';
 
 // 그림 시트(가로로 이어 붙인 프레임): { 너비, 높이, 프레임 수 } — public/assets/cats/*.webp
@@ -24,7 +24,7 @@ const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' 
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
 const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(귀요미는 15% 크게)
 const PLAY_GAP_RATIO = 0.25;     // 장난칠 때 두 마리 사이 빈 공간 = 고양이 한 마리 폭의 이만큼(0.25 = 1/4)
-// 주인: 동물마다 주인 아이가 가족 설정(가족 탭·아이 설정)에 저장돼 있고, layout.js 의 petOwnerIdx() 로 읽는다
+// 주인: 동물마다 주인 아이가 가족 설정(가족 탭·아이 설정)에 저장돼 있고, layout.js 의 petOwnerMember() 로 읽는다
 const OWNER_PULL = 0.55;         // 움직일 때 주인 곁으로 갈 확률
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
@@ -77,8 +77,7 @@ function warmUp(c, el) { // 걷는 두 방향 그림을 미리 만들어 둔다
 
 // ---- 주인 곁: 주인 아이가 지금 서 있는 칸(걷는 중이면 자기 방) 안쪽의 어느 자리 ----
 function ownerSpot(c) {
-  const idx = petOwnerIdx(c.id); if (idx === undefined) return null;
-  const kid = S.info?.kids?.[idx]; if (!kid) return null;
+  const kid = petOwnerMember(c.id); if (!kid) return null; // 주인(아이 또는 어른)이 서 있는 방 쪽으로
   const wc = walkerCell(kid.id); const cell = wc && !wc.moving ? wc.cell : homeOf(kid);
   const row = Number(cell[0]); const col = Number(cell[1]);
   return { row, x: Math.min(MAX_X, Math.max(MIN_X, COL_X[col] + rnd(-9, 9))) };

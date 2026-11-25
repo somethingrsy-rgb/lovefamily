@@ -41,7 +41,8 @@ export const petEnabled = (id) => (S.info?.family?.pets?.[id]) !== false;
 // 이름을 아직 안 지었으면 생김새로 부른다(예: 갈색 고양이)
 export const petLabel = (id) => (id ? S.info?.family?.petNames?.[id] || PET_DESC[id] || '' : '');
 export const petOwnerKidId = (id) => (petEnabled(id) ? S.info?.family?.petOwners?.[id] || null : null);
-export const petOwnerIdx = (id) => { const k = petOwnerKidId(id); const i = (S.info?.kids || []).findIndex((x) => x.id === k); return i >= 0 ? i : undefined; };
+// 주인(아이 또는 어른) 정보. 주인이 없거나 동물을 꺼 두었으면 null
+export const petOwnerMember = (id) => { const o = petOwnerKidId(id); return o ? [...(S.info?.kids || []), ...(S.info?.adults || [])].find((x) => x.id === o) || null : null; };
 export const petsOfKid = (kidId) => PET_IDS.filter((id) => petOwnerKidId(id) === Number(kidId));
 
 // ---- 집 그림: 각자 이 기기에서 고른 것(안 골랐으면 보라 집). 가족 전체에는 영향을 주지 않는다 ----
