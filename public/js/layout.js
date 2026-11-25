@@ -25,8 +25,10 @@ export const kidHome = (idx) => KID_HOME[Math.min(Math.max(idx, 0), KID_HOME.len
 export const adultHome = (role) => ADULT_HOME[role] || '20';
 
 // ---- 반려동물: 다이아(고양이)·크리스탈(고양이)·귀요미(강아지). 켜 둔 동물만 나온다 ----
-export const PET_NAMES = { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' };
-// 주인이 있는 동물(다이아·귀요미)은 가능하면 첫째·둘째 아이가 주인이고, 그 아이가 없으면 아직 주인 없는 아이에게 간다.
+export const DEFAULT_PET_NAMES = { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' };
+// 가족이 정한 이름(없으면 기본 이름)
+export const petLabel = (id) => (id ? S.info?.family?.petNames?.[id] || DEFAULT_PET_NAMES[id] || '' : '');
+// 주인이 있는 동물(다이아=ruby·귀요미=yeoni)은 가능하면 첫째·둘째 아이가 주인이고, 그 아이가 없으면 아직 주인 없는 아이에게 간다.
 export function petOwners() {
   const pets = S.info?.family?.pets || {}; const n = (S.info?.kids || []).length;
   const out = {}; const used = new Set();

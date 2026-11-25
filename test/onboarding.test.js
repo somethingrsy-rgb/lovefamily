@@ -133,3 +133,22 @@ test('로그인한 채 비밀번호 바꾸기 · 복구 코드 다시 만들기'
     assert.equal((await o.call('POST', '/api/auth/reset-password', { loginId: 'chg@pw', recoveryCode: nr.recoveryCode, newPassword: 'zzzzzz1' })).status, 200);
   } finally { await app.close(); }
 });
+
+test('반려동물 이름: 가입 때 정하고, 나중에 바꾸고, 비우면 기본 이름으로 돌아간다', async () => {
+  const { app, base } = await boot();
+  try {
+    const c = new Client(base, 'a');
+    await c.ok('POST', '/api/auth/register', { loginId: 'pet@x', password: 'secret1', kids: [{ name: '민', gender: 'boy' }], pets: { ruby: true, yeoni: true }, petNames: { ruby: '나비', yeoni: '  초코 ' } });
+    let f = (await c.ok('GET', '/api/me')).family;
+    assert.deepEqual(f.petNames, { ruby: '나비', crystal: '크리스탈', yeoni: '초코' });
+    f = await c.ok('PATCH', '/api/family', { petNames: { crystal: '구름이' } });
+    assert.deepEqual(f.petNames, { ruby: '나비', crystal: '구름이', yeoni: '초코' }, '보낸 것만 바뀐다');
+    f = await c.ok('PATCH', '/api/family', { petNames: { ruby: '  ' } });
+    assert.equal(f.petNames.ruby, '다이아', '비우면 기본 이름');
+    assert.equal((await c.call('PATCH', '/api/family', { petNames: { ruby: '열한글자이름입니다아아' } })).status, 400);
+    // 이름을 안 보낸 가족·예전 가족은 기본 이름
+    const d = new Client(base, 'd');
+    await d.ok('POST', '/api/auth/register', { loginId: 'pet2@x', password: 'secret1', kids: [{ name: '새', gender: 'girl' }] });
+    assert.deepEqual((await d.ok('GET', '/api/me')).family.petNames, { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' });
+  } finally { await app.close(); }
+});

@@ -9,6 +9,20 @@ export const ROLE_LABEL = { mom: '엄마', dad: '아빠', grandma: '할머니', 
 export const GENDERS = ['boy', 'girl'];
 export const HOUSES = ['pastel', 'xmas'];
 const MAX_KIDS = 6;
+export const DEFAULT_PET_NAMES = { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' };
+// 반려동물 이름: 보낸 것만 바꾸고(1~10자), 비우면 기본 이름으로 돌린다
+function petNamesOf(fam, patch = null) {
+  let cur = {};
+  try { cur = JSON.parse(fam?.pet_names || '{}') || {}; } catch { cur = {}; }
+  const out = {};
+  for (const id of Object.keys(DEFAULT_PET_NAMES)) {
+    let v = patch && patch[id] !== undefined ? patch[id] : cur[id];
+    v = typeof v === 'string' ? v.trim() : '';
+    if (v.length > 10) throw err(400, 'bad_pet_name', '반려동물 이름은 10자까지예요.');
+    out[id] = v || DEFAULT_PET_NAMES[id];
+  }
+  return out;
+}
 export const AVATARS = ['🐰', '🐱', '🐻', '🐶', '🦊', '🐼', '🐥', '🦄', '🐯', '🐸', '🐧', '🐨', '🌸', '⭐', '👧', '👦', '👩', '👨', '👵', '👴'];
 export const KID_COLORS = ['#bfe3ff', '#e4d4ff', '#ffd9e6', '#ffe9b8', '#cdeccf', '#ffd8bd'];
 const DEFAULT_ADULT = { mom: ['👩', '#ffd9e6'], dad: ['👨', '#cfe4ff'], grandma: ['👵', '#ffe9b8'], grandpa: ['👴', '#ffe9b8'], other: ['🙂', '#e8e0f5'] };
@@ -74,13 +88,14 @@ export function register(core, b) {
   const kids = cleanKids(b.kids === undefined ? DEV_DEFAULT_KIDS : b.kids);
   const house = b.house === undefined ? 'pastel' : oneOf(b.house, HOUSES, '집 그림');
   const pp = b.pets && typeof b.pets === 'object' ? b.pets : null; // 없으면(옛 호출) 모두 켜 둔다
+  const petNames = petNamesOf(null, b.petNames && typeof b.petNames === 'object' ? b.petNames : null);
   const on = (k) => (pp ? (pp[k] ? 1 : 0) : 1);
   return core.tx(() => {
     if (core.get('SELECT 1 FROM users WHERE login_id = ?', login)) throw err(409, 'login_taken', '이미 사용 중인 아이디예요.');
     const userId = core.insert('INSERT INTO users (login_id, pw_hash, created_at) VALUES (?,?,?)', login, hashPassword(b.password), core.now());
     const code = randCode(8);
     const familyId = core.insert('INSERT INTO families (name, code, created_at) VALUES (?,?,?)', famName, code, core.now());
-    core.run('UPDATE families SET show_cats = 1, show_ruby = ?, show_crystal = ?, show_dog = ?, house = ? WHERE id = ?', on('ruby'), on('crystal'), on('yeoni'), house, familyId);
+    core.run('UPDATE families SET show_cats = 1, show_ruby = ?, show_crystal = ?, show_dog = ?, house = ?, pet_names = ? WHERE id = ?', on('ruby'), on('crystal'), on('yeoni'), house, JSON.stringify(petNames), familyId);
     const memberId = addAdult(core, { familyId, userId, role, name, guardian: true });
     kids.forEach((k, i) => {
       core.insert('INSERT INTO members (family_id, kind, role, name, avatar, color, sort, gender, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
@@ -192,7 +207,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
+    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', petNames: petNamesOf(fam), showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -295,12 +310,13 @@ export function updateFamily(core, ctx, b) {
   const cats = b.showCats !== undefined ? (b.showCats ? 1 : 0) : fam.show_cats;
   const dog = b.showDog !== undefined ? (b.showDog ? 1 : 0) : fam.show_dog;
   const house = b.house !== undefined ? oneOf(b.house, HOUSES, '집 그림') : (HOUSES.includes(fam.house) ? fam.house : 'pastel');
+  const petNames = b.petNames && typeof b.petNames === 'object' ? JSON.stringify(petNamesOf(fam, b.petNames)) : fam.pet_names;
   const pp = b.pets && typeof b.pets === 'object' ? b.pets : {};
   const ruby = pp.ruby !== undefined ? (pp.ruby ? 1 : 0) : fam.show_ruby;
   const crystal = pp.crystal !== undefined ? (pp.crystal ? 1 : 0) : fam.show_crystal;
   const yeoni = pp.yeoni !== undefined ? (pp.yeoni ? 1 : 0) : dog;
   // 예전 '고양이 전체' 설정(show_cats)은 이름별 설정으로 옮겨 오므로, 이름별로 저장할 때는 켜 둔다
-  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ?, house = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, house, fam.id);
+  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ?, house = ?, pet_names = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, house, petNames, fam.id);
   void adult;
   core.refresh(ctx.familyId, 'family', 'home', 'timers');
   return me(core, ctx).family;

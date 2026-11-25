@@ -11,7 +11,7 @@ import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
 import { mountWalkers, walkPadHtml, walkerCell, anyMoving, cheer, syncWalkers } from './walkers.js';
 import { mountPets } from './cats.js';
-import { adultHome, petOfKidIdx, PET_NAMES, houseSrc } from '../layout.js';
+import { adultHome, petOfKidIdx, petLabel, houseSrc } from '../layout.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -24,7 +24,7 @@ const dayBadge = (k) => {
 };
 
 // 간식주기·산책하기는 아이 본인 폰에서만 누른다: 본인 카드의 이름 옆에 [🍪 간식주기][🌳 산책하기]. 그 아이가 주인인 동물이 있을 때만 보인다
-const petNameOf = (i) => PET_NAMES[petOfKidIdx(i)] || '';
+const petNameOf = (i) => petLabel(petOfKidIdx(i));
 function petBtns(k, i) {
   const pn = petNameOf(i);
   if (!boundKid() || boundKid() !== k.id || !pn) return '';

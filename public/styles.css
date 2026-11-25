@@ -881,3 +881,8 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .recovery-box b { font-size: 1.7rem; letter-spacing: 3px; word-break: keep-all; user-select: all; -webkit-user-select: all; }
 .recovery-note { margin: 10px 0; padding: 10px 12px; border-radius: 14px; background: var(--card2); line-height: 1.55; }
 .mono { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: 2px; }
+
+.pet-names { display: grid; gap: 6px; margin: 4px 0 8px; } .pet-names .field { margin: 0; }
+.pet-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .pet-line .check { flex: 1; min-width: 0; }
+/* 셋째 이후 아이(추가한 아이)는 같은 남자·여자 캐릭터를 조금 작게 보여 준다(발 위치는 그대로) */
+.walker.small > :not(.wk-shadow) { scale: .78; transform-origin: 50% 100%; }

@@ -87,7 +87,7 @@ function walkerHtml(p) {
     : w.moving
     ? `<div class="wk-sprite" style="background-image:url(/assets/walk/${p.key}.webp);--fw:${SPRITE[p.key]};transform:scaleX(${w.face})"></div>`
     : idleImg(p, w);
-  return `<button class="walker ${w.moving ? 'moving' : 'idle'} ${selected === p.id ? 'sel' : ''}" data-walker="${p.id}" style="left:${x}%;top:${y}%" aria-label="${esc(p.name)} ${selected === p.id ? '선택됨' : '선택하기'}" aria-pressed="${selected === p.id}">${inner}<i class="wk-shadow"></i></button>`;
+  return `<button class="walker ${w.moving ? 'moving' : 'idle'} ${selected === p.id ? 'sel' : ''} ${p.kind === 'kid' && p.idx >= 2 ? 'small' : ''}" data-walker="${p.id}" style="left:${x}%;top:${y}%" aria-label="${esc(p.name)} ${selected === p.id ? '선택됨' : '선택하기'}" aria-pressed="${selected === p.id}">${inner}<i class="wk-shadow"></i></button>`;
 }
 export const walkersLayerHtml = () => `<div class="walkers" aria-label="집 안을 걷는 가족">${P.map(walkerHtml).join('')}</div>`;
 // 도장을 받은 아이를 5초 동안 신나는 모습으로(delay: 도장 쾅 애니메이션이 끝난 뒤부터 보이게 미룰 때)

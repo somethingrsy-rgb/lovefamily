@@ -3,7 +3,7 @@
 // 층 바닥선을 걷다가 앉고·자고·털을 핥고, 기둥 통로에서는 폴짝 뛰어 다른 층으로 오간다. 누르면 애교를 부린다.
 // 사람 캐릭터처럼 정해진 위치를 서버와 맞추지는 않는다(기기마다 자기 마음대로 돌아다닌다).
 import { FLOOR_Y, PILLAR_X, COL_X, GARDEN, walkerCell, walkerPos, gardenWalk } from './walkers.js';
-import { petOwnerIdx, petOfKidIdx, PET_NAMES, kidHome } from '../layout.js';
+import { petOwnerIdx, petOfKidIdx, petLabel, kidHome } from '../layout.js';
 import { S, bus, post } from '../api.js';
 
 // 그림 시트(가로로 이어 붙인 프레임): { 너비, 높이, 프레임 수 } — public/assets/cats/*.webp
@@ -249,7 +249,7 @@ bus.on('pet', (ev) => {
   const c = petOfKid(ev.kidId); if (!c) { if (ev.kind === 'walk') gardenWalk(ev.kidId, WALK_MS); return; }
   if (ev.kind === 'snack') snack(c, ev.kidId); else startWalk(c, ev.kidId);
 });
-export const petName = (kidIdx) => PET_NAMES[petOfKidIdx(kidIdx)] || '';
+export const petName = (kidIdx) => petLabel(petOfKidIdx(kidIdx));
 
 // ---- 누르면 애교 ----
 function onTap(e) {
