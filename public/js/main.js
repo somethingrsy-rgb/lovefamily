@@ -85,7 +85,7 @@ bus.on('reloadInfo', async () => { await loadInfo(); });
 function tabsFor() {
   const k = boundKid();
   if (!k) return TABS;
-  return [['home', '/', '🏠', '우리집'], ['today', `/kid/${k}`, '✅', '내 화면'], ['stamps', `/kid/${k}/stamps`, '💮', '도장판'], ['me', '/me', '⚙️', '내 설정']];
+  return [['home', '/', '🏠', '우리집'], ['today', `/kid/${k}`, '✅', '내 화면'], ['stamps', `/kid/${k}/stamps`, '💮', '도장판'], ['bank', `/kid/${k}/wallet`, PIGGY, '통장'], ['me', '/me', '⚙️', '내 설정']];
 }
 function shell() {
   const dev = isDevice();
@@ -125,8 +125,8 @@ async function render() {
     if (S.actKid !== want) { S.actKid = want; connectStream(); }
   }
   if (!$('.shell')) shell();
-  else if (boundKid() && $$('.tab').length !== 4) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
-  const tabKey = boundKid() && match.view === home ? 'home' : (!boundKid() && match.view === wallet ? 'bank' : match.tab); // 어른·거실 기기: 아이 통장 화면에서는 통장 탭이 켜진다
+  else if (boundKid() && $$('.tab').length !== 5) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
+  const tabKey = boundKid() && match.view === home ? 'home' : (match.view === wallet ? 'bank' : match.tab); // 아이 통장 화면에서는 통장 탭이 켜진다(아이 폰·어른·거실 기기 모두)
   $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === tabKey));
   const main = $('#main');
   main.onclick = null; // 이전 화면의 눌림 처리가 새 화면에 남지 않게
