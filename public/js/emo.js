@@ -48,6 +48,7 @@ const PAIRS = [
   ['🖐', 'stamping-hand'],
   ['💬', 'speech-bubble'],
   ['⚠', 'warning'],
+  ['⚙', 'settings'],
   ['📥', 'inbox-tray'],
   ['💕', 'two-hearts'],
   ['🌳', 'park-tree'],
