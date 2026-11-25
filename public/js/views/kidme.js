@@ -1,5 +1,6 @@
 import { $, esc, lsGet, lsSet, wallPickerHtml, wallCur } from '../util.js';
-import { S, boundKid, kidById, bus } from '../api.js';
+import { S, get, put, boundKid, kidById, bus } from '../api.js';
+import { PET_IDS, PET_IMG, petEnabled, petLabel, petOwnerKidId } from '../layout.js';
 import { avatar, toast, errToast, confirmDialog } from '../ui.js';
 import { pushState, enablePush, disablePush, testPush } from './family.js';
 
@@ -17,6 +18,9 @@ export async function mount(el) {
               : ps.s === 'denied' ? '<p class="muted">알림이 꺼져 있어요. 폰 설정에서 이 앱의 알림을 허용해 주세요.</p>'
                 : `<p class="muted small">${esc(ps.msg || '이 폰에서는 알림을 켤 수 없어요.')}</p>`}
       </section>
+      ${PET_IDS.some(petEnabled) ? `<section class="card page-card"><h3>🐾 내 반려동물</h3><p class="muted small">내 반려동물로 고르면 홈에서 <b>간식주기·산책하기</b>를 할 수 있어요. 한 마리는 한 명만 주인이 될 수 있어요.</p>
+        <div class="pet-own-grid">${PET_IDS.filter(petEnabled).map((id) => { const o = petOwnerKidId(id); const mine = o === kid.id; const other = o && !mine ? kidById(o) : null;
+          return `<button type="button" class="pet-own ${mine ? 'mine' : ''}" data-pet-own="${id}" ${other ? 'disabled' : ''} aria-pressed="${mine}"><img src="${PET_IMG[id]}" alt="" draggable="false"><b>${esc(petLabel(id))}</b><small>${mine ? '✅ 내 반려동물 (누르면 놓아 줘요)' : other ? `${esc(other.name)}의 반려동물` : '내 반려동물로 고르기'}</small></button>`; }).join('')}</div></section>` : ''}
       <section class="card page-card"><h3>화면</h3><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
         <h3 style="margin-top:14px">배경화면</h3>${wallPickerHtml(wallCur())}</section>
       <section class="card page-card"><button class="btn ghost wide" id="logout">이 폰 연결 끊기</button><p class="muted small center">다시 쓰려면 어른에게 새 코드를 받아야 해요.</p></section>`;
@@ -24,6 +28,10 @@ export async function mount(el) {
     $('#poff', el)?.addEventListener('click', async () => { try { await disablePush(ps); load(); } catch (e) { errToast(e); } });
     $('#ptest', el)?.addEventListener('click', async () => { try { await testPush(); } catch (e) { errToast(e); } });
     el.querySelectorAll('input[name=theme]').forEach((r) => r.addEventListener('change', () => { lsSet('theme', r.value); bus.emit('theme'); }));
+    el.querySelectorAll('[data-pet-own]').forEach((b) => b.addEventListener('click', async () => {
+      const id = b.dataset.petOwn; const mine = petOwnerKidId(id) === kid.id;
+      try { await put(`/api/pets/${id}/owner`, { kidId: mine ? null : kid.id }); S.info = await get('/api/me'); toast(mine ? `${petLabel(id)}을(를) 놓아 줬어요` : `${petLabel(id)}은(는) 이제 내 반려동물이에요 🐾`); load(); } catch (e) { errToast(e); }
+    }));
     el.querySelectorAll('input[name=wall]').forEach((r) => r.addEventListener('change', () => { lsSet('wall', r.value); bus.emit('theme'); }));
     $('#logout', el).onclick = async () => { if (await confirmDialog('이 폰의 연결을 끊을까요?', { danger: true, yes: '끊기' })) window.__app.logout(); };
   }

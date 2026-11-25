@@ -1,9 +1,9 @@
 // 집 그림 안을 돌아다니는 반려동물: 고양이 두 마리(다이아·크리스탈)와 강아지 귀요미.
-// 다이아는 유엘이, 귀요미는 유하가 주인이라 그 아이 곁에 자주 가 있는다. 간식 주기·산책 버튼은 홈의 아이 카드에 있다.
+// 동물마다 주인 아이가 있어서(가족이 정한다) 그 아이 곁에 자주 가 있는다. 간식 주기·산책 버튼은 홈의 아이 카드에 있다.
 // 층 바닥선을 걷다가 앉고·자고·털을 핥고, 기둥 통로에서는 폴짝 뛰어 다른 층으로 오간다. 누르면 애교를 부린다.
 // 사람 캐릭터처럼 정해진 위치를 서버와 맞추지는 않는다(기기마다 자기 마음대로 돌아다닌다).
 import { FLOOR_Y, PILLAR_X, COL_X, GARDEN, walkerCell, walkerPos, gardenWalk } from './walkers.js';
-import { petOwnerIdx, petOfKidIdx, petLabel, kidHome } from '../layout.js';
+import { petOwnerIdx, homeOf } from '../layout.js';
 import { S, bus, post } from '../api.js';
 
 // 그림 시트(가로로 이어 붙인 프레임): { 너비, 높이, 프레임 수 } — public/assets/cats/*.webp
@@ -24,7 +24,7 @@ const fileOf = (id, name) => (id === 'yeoni' ? `/assets/dog/dog-${name === 'up' 
 const U = 0.07;                  // 그림 1px 이 집 그림 너비의 몇 %인지(cqw): 고양이 키가 사람의 40% 안팎
 const SCALE = { yeoni: 1.15 };   // 반려동물별 크기 배율(귀요미는 15% 크게)
 const PLAY_GAP_RATIO = 0.25;     // 장난칠 때 두 마리 사이 빈 공간 = 고양이 한 마리 폭의 이만큼(0.25 = 1/4)
-// 주인: 다이아(ruby)·귀요미(yeoni)의 주인 아이는 layout.js 의 petOwners() 가 정한다(보통 첫째·둘째, 없으면 남는 아이)
+// 주인: 동물마다 주인 아이가 가족 설정(가족 탭·아이 설정)에 저장돼 있고, layout.js 의 petOwnerIdx() 로 읽는다
 const OWNER_PULL = 0.55;         // 움직일 때 주인 곁으로 갈 확률
 const H_SPEED = 3.4;             // 가로 이동(집 너비 %/초): 느긋하게
 const V_SPEED = 8;              // 기둥을 오르내리는 속도(%/초)
@@ -79,7 +79,7 @@ function warmUp(c, el) { // 걷는 두 방향 그림을 미리 만들어 둔다
 function ownerSpot(c) {
   const idx = petOwnerIdx(c.id); if (idx === undefined) return null;
   const kid = S.info?.kids?.[idx]; if (!kid) return null;
-  const wc = walkerCell(kid.id); const cell = wc && !wc.moving ? wc.cell : kidHome(idx);
+  const wc = walkerCell(kid.id); const cell = wc && !wc.moving ? wc.cell : homeOf(kid);
   const row = Number(cell[0]); const col = Number(cell[1]);
   return { row, x: Math.min(MAX_X, Math.max(MIN_X, COL_X[col] + rnd(-9, 9))) };
 }
@@ -188,7 +188,6 @@ function step(now) {
 
 // ---- 간식 주기: 쿠키가 아이 방에서 반려동물에게 날아가고, 받은 동물은 제자리에서 신나게 폴짝 ----
 const seenAct = new Set();
-const petOfKid = (kidId) => { const idx = (S.info?.kids || []).findIndex((k) => k.id === kidId); return cats.find((c) => petOwnerIdx(c.id) === idx) || null; };
 function snack(c, kidId) {
   const layer = document.querySelector('.pets'); const el = layer?.querySelector(`[data-pet="${c.id}"]`);
   if (!el || c.mode === 'garden' || c.mode === 'snack') return;
@@ -246,10 +245,9 @@ function endWalk(c) {
 bus.on('pet', (ev) => {
   if (seenAct.has(ev.key)) return; seenAct.add(ev.key);
   if (!document.querySelector('.house .pets')) return;
-  const c = petOfKid(ev.kidId); if (!c) { if (ev.kind === 'walk') gardenWalk(ev.kidId, WALK_MS); return; }
+  const c = cats.find((x) => x.id === ev.pet) || null; if (!c) { if (ev.kind === 'walk') gardenWalk(ev.kidId, WALK_MS); return; }
   if (ev.kind === 'snack') snack(c, ev.kidId); else startWalk(c, ev.kidId);
 });
-export const petName = (kidIdx) => petLabel(petOfKidIdx(kidIdx));
 
 // ---- 누르면 애교 ----
 function onTap(e) {

@@ -9,20 +9,28 @@ export const ROLE_LABEL = { mom: '엄마', dad: '아빠', grandma: '할머니', 
 export const GENDERS = ['boy', 'girl'];
 export const HOUSES = ['pastel', 'xmas'];
 const MAX_KIDS = 6;
-export const DEFAULT_PET_NAMES = { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' };
-// 반려동물 이름: 보낸 것만 바꾸고(1~10자), 비우면 기본 이름으로 돌린다
+export const PET_IDS = ['ruby', 'crystal', 'yeoni'];
+// 반려동물 이름은 가족이 직접 지어 준다(기본 이름 없음). 보낸 것만 바꾸고(0~10자), 비우면 이름 없음
 function petNamesOf(fam, patch = null) {
   let cur = {};
   try { cur = JSON.parse(fam?.pet_names || '{}') || {}; } catch { cur = {}; }
   const out = {};
-  for (const id of Object.keys(DEFAULT_PET_NAMES)) {
+  for (const id of PET_IDS) {
     let v = patch && patch[id] !== undefined ? patch[id] : cur[id];
     v = typeof v === 'string' ? v.trim() : '';
     if (v.length > 10) throw err(400, 'bad_pet_name', '반려동물 이름은 10자까지예요.');
-    out[id] = v || DEFAULT_PET_NAMES[id];
+    out[id] = v;
   }
   return out;
 }
+// 반려동물 주인(아이 한 명): { ruby: 아이id|null, … }
+function petOwnersOf(fam) {
+  let cur = {};
+  try { cur = JSON.parse(fam?.pet_owners || '{}') || {}; } catch { cur = {}; }
+  return Object.fromEntries(PET_IDS.map((id) => [id, Number.isInteger(cur[id]) ? cur[id] : null]));
+}
+// 집 안에서 지낼 수 있는 방(칸): 거실 세 칸, 가운데층 두 방, 아래층 세 방. (12번 칸은 도장방이라 제외)
+export const HOME_CELLS = ['00', '01', '02', '10', '11', '20', '21', '22'];
 export const AVATARS = ['🐰', '🐱', '🐻', '🐶', '🦊', '🐼', '🐥', '🦄', '🐯', '🐸', '🐧', '🐨', '🌸', '⭐', '👧', '👦', '👩', '👨', '👵', '👴'];
 export const KID_COLORS = ['#bfe3ff', '#e4d4ff', '#ffd9e6', '#ffe9b8', '#cdeccf', '#ffd8bd'];
 const DEFAULT_ADULT = { mom: ['👩', '#ffd9e6'], dad: ['👨', '#cfe4ff'], grandma: ['👵', '#ffe9b8'], grandpa: ['👴', '#ffe9b8'], other: ['🙂', '#e8e0f5'] };
@@ -89,6 +97,7 @@ export function register(core, b) {
   const house = b.house === undefined ? 'pastel' : oneOf(b.house, HOUSES, '집 그림');
   const pp = b.pets && typeof b.pets === 'object' ? b.pets : null; // 없으면(옛 호출) 모두 켜 둔다
   const petNames = petNamesOf(null, b.petNames && typeof b.petNames === 'object' ? b.petNames : null);
+  const ownerIdx = b.petOwners && typeof b.petOwners === 'object' ? b.petOwners : { ruby: 0, yeoni: 1 }; // 아이 순서(0부터). 옛 호출은 첫째=ruby·둘째=yeoni
   const on = (k) => (pp ? (pp[k] ? 1 : 0) : 1);
   return core.tx(() => {
     if (core.get('SELECT 1 FROM users WHERE login_id = ?', login)) throw err(409, 'login_taken', '이미 사용 중인 아이디예요.');
@@ -101,6 +110,9 @@ export function register(core, b) {
       core.insert('INSERT INTO members (family_id, kind, role, name, avatar, color, sort, gender, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
         familyId, 'kid', 'kid', k.name, k.avatar || KID_DEFAULT_AVATAR[k.gender], k.color || KID_COLORS[i % KID_COLORS.length], i, k.gender, core.now());
     });
+    const kidIds = core.kids(familyId).map((k) => k.id);
+    const owners = Object.fromEntries(PET_IDS.map((id) => [id, Number.isInteger(ownerIdx[id]) && kidIds[ownerIdx[id]] ? kidIds[ownerIdx[id]] : null]));
+    core.run('UPDATE families SET pet_owners = ? WHERE id = ?', JSON.stringify(owners), familyId);
     seedActivities(core, familyId);
     const recoveryCode = issueRecovery(core, userId);
     return { familyId, memberId, userId, recoveryCode, familyCode: code, session: newSession(core, { familyId, kind: 'user', userId, memberId }) };
@@ -196,7 +208,7 @@ export function setKidPin(core, ctx, kidId, pin) {
 }
 
 export function publicMember(m, ctx) {
-  const o = { id: m.id, kind: m.kind, role: m.role, name: m.name, avatar: m.avatar, color: m.color, avatarUrl: m.avatar_photo_id ? `/api/photos/${m.avatar_photo_id}` : null };
+  const o = { id: m.id, kind: m.kind, role: m.role, name: m.name, avatar: m.avatar, color: m.color, avatarUrl: m.avatar_photo_id ? `/api/photos/${m.avatar_photo_id}` : null, homeCell: HOME_CELLS.includes(m.home_cell) ? m.home_cell : null };
   if (m.kind === 'adult') o.isGuardian = !!m.is_guardian;
   if (m.kind === 'kid') { o.gender = m.gender || null; o.hasPin = !!m.pin_hash; if (ctx) o.unlocked = ctx.kidUnlocked(m); }
   return o;
@@ -207,7 +219,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', petNames: petNamesOf(fam), showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
+    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', petNames: petNamesOf(fam), petOwners: petOwnersOf(fam), showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -227,6 +239,12 @@ export function updateMember(core, ctx, memberId, b) {
   const avatar = b.avatar !== undefined ? text(b.avatar, '아바타', { max: 8 }) : m.avatar;
   const color = b.color !== undefined ? (/^#[0-9a-fA-F]{6}$/.test(b.color) ? b.color : (() => { throw err(400, 'bad_color', '색 형식이 올바르지 않아요.'); })()) : m.color;
   const gender = b.gender !== undefined && m.kind === 'kid' ? oneOf(b.gender, GENDERS, '성별') : m.gender;
+  let homeCell = m.home_cell;
+  if (b.homeCell !== undefined) {
+    if (b.homeCell === null || b.homeCell === '') homeCell = null;
+    else if (HOME_CELLS.includes(b.homeCell)) homeCell = b.homeCell;
+    else throw err(400, 'bad_room', '고를 수 없는 방이에요.');
+  }
   let guardian = m.is_guardian;
   if (b.isGuardian !== undefined && m.kind === 'adult') {
     if (!adult.is_guardian) throw err(403, 'guardian_only', '부모님만 권한을 바꿀 수 있어요.');
@@ -242,7 +260,8 @@ export function updateMember(core, ctx, memberId, b) {
       photo = ph.id;
     }
   }
-  core.run('UPDATE members SET name = ?, avatar = ?, color = ?, is_guardian = ?, avatar_photo_id = ?, gender = ? WHERE id = ?', name, avatar, color, guardian, photo, gender, m.id);
+  core.run('UPDATE members SET name = ?, avatar = ?, color = ?, is_guardian = ?, avatar_photo_id = ?, gender = ?, home_cell = ? WHERE id = ?', name, avatar, color, guardian, photo, gender, homeCell, m.id);
+  if (homeCell !== m.home_cell) { core.run('DELETE FROM walkers WHERE member_id = ?', m.id); core.refresh(ctx.familyId, 'walkers'); } // 방을 옮기면 새 방으로 걸어가 선다
   core.refresh(ctx.familyId, 'family', 'home');
   return publicMember(core.member(m.id), ctx);
 }
@@ -469,4 +488,22 @@ export function newRecoveryCode(core, ctx, b, ip = '') {
   if (!user || !verifyPassword(String(b.password || ''), user.pw_hash)) { throttle(core, key, { fail: true }); throw err(401, 'bad_password', '비밀번호가 맞지 않아요.'); }
   throttle(core, key, { clear: true });
   return { recoveryCode: issueRecovery(core, user.id) };
+}
+
+// ---------- 반려동물 주인 ----------
+// 어른은 누구에게나 정해 줄 수 있고, 아이는 자기 폰에서 주인 없는 동물을 내 동물로 고르거나(내 동물은 놓아 줄 수도) 할 수 있다
+export function setPetOwner(core, ctx, petId, kidId) {
+  if (!PET_IDS.includes(petId)) throw err(404, 'not_found', '반려동물을 찾을 수 없어요.');
+  const fam = core.get('SELECT * FROM families WHERE id = ?', ctx.familyId);
+  const owners = petOwnersOf(fam);
+  const kid = kidId == null || kidId === '' ? null : core.member(Number(kidId));
+  if (kid && (kid.family_id !== ctx.familyId || kid.kind !== 'kid' || kid.removed)) throw err(404, 'not_found', '아이를 찾을 수 없어요.');
+  if (ctx.boundKid) {
+    if (kid && kid.id !== ctx.boundKid) throw err(403, 'forbidden', '내 반려동물만 고를 수 있어요.');
+    if (owners[petId] && owners[petId] !== ctx.boundKid) throw err(409, 'pet_taken', '다른 아이의 반려동물이에요. 어른에게 바꿔 달라고 해요.');
+  } else ctx.adult();
+  owners[petId] = kid ? kid.id : null;
+  core.run('UPDATE families SET pet_owners = ? WHERE id = ?', JSON.stringify(owners), fam.id);
+  core.refresh(ctx.familyId, 'family', 'home');
+  return { petOwners: owners };
 }

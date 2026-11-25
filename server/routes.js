@@ -41,7 +41,8 @@ export function buildRoutes(app) {
   add('PUT', '/api/kids/:id/pin', (c, h) => F.setKidPin(h.core, c, P(h), h.body.pin));
   add('POST', '/api/kids/:id/unlock', (c, h) => F.unlockKid(h.core, c, P(h), h.body.pin));
 
-  add('POST', '/api/pets/act', (c, h) => X.petAct(h.core, c, h.body.kidId, h.body.kind));
+  add('POST', '/api/pets/act', (c, h) => X.petAct(h.core, c, h.body.kidId, h.body.kind, h.body.pet));
+  add('PUT', '/api/pets/:pet/owner', (c, h) => F.setPetOwner(h.core, c, h.params.pet, h.body.kidId));
   add('PUT', '/api/walkers/:id', (c, h) => X.setWalker(h.core, c, P(h), h.body.cell));
   // ---- 홈 ----
   add('GET', '/api/home', (c, h) => { R.ensureToday(h.core, c.familyId); return X.home(h.core, c); });

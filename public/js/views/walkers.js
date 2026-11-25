@@ -3,7 +3,7 @@ import { S, put, isKidPhone, boundKid } from '../api.js';
 import { avatar, toast, errToast } from '../ui.js';
 import { timerOf } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
-import { kidArtKey, adultArtKey, kidHome, adultHome } from '../layout.js';
+import { kidArtKey, adultArtKey, homeOf } from '../layout.js';
 
 // ===== 건물 뼈대(집 그림 1086×1448 기준 %) =====
 // 칸은 3×3 격자: 0행=거실(왼·가운데·오른쪽), 1행=유엘방·유하방·확인방, 2행=할머니방·엄마방·아빠방.
@@ -46,10 +46,10 @@ const reduce = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').mat
 // 화면에 그릴 사람들: 아이는 가족 탭 순서대로(성별에 맞는 캐릭터), 어른은 역할에 맞는 방에 선다. 그림이 없는 역할(key=null)은 얼굴 동그라미로 그린다.
 function peopleFrom(h) {
   const out = [];
-  (h.kids || []).forEach((m, idx) => out.push({ key: kidArtKey(m.id), home: kidHome(idx), kind: 'kid', idx, id: m.id, name: m.name, member: m, status: null }));
+  (h.kids || []).forEach((m, idx) => out.push({ key: kidArtKey(m.id), home: homeOf(m), kind: 'kid', idx, id: m.id, name: m.name, member: m, status: null }));
   for (const a of S.info.adults) {
     const st = h.adults.find((x) => x.id === a.id)?.status;
-    out.push({ key: adultArtKey(a.role), home: adultHome(a.role), kind: 'adult', role: a.role, id: a.id, name: a.name, member: a, status: st?.state || null });
+    out.push({ key: adultArtKey(a.role), home: homeOf(a), kind: 'adult', role: a.role, id: a.id, name: a.name, member: a, status: st?.state || null });
   }
   return out;
 }

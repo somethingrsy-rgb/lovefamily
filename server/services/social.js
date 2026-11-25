@@ -385,12 +385,16 @@ export function adultHome(core, ctx) {
 }
 
 // ---------- 반려동물: 간식 주기 · 산책 (모든 화면에 같은 장면이 보이도록 알려 준다) ----------
-export function petAct(core, ctx, kidId, kind) {
+export function petAct(core, ctx, kidId, kind, petId) {
   if (kind !== 'snack' && kind !== 'walk') throw err(400, 'bad_kind', '알 수 없는 동작이에요.');
   const m = core.member(Number(kidId));
   if (!m || m.family_id !== ctx.familyId || m.removed || m.kind !== 'kid') throw err(404, 'not_found', '찾을 수 없어요.');
   if (!ctx.boundKid) throw err(403, 'forbidden', '아이 폰에서만 간식을 주고 산책할 수 있어요.'); // 아이 본인 폰만
   if (ctx.boundKid !== m.id) throw err(403, 'forbidden', '내 반려동물만 돌볼 수 있어요.');
-  core.hub.publish(ctx.familyId, { t: 'pet', kidId: m.id, kind, key: `pet:${m.id}:${Date.now()}` });
+  const fam = core.get('SELECT pet_owners FROM families WHERE id = ?', ctx.familyId);
+  let owners = {}; try { owners = JSON.parse(fam?.pet_owners || '{}') || {}; } catch { owners = {}; }
+  if (!['ruby', 'crystal', 'yeoni'].includes(petId)) throw err(400, 'bad_pet', '어떤 반려동물인지 알려 주세요.');
+  if (owners[petId] !== m.id) throw err(403, 'forbidden', '내 반려동물만 돌볼 수 있어요. 먼저 내 반려동물을 골라 주세요.');
+  core.hub.publish(ctx.familyId, { t: 'pet', kidId: m.id, pet: petId, kind, key: `pet:${m.id}:${Date.now()}` });
   return { ok: true };
 }

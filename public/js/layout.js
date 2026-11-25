@@ -1,4 +1,4 @@
-// 가족 구성에 따라 집·캐릭터·반려동물이 어떻게 놓일지 정하는 곳. (이름이 아니라 성별·역할·순서로만 정한다)
+// 가족 구성에 따라 집·캐릭터·반려동물이 어떻게 놓일지 정하는 곳. (이름이 아니라 성별·역할·순서·가족이 고른 값으로만 정한다)
 import { S } from './api.js';
 import { HOUSES, lsGet } from './util.js';
 
@@ -18,30 +18,34 @@ export function kidGenderOf(kidId) {
 export const kidArtKey = (kidId) => KID_ART[kidGenderOf(kidId)];
 
 // ---- 집(3×3 칸): 0행 거실 / 1행 아이방 둘 + 도장방 / 2행 어른방 셋 ----
-// 아이는 순서대로 10·11번 방, 셋째 이후는 거실에서 지낸다. 어른은 할머니·할아버지·기타=20(왼쪽), 엄마=21(가운데), 아빠=22(오른쪽).
+// 기본 방: 아이는 순서대로 10·11번 방, 셋째 이후는 거실. 어른은 할머니·할아버지·기타=20(왼쪽), 엄마=21(가운데), 아빠=22(오른쪽).
+// 구성원이 직접 고른 방(homeCell)이 있으면 그것이 먼저다.
 const KID_HOME = ['10', '11', '00', '02', '01', '01'];
 const ADULT_HOME = { grandma: '20', grandpa: '20', other: '20', mom: '21', dad: '22' };
-export const kidHome = (idx) => KID_HOME[Math.min(Math.max(idx, 0), KID_HOME.length - 1)];
-export const adultHome = (role) => ADULT_HOME[role] || '20';
+export const HOME_CELLS = ['00', '01', '02', '10', '11', '20', '21', '22'];
+// 방 고르기 화면에 보여 줄 이름 (12번 칸은 도장방이라 고를 수 없다)
+export const ROOM_OPTIONS = [
+  ['거실', [['00', '왼쪽'], ['01', '가운데'], ['02', '오른쪽']]],
+  ['가운데층', [['10', '왼쪽 방'], ['11', '가운데 방']]],
+  ['아래층', [['20', '왼쪽 방'], ['21', '가운데 방'], ['22', '오른쪽 방']]],
+];
+export const roomName = (cell) => { for (const [floor, rooms] of ROOM_OPTIONS) { const r = rooms.find(([c]) => c === cell); if (r) return `${floor} ${r[1]}`; } return ''; };
+export const defaultHomeOf = (m) => {
+  if (m.kind === 'kid') { const i = Math.max(0, (S.info?.kids || []).findIndex((k) => k.id === m.id)); return KID_HOME[Math.min(i, KID_HOME.length - 1)]; }
+  return ADULT_HOME[m.role] || '20';
+};
+export const homeOf = (m) => (HOME_CELLS.includes(m.homeCell) ? m.homeCell : defaultHomeOf(m));
 
-// ---- 반려동물: 다이아(고양이)·크리스탈(고양이)·귀요미(강아지). 켜 둔 동물만 나온다 ----
-export const DEFAULT_PET_NAMES = { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' };
-// 가족이 정한 이름(없으면 기본 이름)
-export const petLabel = (id) => (id ? S.info?.family?.petNames?.[id] || DEFAULT_PET_NAMES[id] || '' : '');
-// 주인이 있는 동물(다이아=ruby·귀요미=yeoni)은 가능하면 첫째·둘째 아이가 주인이고, 그 아이가 없으면 아직 주인 없는 아이에게 간다.
-export function petOwners() {
-  const pets = S.info?.family?.pets || {}; const n = (S.info?.kids || []).length;
-  const out = {}; const used = new Set();
-  for (const [id, pref] of [['ruby', 0], ['yeoni', 1]]) {
-    if (pets[id] === false || !n) continue;
-    let idx = pref < n && !used.has(pref) ? pref : -1;
-    if (idx < 0) for (let i = 0; i < n; i++) if (!used.has(i)) { idx = i; break; }
-    if (idx >= 0) { out[id] = idx; used.add(idx); }
-  }
-  return out;
-}
-export const petOwnerIdx = (petId) => petOwners()[petId];
-export const petOfKidIdx = (idx) => Object.keys(petOwners()).find((id) => petOwners()[id] === idx) || null;
+// ---- 반려동물: 이름은 가족이 짓고(기본 이름 없음), 주인은 아이 한 명. 켜 둔 동물만 나온다 ----
+export const PET_DESC = { ruby: '갈색 고양이', crystal: '하얀 고양이', yeoni: '강아지' };
+export const PET_IDS = ['ruby', 'crystal', 'yeoni'];
+export const PET_IMG = { ruby: '/assets/cats/ruby-sit.webp', crystal: '/assets/cats/crystal-sit.webp', yeoni: '/assets/dog/dog-sit.webp' };
+export const petEnabled = (id) => (S.info?.family?.pets?.[id]) !== false;
+// 이름을 아직 안 지었으면 생김새로 부른다(예: 갈색 고양이)
+export const petLabel = (id) => (id ? S.info?.family?.petNames?.[id] || PET_DESC[id] || '' : '');
+export const petOwnerKidId = (id) => (petEnabled(id) ? S.info?.family?.petOwners?.[id] || null : null);
+export const petOwnerIdx = (id) => { const k = petOwnerKidId(id); const i = (S.info?.kids || []).findIndex((x) => x.id === k); return i >= 0 ? i : undefined; };
+export const petsOfKid = (kidId) => PET_IDS.filter((id) => petOwnerKidId(id) === Number(kidId));
 
 // ---- 집 그림: 이 기기에서 따로 고른 것이 있으면 그것, 없으면 가족 설정(가입할 때 고른 것) ----
 export const houseCur = () => { const h = lsGet('house', null) || S.info?.family?.house; return HOUSES.some(([k]) => k === h) ? h : 'pastel'; };

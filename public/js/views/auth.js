@@ -47,11 +47,11 @@ export async function login(el) {
 // ---- 새 가족 만들기: 5단계 마법사 (계정 → 가족 → 아이 → 반려동물 → 집) ----
 const STEPS = ['계정', '가족', '아이', '반려동물', '집'];
 const MAX_WIZ_KIDS = 4;
-const PETS = [['ruby', '다이아', '갈색 고양이', '/assets/cats/ruby-sit.webp'], ['crystal', '크리스탈', '하얀 고양이', '/assets/cats/crystal-sit.webp'], ['yeoni', '귀요미', '강아지', '/assets/dog/dog-sit.webp']];
+const PETS = [['ruby', '갈색 고양이', '/assets/cats/ruby-sit.webp'], ['crystal', '하얀 고양이', '/assets/cats/crystal-sit.webp'], ['yeoni', '강아지', '/assets/dog/dog-sit.webp']];
 const HOUSE_PICKS = [['pastel', '보라 집', '/assets/house-t.webp'], ['xmas', '크리스마스 집', '/assets/house-xmas-t.webp']];
 
 export async function register(el) {
-  const W = { loginId: '', password: '', password2: '', familyName: '우리집', role: 'mom', name: '', kids: [{ name: '', gender: '' }], pets: { ruby: false, crystal: false, yeoni: false }, petNames: { ruby: '', crystal: '', yeoni: '' }, house: 'pastel' };
+  const W = { loginId: '', password: '', password2: '', familyName: '우리집', role: 'mom', name: '', kids: [{ name: '', gender: '' }], pets: { ruby: false, crystal: false, yeoni: false }, petNames: { ruby: '', crystal: '', yeoni: '' }, petOwners: { ruby: '', crystal: '', yeoni: '' }, house: 'pastel' };
   let step = 0;
   const dots = () => `<ol class="wiz-steps" aria-label="가입 단계">${STEPS.map((n, i) => `<li class="${i === step ? 'on' : i < step ? 'done' : ''}" ${i === step ? 'aria-current="step"' : ''}><i>${i < step ? '✓' : i + 1}</i><span>${n}</span></li>`).join('')}</ol>`;
   const body = () => {
@@ -70,8 +70,9 @@ export async function register(el) {
         ${i > 0 ? `<button type="button" class="btn ghost small" data-rmkid="${i}" aria-label="${i + 1}번째 아이 빼기">✕</button>` : ''}</div>`).join('')}
       ${W.kids.length < MAX_WIZ_KIDS ? '<button type="button" class="btn ghost" id="addKid">+ 아이 추가</button>' : '<p class="small muted">더 필요하면 가입한 뒤 가족 탭에서 추가할 수 있어요 (최대 6명)</p>'}`;
     if (step === 3) return `<p class="muted center">집 안을 돌아다닐 반려동물을 골라 주세요 <small>(없어도 괜찮아요)</small></p>
-      <div class="pet-pick">${PETS.map(([id, n, d, img]) => `<label class="pet-opt"><input type="checkbox" name="pet" value="${id}" ${W.pets[id] ? 'checked' : ''}><span class="pet-card"><img src="${img}" alt="" draggable="false"><b>${esc(W.petNames[id] || n)}</b><small>${d}</small></span></label>`).join('')}</div>
-      <div class="pet-names">${PETS.filter(([id]) => W.pets[id]).map(([id, n, d]) => `<label class="field">${d} 이름<input name="pn_${id}" maxlength="10" value="${esc(W.petNames[id])}" placeholder="${n}"></label>`).join('')}</div>`;
+      <div class="pet-pick">${PETS.map(([id, d, img]) => `<label class="pet-opt"><input type="checkbox" name="pet" value="${id}" ${W.pets[id] ? 'checked' : ''}><span class="pet-card"><img src="${img}" alt="" draggable="false"><b>${esc(W.petNames[id] || d)}</b><small>${W.petNames[id] ? d : '이름을 지어 주세요'}</small></span></label>`).join('')}</div>
+      <div class="pet-names">${PETS.filter(([id]) => W.pets[id]).map(([id, d]) => `<div class="pet-setup"><label class="field">${d} 이름<input name="pn_${id}" maxlength="10" value="${esc(W.petNames[id])}" placeholder="이름을 지어 주세요"></label>
+        <label class="field">주인 <small class="muted">(간식주기·산책하기를 해요)</small><select name="po_${id}"><option value="">나중에 정할게요</option>${W.kids.filter((k) => k.name).map((k, i) => `<option value="${i}" ${String(W.petOwners[id]) === String(i) ? 'selected' : ''}>${esc(k.name)}</option>`).join('')}</select></label></div>`).join('')}</div>`;
     return `<p class="muted center">우리 집 그림을 골라 주세요 <small>(나중에 바꿀 수 있어요)</small></p>
       <div class="wall-grid house-grid">${HOUSE_PICKS.map(([k, n, t]) => `<label class="wall-opt"><input type="radio" name="house" value="${k}" ${W.house === k ? 'checked' : ''}><span class="wall-thumb house-thumb" style="background-image:url(${t})"></span><b>${n}</b></label>`).join('')}</div>
       <p class="small muted center">아이는 순서대로 2층 방에, 엄마·아빠·할머니는 아래층 방에 살아요. 셋째 아이부터는 거실에서 지내요.</p>`;
@@ -84,7 +85,7 @@ export async function register(el) {
     else if (step === 2) W.kids = W.kids.map((_, i) => ({ name: g(`kname${i}`).value.trim(), gender: el.querySelector(`[name=kgender${i}]:checked`)?.value || '' }));
     else if (step === 3) {
       W.pets = { ruby: false, crystal: false, yeoni: false, ...Object.fromEntries($$('[name=pet]:checked', el).map((c) => [c.value, true])) };
-      for (const [id] of PETS) { const i = el.querySelector(`[name=pn_${id}]`); if (i) W.petNames[id] = i.value.trim(); }
+      for (const [id] of PETS) { const i = el.querySelector(`[name=pn_${id}]`); if (i) W.petNames[id] = i.value.trim(); const o = el.querySelector(`[name=po_${id}]`); if (o) W.petOwners[id] = o.value; }
     }
     else W.house = el.querySelector('[name=house]:checked')?.value || 'pastel';
   };
@@ -100,6 +101,7 @@ export async function register(el) {
       if (!named.length) return '아이 이름을 한 명 이상 적어 주세요.';
       if (named.some((k) => !k.gender)) return '아이의 성별을 골라 주세요.';
     }
+    if (step === 3) { const miss = PETS.find(([id]) => W.pets[id] && !W.petNames[id]); if (miss) return `${miss[1]}의 이름을 지어 주세요.`; }
     return '';
   };
   function render() {
@@ -118,7 +120,7 @@ export async function register(el) {
       const btn = $('button[type=submit]', el); btn.disabled = true; err.hidden = true;
       try {
         const kids = W.kids.filter((k) => k.name);
-        const r = await post('/api/auth/register', { loginId: W.loginId, password: W.password, role: W.role, name: W.name || undefined, familyName: W.familyName, kids, pets: W.pets, petNames: Object.fromEntries(Object.entries(W.petNames).filter(([id]) => W.pets[id])), house: W.house });
+        const r = await post('/api/auth/register', { loginId: W.loginId, password: W.password, role: W.role, name: W.name || undefined, familyName: W.familyName, kids, pets: W.pets, petNames: Object.fromEntries(Object.entries(W.petNames).filter(([id]) => W.pets[id])), petOwners: Object.fromEntries(Object.entries(W.petOwners).filter(([id, v]) => W.pets[id] && v !== '').map(([id, v]) => [id, Number(v)])), house: W.house });
         recoveryScreen(el, { code: r.recoveryCode, familyCode: r.familyCode, title: '가족이 만들어졌어요 🎉', lead: '마지막으로, <b>복구 코드</b>를 꼭 저장해 주세요.', button: '우리집 시작하기', onDone: () => window.__app.afterLogin() });
       } catch (x) {
         err.textContent = errText(x); err.hidden = false; btn.disabled = false;

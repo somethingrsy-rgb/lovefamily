@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createApp } from '../server/app.js';
 import { Client } from './helpers.js';
+import { openDb } from '../server/db.js';
 
 async function boot() {
   const app = createApp({ dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'lf-onb-')) });
@@ -134,21 +135,82 @@ test('로그인한 채 비밀번호 바꾸기 · 복구 코드 다시 만들기'
   } finally { await app.close(); }
 });
 
-test('반려동물 이름: 가입 때 정하고, 나중에 바꾸고, 비우면 기본 이름으로 돌아간다', async () => {
+test('반려동물 이름: 기본 이름 없이 가족이 짓고, 나중에 바꾸고, 비우면 이름 없음', async () => {
   const { app, base } = await boot();
   try {
     const c = new Client(base, 'a');
     await c.ok('POST', '/api/auth/register', { loginId: 'pet@x', password: 'secret1', kids: [{ name: '민', gender: 'boy' }], pets: { ruby: true, yeoni: true }, petNames: { ruby: '나비', yeoni: '  초코 ' } });
     let f = (await c.ok('GET', '/api/me')).family;
-    assert.deepEqual(f.petNames, { ruby: '나비', crystal: '크리스탈', yeoni: '초코' });
+    assert.deepEqual(f.petNames, { ruby: '나비', crystal: '', yeoni: '초코' });
     f = await c.ok('PATCH', '/api/family', { petNames: { crystal: '구름이' } });
     assert.deepEqual(f.petNames, { ruby: '나비', crystal: '구름이', yeoni: '초코' }, '보낸 것만 바뀐다');
     f = await c.ok('PATCH', '/api/family', { petNames: { ruby: '  ' } });
-    assert.equal(f.petNames.ruby, '다이아', '비우면 기본 이름');
+    assert.equal(f.petNames.ruby, '', '비우면 이름 없음(화면에서는 고양이/강아지로 보인다)');
     assert.equal((await c.call('PATCH', '/api/family', { petNames: { ruby: '열한글자이름입니다아아' } })).status, 400);
-    // 이름을 안 보낸 가족·예전 가족은 기본 이름
     const d = new Client(base, 'd');
     await d.ok('POST', '/api/auth/register', { loginId: 'pet2@x', password: 'secret1', kids: [{ name: '새', gender: 'girl' }] });
-    assert.deepEqual((await d.ok('GET', '/api/me')).family.petNames, { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' });
+    assert.deepEqual((await d.ok('GET', '/api/me')).family.petNames, { ruby: '', crystal: '', yeoni: '' });
+  } finally { await app.close(); }
+});
+
+test('반려동물 주인: 가입 때 정하고, 어른은 바꾸고, 아이는 자기 폰에서 주인 없는 동물만 고른다', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'own@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }, { name: '바다', gender: 'boy' }], pets: { ruby: true, crystal: true, yeoni: true }, petOwners: { ruby: 1 } });
+    const me = await mom.ok('GET', '/api/me');
+    const [k0, k1] = me.kids.map((k) => k.id);
+    assert.deepEqual(me.family.petOwners, { ruby: k1, crystal: null, yeoni: null }, '마법사에서 고른 주인만 저장');
+    // 어른은 누구에게나
+    assert.deepEqual((await mom.ok('PUT', '/api/pets/yeoni/owner', { kidId: k0 })).petOwners.yeoni, k0);
+    assert.equal((await mom.call('PUT', '/api/pets/dragon/owner', { kidId: k0 })).status, 404);
+    // 아이 폰(하늘): 주인 없는 크리스탈은 고를 수 있고, 남의 동물(다이아=바다)은 못 가져가며, 다른 아이 이름으로는 못 정한다
+    const code = (await mom.ok('POST', `/api/kids/${k0}/pair-code`)).code;
+    const phone = new Client(base, 'p');
+    await phone.ok('POST', '/api/auth/kid-pair', { code });
+    assert.equal((await phone.call('PUT', '/api/pets/crystal/owner', { kidId: k0 })).status, 200);
+    assert.equal((await phone.call('PUT', '/api/pets/ruby/owner', { kidId: k0 })).status, 409);
+    assert.equal((await phone.call('PUT', '/api/pets/crystal/owner', { kidId: k1 })).status, 403);
+    // 간식·산책은 그 동물의 주인 아이 폰에서만
+    assert.equal((await phone.call('POST', '/api/pets/act', { kidId: k0, kind: 'snack', pet: 'crystal' })).status, 200);
+    assert.equal((await phone.call('POST', '/api/pets/act', { kidId: k0, kind: 'walk', pet: 'ruby' })).status, 403, '남의 동물');
+    assert.equal((await phone.call('POST', '/api/pets/act', { kidId: k0, kind: 'walk' })).status, 400, '어떤 동물인지 필요');
+    assert.equal((await mom.call('POST', '/api/pets/act', { kidId: k0, kind: 'snack', pet: 'crystal' })).status, 403, '어른 폰은 못 한다');
+    // 내 동물은 놓아 줄 수 있다
+    assert.equal((await phone.call('PUT', '/api/pets/crystal/owner', { kidId: null })).status, 200);
+    assert.equal((await mom.ok('GET', '/api/me')).family.petOwners.crystal, null);
+  } finally { await app.close(); }
+});
+
+test('예전 가족 마이그레이션: 다이아·크리스탈·귀요미 이름과 첫째·둘째 주인이 그대로 저장된다', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-mig-'));
+  const dbPath = path.join(dir, 'old.db');
+  // 이름·주인 칸이 아직 비어 있던 예전 DB 를 만든다(새 컬럼은 비우고, 가족 하나와 아이 둘)
+  const first = openDb(dbPath);
+  first.exec("INSERT INTO families (id, name, code, created_at) VALUES (1, '옛집', 'OLDCODE1', 1)");
+  first.exec("INSERT INTO members (id, family_id, kind, role, name, avatar, color, sort, created_at) VALUES (10, 1, 'kid', 'kid', '첫째', '🐰', '#fff', 0, 1), (11, 1, 'kid', 'kid', '둘째', '🐱', '#fff', 1, 1)");
+  first.exec('UPDATE families SET pet_names = NULL, pet_owners = NULL');
+  first.close();
+  const again = openDb(dbPath); // 다시 열면 채워진다
+  const f = again.prepare('SELECT pet_names, pet_owners FROM families WHERE id = 1').get();
+  assert.deepEqual(JSON.parse(f.pet_names), { ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' });
+  assert.deepEqual(JSON.parse(f.pet_owners), { ruby: 10, crystal: null, yeoni: 11 });
+  again.close();
+});
+
+test('방 고르기: 구성원이 지낼 방을 정하고(8곳 중), 잘못된 방은 거절, 비우면 기본 방', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'room@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }, { name: '바다', gender: 'boy' }] });
+    const me = await mom.ok('GET', '/api/me');
+    assert.equal(me.kids[0].homeCell, null);
+    const k = await mom.ok('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '11' });
+    assert.equal(k.homeCell, '11');
+    assert.equal((await mom.call('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '12' })).status, 400, '도장방은 못 고른다');
+    assert.equal((await mom.call('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '99' })).status, 400);
+    const a = await mom.ok('PATCH', `/api/members/${me.me.id}`, { homeCell: '22' });
+    assert.equal(a.homeCell, '22');
+    assert.equal((await mom.ok('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '' })).homeCell, null);
   } finally { await app.close(); }
 });

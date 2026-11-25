@@ -167,7 +167,7 @@ const COLUMNS = [
   ['families', 'show_ruby INTEGER NOT NULL DEFAULT 1'], ['families', 'show_crystal INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_dog INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_cats INTEGER NOT NULL DEFAULT 1'],
-  ['families', 'layout TEXT'], ['families', 'house TEXT'], ['families', 'pet_names TEXT'], ['members', 'gender TEXT'], ['users', 'recovery_hash TEXT'],
+  ['families', 'layout TEXT'], ['families', 'house TEXT'], ['families', 'pet_names TEXT'], ['families', 'pet_owners TEXT'], ['members', 'home_cell TEXT'], ['members', 'gender TEXT'], ['users', 'recovery_hash TEXT'],
   ['money_requests', 'pieces TEXT'],
   ['ledger', 'voided INTEGER NOT NULL DEFAULT 0'], ['ledger', 'voided_at INTEGER'], ['ledger', 'voided_by INTEGER'],
   ['families', 'timer_sound INTEGER NOT NULL DEFAULT 1'], ['push_subs', 'device INTEGER NOT NULL DEFAULT 0'],
@@ -191,6 +191,18 @@ function migrateTimers(db) {
 }
 const new_timers_ddl = () => SCHEMA.slice(SCHEMA.indexOf('CREATE TABLE IF NOT EXISTS timers ('), SCHEMA.indexOf('CREATE UNIQUE INDEX IF NOT EXISTS one_running_timer'));
 
+// 반려동물: 예전 가족은 이름(다이아·크리스탈·귀요미)과 주인(첫째=다이아, 둘째=귀요미)을 화면 코드가 정해 줬다.
+// 이제는 가족마다 저장하므로, 아직 저장하지 않은 예전 가족에게는 그 값을 그대로 옮겨 적는다(한 번만).
+function migratePets(db) {
+  for (const f of db.prepare('SELECT id, pet_names, pet_owners FROM families WHERE pet_names IS NULL OR pet_owners IS NULL').all()) {
+    if (f.pet_names == null) db.prepare('UPDATE families SET pet_names = ? WHERE id = ?').run(JSON.stringify({ ruby: '다이아', crystal: '크리스탈', yeoni: '귀요미' }), f.id);
+    if (f.pet_owners == null) {
+      const kids = db.prepare("SELECT id FROM members WHERE family_id = ? AND kind = 'kid' ORDER BY sort, id").all(f.id);
+      db.prepare('UPDATE families SET pet_owners = ? WHERE id = ?').run(JSON.stringify({ ruby: kids[0]?.id ?? null, crystal: null, yeoni: kids[1]?.id ?? null }), f.id);
+    }
+  }
+}
+
 export function openDb(path) {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
@@ -201,5 +213,6 @@ export function openDb(path) {
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
   }
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id IS NOT NULL;');
+  migratePets(db);
   return db;
 }

@@ -886,3 +886,22 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .pet-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .pet-line .check { flex: 1; min-width: 0; }
 /* 셋째 이후 아이(추가한 아이)는 같은 남자·여자 캐릭터를 조금 작게 보여 준다(발 위치는 그대로) */
 .walker.small > :not(.wk-shadow) { scale: .78; transform-origin: 50% 100%; }
+/* (위 비율은 아래에서 .9 로 덮어쓴다) */
+
+/* 셋째 이후 아이는 65px 안팎(기본 72px 의 90%) */
+.walker.small > :not(.wk-shadow) { scale: .9; }
+/* 아이 카드의 반려동물 버튼(여러 마리면 한 줄씩) · 내 반려동물 고르기 */
+.kid-pet-btns.multi { position: static; flex-direction: column; gap: 6px; width: 100%; margin: 6px 0 0; }
+.kid-pet-btns .pet-row { display: flex; align-items: center; gap: 8px; } .kid-pet-btns .pet-row .pet-name { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kid-pet-btns.multi .pet-bar-btn { width: 78px; min-height: 50px; }
+.pet-pick-link { text-decoration: none; text-align: center; line-height: 1.15; } .pet-pick-link b { white-space: normal; font-size: .72rem; }
+.pet-own-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.pet-own { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 18px; border: 3px solid var(--line); background: var(--card2); color: var(--ink); }
+.pet-own img { width: 60px; height: 60px; object-fit: contain; } .pet-own small { color: var(--muted); font-weight: 700; text-align: center; }
+.pet-own.mine { border-color: var(--accent2); background: color-mix(in srgb, var(--accent2) 14%, var(--card2)); } .pet-own:disabled { opacity: .55; }
+.pet-block { margin: 6px 0 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); } .pet-owner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 4px; } .pet-owner select { width: auto; min-height: 40px; }
+.pet-setup { padding: 8px 10px; border-radius: 14px; background: var(--card2); }
+/* 지낼 방 고르기 */
+.room-pick { display: grid; gap: 6px; } .room-floor { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; } .room-floor b { min-width: 58px; font-size: .85rem; color: var(--muted); }
+.room-chip input { position: absolute; opacity: 0; pointer-events: none; } .room-chip span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card2); font-weight: 700; font-size: .9rem; }
+.room-chip input:checked + span { background: linear-gradient(135deg, #ffd5e8, #e4d6ff); border-color: var(--accent2); color: #3d2f6e; } .room-chip input:focus-visible + span { outline: 3px solid var(--accent2); }

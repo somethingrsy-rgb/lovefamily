@@ -11,7 +11,7 @@ import { adultById } from '../api.js';
 import { adultPanelHtml, bindAdultPanel } from './adult.js';
 import { mountWalkers, walkPadHtml, walkerCell, anyMoving, cheer, syncWalkers } from './walkers.js';
 import { mountPets } from './cats.js';
-import { adultHome, petOfKidIdx, petLabel, houseSrc } from '../layout.js';
+import { homeOf, petsOfKid, petLabel, petEnabled, PET_IDS, houseSrc } from '../layout.js';
 
 const dayBadge = (k) => {
   const d = k.day;
@@ -24,11 +24,14 @@ const dayBadge = (k) => {
 };
 
 // 간식주기·산책하기는 아이 본인 폰에서만 누른다: 본인 카드의 이름 옆에 [🍪 간식주기][🌳 산책하기]. 그 아이가 주인인 동물이 있을 때만 보인다
-const petNameOf = (i) => petLabel(petOfKidIdx(i));
-function petBtns(k, i) {
-  const pn = petNameOf(i);
-  if (!boundKid() || boundKid() !== k.id || !pn) return '';
-  return `<div class="kid-pet-btns"><button type="button" class="pet-bar-btn" data-pet-act="snack" data-kid="${k.id}" aria-label="${pn}에게 간식 주기">🍪<b>간식주기</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${pn} 산책하기">🌳<b>산책하기</b></button></div>`;
+function petBtns(k) {
+  if (!boundKid() || boundKid() !== k.id) return '';
+  const mine = petsOfKid(k.id);
+  // 아직 주인이 된 동물이 없으면 내 설정에서 고르도록 안내한다
+  if (!mine.length) return PET_IDS.some(petEnabled) ? '<div class="kid-pet-btns"><a class="pet-bar-btn pet-pick-link" href="#/me">🐾<b>내 반려동물<br>고르기</b></a></div>' : '';
+  const btns = (id) => `<button type="button" class="pet-bar-btn" data-pet-act="snack" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(petLabel(id))}에게 간식 주기">🍪<b>간식주기</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${esc(petLabel(id))} 산책하기">🌳<b>산책하기</b></button>`;
+  if (mine.length === 1) return `<div class="kid-pet-btns">${btns(mine[0])}</div>`;
+  return `<div class="kid-pet-btns multi">${mine.map((id) => `<div class="pet-row"><span class="pet-name">${esc(petLabel(id))}</span>${btns(id)}</div>`).join('')}</div>`;
 }
 // 아이 카드 아래 바로가기 4칸: 오늘 할일 · 활동 · 저금통 · 가족에게 말하기 (아이 허브 화면과 같은 순서)
 function kidLinks(k) {
@@ -44,7 +47,7 @@ function kidCard(k, i) {
     ${dayBadge(k)}
     ${rem.length && k.day.status === 'open' ? `<ul class="rem-chips">${rem.slice(0, 3).map((n) => `<li>${esc(n)}</li>`).join('')}${rem.length > 3 ? `<li class="more">+${rem.length - 3}</li>` : ''}</ul>` : ''}
     <div class="stamp-mini" aria-label="도장 ${k.board.count}/${k.board.size}"><span>💮 도장 <b>${k.board.count}</b>/${k.board.size}</span><div class="bar thin"><i style="width:${(k.board.count / k.board.size) * 100}%"></i></div></div>
-  </a>${petBtns(k, i)}${kidTimerHtml(k)}${kidLinks(k)}</article>`;
+  </a>${petBtns(k)}${kidTimerHtml(k)}${kidLinks(k)}</article>`;
 }
 
 function suppliesHtml(list) {
@@ -62,15 +65,15 @@ async function supplyClick(e) {
 }
 
 // ---- 우리 집 그림: 방마다 누를 수 있는 칸 (좌표는 house.webp 1086x1448 기준 %) ----
-// k0·k1 = 아이방 둘(가족 탭 순서), bank = 도장방, a0·a1·a2 = 아래층 어른방(왼쪽·가운데·오른쪽). 어느 방에 누가 서는지는 layout.js 가 정한다.
+// 칸 번호 10·11 = 가운데층 방 둘, bank = 도장방, 20·21·22 = 아래층 방 셋. 누가 어느 방에 서는지는 layout.js(homeOf)가 정한다.
 const ROOMS = {
-  living: [8.3, 10.4, 91.7, 32.5], k0: [5.1, 34.5, 34.1, 54.9], k1: [36.4, 34.5, 64.0, 54.9], bank: [65.8, 34.5, 94.8, 54.9],
-  a0: [5.1, 56.6, 34.1, 76.4], a1: [36.4, 56.6, 64.0, 76.4], a2: [65.8, 56.6, 94.8, 76.4],
+  living: [8.3, 10.4, 91.7, 32.5], 10: [5.1, 34.5, 34.1, 54.9], 11: [36.4, 34.5, 64.0, 54.9], bank: [65.8, 34.5, 94.8, 54.9],
+  20: [5.1, 56.6, 34.1, 76.4], 21: [36.4, 56.6, 64.0, 76.4], 22: [65.8, 56.6, 94.8, 76.4],
 };
-const ADULT_CELLS = ['20', '21', '22'];
+const ROOM_CELLS = ['10', '11', '20', '21', '22'];
 const box = (k) => { const [x1, y1, x2, y2] = ROOMS[k]; return `left:${x1}%;top:${y1}%;width:${x2 - x1}%;height:${y2 - y1}%`; };
 function houseHtml(h) {
-  const kidRooms = h.kids.slice(0, 2).map((k, i) => {
+  const kidBtn = (k, style) => {
     const t = timerOf(k.id); const d = k.day;
     const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : d.status === 'ready' ? '🎉' : ''].filter(Boolean);
     // 활동 중이면 방 안의 캐릭터가 그 활동 그림으로 바뀌고(그림이 없으면 서 있는 모습 유지), 지난 시간·남은 시간·진행 막대를 보여 준다
@@ -81,25 +84,26 @@ function houseHtml(h) {
       : t.state === 'ended'
       ? `<span class="room-time ended" role="timer" aria-label="${esc(t.name)} 끝남">⏰ 끝났어요</span>`
       : `<span class="room-time" role="timer" aria-label="${esc(t.name)} 지난 시간">⏱ <span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span></span>`;
-    return `<button class="room kid ${t ? 'has-time' : ''}" style="${box(i === 0 ? 'k0' : 'k1')};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;
-  }).join('');
+    return `<button class="room kid ${t ? 'has-time' : ''}" style="${style};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;
+  };
+  const adultBtn = (a, style) => {
+    const st = h.adults.find((x) => x.id === a.id)?.status;
+    return `<button class="room adult" style="${style}" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${st ? ` · ${esc(st.label)}` : ''}"></button>`;
+  };
   const pending = h.kids.filter((k) => k.day.status === 'requested').length;
-  // 어른방: 한 방에 어른이 둘 이상이면(예: 할머니·할아버지) 방을 나눠서 각자 누를 수 있게 한다
-  const adults = ADULT_CELLS.map((cell, ci) => {
-    const here = S.info.adults.filter((a) => adultHome(a.role) === cell);
-    if (!here.length) return `<div class="room empty" style="${box('a' + ci)}"></div>`;
-    const [x1, y1, x2, y2] = ROOMS['a' + ci]; const w = (x2 - x1) / here.length;
-    return here.map((a, i) => {
-      const st = h.adults.find((x) => x.id === a.id)?.status;
-      return `<button class="room adult" style="left:${x1 + w * i}%;top:${y1}%;width:${w}%;height:${y2 - y1}%" data-room="adult" data-id="${a.id}" aria-label="${esc(a.name)}방 열기 (상태 바꾸기)${st ? ` · ${esc(st.label)}` : ''}"></button>`;
-    }).join('');
+  // 방마다 그 방에서 지내는 사람(가족 탭에서 고른 방, 안 골랐으면 기본 방)의 버튼을 만든다. 한 방에 둘 이상이면 방을 나눠서 각자 누를 수 있다
+  const rooms = ROOM_CELLS.map((cell) => {
+    const [x1, y1, x2, y2] = ROOMS[cell];
+    const here = [...h.kids.map((k) => ({ k })), ...S.info.adults.map((a) => ({ a }))].filter((m) => homeOf(m.k || m.a) === cell);
+    if (!here.length) return `<div class="room empty" style="${box(cell)}"></div>`;
+    const w = (x2 - x1) / here.length;
+    return here.map((m, i) => { const style = `left:${x1 + w * i}%;top:${y1}%;width:${w}%;height:${y2 - y1}%`; return m.k ? kidBtn(m.k, style) : adultBtn(m.a, style); }).join('');
   }).join('');
   return `<div class="house" role="group" aria-label="우리 집">
     <img src="${houseSrc()}" alt="" class="house-img" width="1086" height="1448">
     <button class="room" style="${box('living')}" data-room="living" aria-label="거실 열기 (알림장)"></button>
-    ${kidRooms}
     <button class="room bank" style="${box('bank')}" data-room="bank" aria-label="은행·도장 열기">${pending ? `<span class="room-chips"><i>✋ 확인 ${pending}</i></span>` : ''}</button>
-    ${adults}${walkPadHtml()}</div>`;
+    ${rooms}${walkPadHtml()}</div>`;
 }
 // 할일을 다 한 아이가 도장 방(확인방)까지 걸어오면, 그 방에 [도장 요청] 버튼이 나타난다. 누르면 그때 어른들께 알림이 간다.
 function syncBankReq(col, h, reload) {
@@ -208,9 +212,9 @@ export async function mount(el) {
     $$('.kid-pet-btns', el).forEach((box) => box.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-pet-act]'); if (!b) return;
       e.preventDefault();
-      const idx = h.kids.findIndex((k) => k.id === Number(b.dataset.kid)); const pn = petNameOf(idx);
+      const pn = petLabel(b.dataset.pet);
       try {
-        await post('/api/pets/act', { kidId: Number(b.dataset.kid), kind: b.dataset.petAct });
+        await post('/api/pets/act', { kidId: Number(b.dataset.kid), kind: b.dataset.petAct, pet: b.dataset.pet });
         toast(b.dataset.petAct === 'snack' ? `${pn}에게 간식을 줬어요 🍪` : `${pn}랑 산책 가요 🌳`);
       } catch (x) { errToast(x); }
     }));
