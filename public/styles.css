@@ -938,3 +938,8 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .tt-daypick { display: flex; gap: 6px; flex-wrap: wrap; }
 .tt-line { margin: 4px 0 2px; padding: 5px 10px; border-radius: 12px; border-left: 6px solid var(--tc); background: color-mix(in srgb, var(--tc) 35%, rgba(255, 255, 255, .7)); font-size: .88rem; color: #3a3252; } .tt-line .tt-next { white-space: nowrap; }
 .tt-times { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; } .tt-times .field { margin: 0; min-width: 0; }
+.house-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); max-width: 460px; }
+#routinesHost { margin-top: 6px; } #routinesHost .page-card { box-shadow: none; padding: 8px 0; margin: 8px 0; background: transparent; }
+/* 할일·활동 목록: 버튼이 많아도 이름이 한 글자씩 쪼개지지 않게(좁으면 버튼이 아래 줄로) */
+.rlist li > .grow { flex: 1 1 120px; min-width: 100px; word-break: keep-all; }
+.rlist li > .row.gap, .rlist li > .row { flex: 0 1 auto; flex-wrap: wrap; margin-left: auto; }

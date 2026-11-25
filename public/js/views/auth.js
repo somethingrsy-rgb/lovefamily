@@ -48,7 +48,7 @@ export async function login(el) {
 const STEPS = ['계정', '가족', '아이', '반려동물', '집'];
 const MAX_WIZ_KIDS = 4;
 const PETS = [['ruby', '갈색 고양이', '/assets/cats/ruby-sit.webp'], ['crystal', '하얀 고양이', '/assets/cats/crystal-sit.webp'], ['yeoni', '강아지', '/assets/dog/dog-sit.webp']];
-const HOUSE_PICKS = [['pastel', '보라 집', '/assets/house-t.webp'], ['xmas', '크리스마스 집', '/assets/house-xmas-t.webp']];
+const HOUSE_PICKS = [['pastel', '보라 집', '/assets/house-t.webp'], ['xmas', '크리스마스 집', '/assets/house-xmas-t.webp'], ['park', '놀이공원 집', '/assets/house-park-t.webp']];
 
 export async function register(el) {
   const W = { loginId: '', password: '', password2: '', familyName: '우리집', role: 'mom', name: '', kids: [{ name: '', gender: '' }], pets: { ruby: false, crystal: false, yeoni: false }, petNames: { ruby: '', crystal: '', yeoni: '' }, petOwners: { ruby: '', crystal: '', yeoni: '' }, house: 'pastel' };

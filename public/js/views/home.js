@@ -35,10 +35,10 @@ function petBtns(k) {
   if (mine.length === 1) return `<div class="kid-pet-btns">${btns(mine[0])}</div>`;
   return `<div class="kid-pet-btns multi">${mine.map((id) => `<div class="pet-row"><span class="pet-name">${esc(petLabel(id))}</span>${btns(id)}</div>`).join('')}</div>`;
 }
-// 아이 카드 아래 바로가기 4칸: 오늘 할일 · 활동 · 저금통 · 가족에게 말하기 (아이 허브 화면과 같은 순서)
+// 아이 카드 아래 바로가기 4칸: 할일 · 활동 · 시간표 · 메시지 (통장은 아래 탭에서)
 function kidLinks(k) {
   const done = `${k.day.done}/${k.day.total}`;
-  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"><b>통장</b></a><a class="kl" href="${isDevice() || boundKid() || !S.info.me ? `#/kid/${k.id}/talk` : `#/messages/${k.id}/${S.info.me.id}`}">💌<b>메시지</b></a></nav>`;
+  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/timetable">📝<b>시간표</b></a><a class="kl" href="${isDevice() || boundKid() || !S.info.me ? `#/kid/${k.id}/talk` : `#/messages/${k.id}/${S.info.me.id}`}">💌<b>메시지</b></a></nav>`;
 }
 // 오늘의 지금·다음 수업 한 줄(시간표가 있는 날만)
 function ttLine(k) {

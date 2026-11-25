@@ -35,7 +35,7 @@ R('/login', auth.login, { pub: true }); R('/pair', auth.pair, { pub: true }); R(
 // 메인 화면
 R('/', home, { tab: 'today' });
 R('/adult', adult.page, { tab: 'today', adult: true }); R('/inbox', adult.inbox, { tab: 'today', adult: true });
-R('/routines', routines, { tab: 'routines', adult: true });
+R('/routines', routines, { tab: 'family', adult: true }); R('/bank', wallet.bank, { tab: 'bank' });
 R('/stamps', stamps, { tab: 'stamps' }); R('/stamps/:kidId', stamps, { tab: 'stamps' });
 R('/family', family, { tab: 'family' });
 R('/notebook', notebook, { tab: 'family' }); R('/notebook/:postId', notebook, { tab: 'family' });
@@ -55,7 +55,8 @@ R('/kid/:id/supplies', supplies.kidSupplies, { tab: 'today', kid: true, nopin: t
 R('/kid/:id/family', plan.kidPick, { tab: 'today', kid: true, nopin: true });
 R('/family-activity', plan.adultPlan, { tab: 'family', adult: true });
 
-const TABS = [['today', '/', '🏠', '우리집'], ['routines', '/routines', '📝', '할일'], ['stamps', '/stamps', '💮', '도장판'], ['family', '/family', '👨‍👩‍👧‍👦', '가족']];
+const PIGGY = '<img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false">';
+const TABS = [['today', '/', '🏠', '우리집'], ['stamps', '/stamps', '💮', '도장판'], ['bank', '/bank', PIGGY, '통장'], ['family', '/family', '⚙️', '설정']];
 
 let current = null;       // 현재 화면 컨트롤러
 let navToken = 0;
@@ -125,7 +126,7 @@ async function render() {
   }
   if (!$('.shell')) shell();
   else if (boundKid() && $$('.tab').length !== 4) { $('.tabs').innerHTML = tabsFor().map(([k, p, ic, t]) => `<a href="#${p}" class="tab" data-tab="${k}"><span class="ti">${ic}</span><span>${t}</span></a>`).join(''); }
-  const tabKey = boundKid() && match.view === home ? 'home' : match.tab;
+  const tabKey = boundKid() && match.view === home ? 'home' : (!boundKid() && match.view === wallet ? 'bank' : match.tab); // 어른·거실 기기: 아이 통장 화면에서는 통장 탭이 켜진다
   $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === tabKey));
   const main = $('#main');
   main.onclick = null; // 이전 화면의 눌림 처리가 새 화면에 남지 않게

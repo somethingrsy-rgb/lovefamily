@@ -5,6 +5,7 @@ import { back } from '../common.js';
 import { houseCur, petLabel, petEnabled, ROOM_OPTIONS } from '../layout.js';
 import { recoveryBoxHtml, bindRecoveryCopy, ROLE_OPTS } from './auth.js';
 import { supplySheet } from './supplies.js';
+import * as routines from './routines.js';
 
 // ---- 푸시 알림 ----
 const b64 = (s) => { const p = '='.repeat((4 - (s.length % 4)) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...r].map((c) => c.charCodeAt(0))); };
@@ -67,9 +68,10 @@ export async function mount(el) {
     const acts = adult ? await get('/api/activities').catch(() => []) : [];
     const code = info.family.code;
     const myId = info.me?.id || S.elev?.memberId || null;
-    el.innerHTML = `<header class="page-head"><h1>👨‍👩‍👧‍👦 가족</h1></header>
+    el.innerHTML = `<header class="page-head"><h1>⚙️ 설정</h1></header>
       <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? ({ boy: '아이 · 남자아이', girl: '아이 · 여자아이' })[m.gender] || '아이' : (Object.fromEntries(ROLE_OPTS))[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><div class="m-actions"><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' && adult ? `<button class="btn ghost small" data-pair="${m.id}">📱 폰 연결</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</div></li>`).join('')}</ul>${adult && info.kids.length < 6 ? '<div class="row"><button class="btn ghost" id="addkid">+ 아이 추가</button></div>' : ''}</section>
       <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a><a class="big-btn small" href="#/family-activity"><span class="bi">🎈</span><b>가족 활동</b></a><button class="big-btn small" id="addsup"><span class="bi">🎒</span><b>준비물 직접 추가</b></button></div></section>
+      ${adult ? `<details class="card page-card fold" data-fold="routines"${fo('routines')}><summary><h3>📝 할일 관리</h3></summary><p class="muted small">아이별 할일(루틴)을 만들고 고치고 순서를 바꿔요.</p><div id="routinesHost"></div></details>` : ''}
       ${adult ? `<details class="card page-card fold" data-fold="act"${fo('act')}><summary><h3>⏱ 활동 설정</h3></summary><p class="muted small">활동 이름과 기본 시간을 바꿀 수 있어요. 30분 이상 활동은 5분 전에 한 번 알려 줘요.</p><ul class="rlist">${(acts || []).map((a) => `<li><span class="ri">${esc(a.icon)}</span><div class="grow"><b>${esc(a.name)}</b><div class="small muted">기본 ${a.minutes}분</div></div><button class="btn ghost small" data-act="${a.id}">수정</button><button class="btn ghost small" data-actdel="${a.id}" aria-label="삭제">🗑</button></li>`).join('')}</ul><div class="row gap wrap"><button class="btn ghost" id="addact">+ 활동 추가</button></div>
         <label class="check"><input type="checkbox" id="tsound" ${info.family.timerSound ? 'checked' : ''}> <span>활동 알람 소리 사용 <small class="muted">(거실 iPad에서 한 번 울려요)</small></span></label>${[['ruby', '갈색 고양이'], ['crystal', '하얀 고양이'], ['yeoni', '강아지']].map(([k, kind]) => `<div class="pet-block"><div class="pet-line"><label class="check"><input type="checkbox" data-pet-toggle="${k}" ${info.family.pets?.[k] !== false ? 'checked' : ''}> <span>집 그림 안에 <b>${esc(petLabel(k))}</b> 보이기 <small class="muted">(${kind})</small></span></label><button class="btn ghost small" data-pet-name="${k}">이름 짓기</button></div>
           <label class="pet-owner small">주인 <select data-pet-owner="${k}"><option value="">정하지 않음</option>${info.kids.map((kd) => `<option value="${kd.id}" ${info.family.petOwners?.[k] === kd.id ? 'selected' : ''}>${esc(kd.name)}</option>`).join('')}</select><span class="muted">(주인이 간식주기·산책하기를 해요)</span></label></div>`).join('')}</details>` : ''}
@@ -88,7 +90,9 @@ export async function mount(el) {
         <div class="row gap wrap"><button class="btn" id="chpw">비밀번호 바꾸기</button><button class="btn ghost" id="newrec">복구 코드 새로 만들기</button></div>
         <p class="small muted">복구 코드는 비밀번호를 잊었을 때 아이디와 함께 쓰는 12자리 코드예요. 새로 만들면 예전 코드는 쓸 수 없어요.</p></details>` : ''}
       <section class="card page-card"><button class="btn ghost wide" id="logout">로그아웃</button><p class="muted small center">${dev ? '거실 공용 기기 모드' : '내 휴대폰 모드'} · 우리집 v1</p></section>`;
-    el.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => { d.open ? opened.add(d.dataset.fold) : opened.delete(d.dataset.fold); }));
+    const loadRoutines = () => { const h = $('#routinesHost', el); if (h && !h.dataset.on) { h.dataset.on = '1'; routines.mount(h, { embedded: true }).catch(errToast); } };
+    el.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => { d.open ? opened.add(d.dataset.fold) : opened.delete(d.dataset.fold); if (d.open && d.dataset.fold === 'routines') loadRoutines(); }));
+    if (opened.has('routines')) loadRoutines();
     bind(ps);
   }
   function bind(ps) {

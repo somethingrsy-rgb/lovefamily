@@ -19,12 +19,12 @@ function bindDays(root) {
 }
 const readDays = (v) => [0, 1, 2, 3, 4, 5, 6].filter((i) => v[`d${i}`] === 'on');
 
-export async function mount(el) {
+export async function mount(el, params = {}) {
   let kidId = S.info.kids[0]?.id;
   async function load() {
     const [list, acts] = await Promise.all([get(`/api/kids/${kidId}/routines`), get('/api/activities').catch(() => [])]);
     const kids = S.info.kids; const kid = kids.find((k) => k.id === kidId);
-    el.innerHTML = `<header class="page-head"><h1>📝 할일</h1><div class="head-right"><button class="btn primary" id="add">+ 할일 추가</button></div></header>
+    el.innerHTML = `${params.embedded ? '<div class="row end"><button class="btn primary" id="add">+ 할일 추가</button></div>' : '<header class="page-head"><h1>📝 할일</h1><div class="head-right"><button class="btn primary" id="add">+ 할일 추가</button></div></header>'}
       <div class="kid-tabs" role="tablist">${kids.map((k) => `<button role="tab" class="kid-tab ${k.id === kidId ? 'on' : ''}" aria-selected="${k.id === kidId}" data-kid="${k.id}" style="--kc:${esc(k.color)}">${avatar(k, 'sm')} ${esc(k.name)}</button>`).join('')}</div>
       <section class="card page-card"><p class="muted small">수정한 내용은 <b>다음 해당 요일부터</b> 적용돼요. 과거 기록은 그때 모습 그대로 남아요.</p>
       ${list.length ? `<ul class="rlist">${list.map((r, i) => `<li><span class="ri">${esc(r.icon)}</span><div class="grow"><b>${esc(r.name)}</b><div class="small muted">${esc(r.slotLabel)} · ${daysText(r.days)}</div></div>

@@ -108,3 +108,13 @@ document.addEventListener('input', (e) => {
   if (e.target.name !== 'purpose') return;
   e.target.closest('.field')?.querySelectorAll('[data-reason]').forEach((x) => x.classList.toggle('on', x.dataset.reason === e.target.value));
 });
+
+// 통장 탭(어른·거실 기기): 누구의 통장을 볼지 고른다. 아이가 한 명이면 바로 그 아이 통장으로 간다
+export async function bank(el) {
+  const kids = S.info.kids;
+  if (kids.length === 1) { location.replace(`#/kid/${kids[0].id}/wallet`); return { topics: [] }; }
+  el.innerHTML = `<header class="page-head"><h1>${'<img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false">'} 통장</h1></header>
+    <p class="center big-q">누구의 통장을 볼까요?</p>
+    <div class="big-grid">${kids.map((k) => `<a class="big-btn" href="#/kid/${k.id}/wallet" style="--kc:${esc(k.color)}"><span class="bi">${avatar(k, 'xl')}</span><b>${esc(k.name)}</b><small>돼지 저금통 보기</small></a>`).join('') || '<p class="empty">아이를 추가해 주세요 (설정 탭)</p>'}</div>`;
+  return { topics: ['family'] };
+}

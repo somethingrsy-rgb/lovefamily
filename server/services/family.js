@@ -7,7 +7,7 @@ import { seedActivities } from './timers.js';
 export const ROLES = ['mom', 'dad', 'grandma', 'grandpa', 'other'];
 export const ROLE_LABEL = { mom: '엄마', dad: '아빠', grandma: '할머니', grandpa: '할아버지', other: '어른' };
 export const GENDERS = ['boy', 'girl'];
-export const HOUSES = ['pastel', 'xmas'];
+export const HOUSES = ['pastel', 'xmas', 'park'];
 const MAX_KIDS = 6;
 export const PET_IDS = ['ruby', 'crystal', 'yeoni'];
 // 반려동물 이름은 가족이 직접 지어 준다(기본 이름 없음). 보낸 것만 바꾸고(0~10자), 비우면 이름 없음
