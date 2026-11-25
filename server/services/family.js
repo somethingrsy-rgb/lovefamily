@@ -4,12 +4,33 @@ import { err, text, oneOf, hashPassword, verifyPassword, randToken, randCode, sh
 import { ELEVATION_MS, UNLOCK_MS } from '../ctx.js';
 import { seedActivities } from './timers.js';
 
-export const ROLES = ['mom', 'dad', 'grandma', 'other'];
-export const ROLE_LABEL = { mom: '엄마', dad: '아빠', grandma: '할머니', other: '어른' };
+export const ROLES = ['mom', 'dad', 'grandma', 'grandpa', 'other'];
+export const ROLE_LABEL = { mom: '엄마', dad: '아빠', grandma: '할머니', grandpa: '할아버지', other: '어른' };
+export const GENDERS = ['boy', 'girl'];
+export const HOUSES = ['pastel', 'xmas'];
+const MAX_KIDS = 6;
 export const AVATARS = ['🐰', '🐱', '🐻', '🐶', '🦊', '🐼', '🐥', '🦄', '🐯', '🐸', '🐧', '🐨', '🌸', '⭐', '👧', '👦', '👩', '👨', '👵', '👴'];
 export const KID_COLORS = ['#bfe3ff', '#e4d4ff', '#ffd9e6', '#ffe9b8', '#cdeccf', '#ffd8bd'];
-const DEFAULT_ADULT = { mom: ['👩', '#ffd9e6'], dad: ['👨', '#cfe4ff'], grandma: ['👵', '#ffe9b8'], other: ['🙂', '#e8e0f5'] };
+const DEFAULT_ADULT = { mom: ['👩', '#ffd9e6'], dad: ['👨', '#cfe4ff'], grandma: ['👵', '#ffe9b8'], grandpa: ['👴', '#ffe9b8'], other: ['🙂', '#e8e0f5'] };
 const SESSION_DAYS = { user: 30, device: 120 };
+// 화면(가입 마법사)에서 아이를 보내지 않는 옛 호출·개발용 샘플에서만 쓰는 기본 아이들
+const DEV_DEFAULT_KIDS = [{ name: '유엘', gender: 'boy' }, { name: '유하', gender: 'girl' }];
+const KID_DEFAULT_AVATAR = { boy: '👦', girl: '👧' };
+
+// 복구 코드: 이메일 없이 비밀번호를 다시 정하기 위한 12자리 코드(가입할 때 한 번 보여 준다). 서버에는 해시만 저장한다
+const fmtCode = (c) => c.match(/.{1,4}/g).join('-');
+const normCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+function issueRecovery(core, userId) {
+  const code = randCode(12);
+  core.run('UPDATE users SET recovery_hash = ? WHERE id = ?', hashPassword(code), userId);
+  return fmtCode(code);
+}
+
+function cleanKids(list) {
+  if (!Array.isArray(list) || !list.length) throw err(400, 'kids_required', '아이를 한 명 이상 알려 주세요.');
+  if (list.length > MAX_KIDS) throw err(400, 'too_many_kids', `아이는 최대 ${MAX_KIDS}명까지예요.`);
+  return list.map((k) => ({ name: text(k?.name, '아이 이름', { max: 20 }), gender: oneOf(k?.gender, GENDERS, '성별'), avatar: k?.avatar, color: k?.color }));
+}
 
 // 가입/로그인 시도 제한 (메모리). 코어 객체에 붙여 둔다.
 function throttle(core, key, { check = false, fail = false, clear = false } = {}) {
@@ -50,18 +71,24 @@ export function register(core, b) {
   const role = oneOf(b.role || 'mom', ROLES, '역할');
   const famName = text(b.familyName || '우리집', '가족 이름', { max: 30 });
   const name = text(b.name || ROLE_LABEL[role], '이름', { max: 20 });
+  const kids = cleanKids(b.kids === undefined ? DEV_DEFAULT_KIDS : b.kids);
+  const house = b.house === undefined ? 'pastel' : oneOf(b.house, HOUSES, '집 그림');
+  const pp = b.pets && typeof b.pets === 'object' ? b.pets : null; // 없으면(옛 호출) 모두 켜 둔다
+  const on = (k) => (pp ? (pp[k] ? 1 : 0) : 1);
   return core.tx(() => {
     if (core.get('SELECT 1 FROM users WHERE login_id = ?', login)) throw err(409, 'login_taken', '이미 사용 중인 아이디예요.');
     const userId = core.insert('INSERT INTO users (login_id, pw_hash, created_at) VALUES (?,?,?)', login, hashPassword(b.password), core.now());
-    const familyId = core.insert('INSERT INTO families (name, code, created_at) VALUES (?,?,?)', famName, randCode(8), core.now());
+    const code = randCode(8);
+    const familyId = core.insert('INSERT INTO families (name, code, created_at) VALUES (?,?,?)', famName, code, core.now());
+    core.run('UPDATE families SET show_cats = 1, show_ruby = ?, show_crystal = ?, show_dog = ?, house = ? WHERE id = ?', on('ruby'), on('crystal'), on('yeoni'), house, familyId);
     const memberId = addAdult(core, { familyId, userId, role, name, guardian: true });
-    const kids = Array.isArray(b.kids) && b.kids.length ? b.kids : [{ name: '유엘', avatar: '🐰', color: KID_COLORS[0] }, { name: '유하', avatar: '🐱', color: KID_COLORS[1] }];
-    kids.slice(0, 6).forEach((k, i) => {
-      core.insert('INSERT INTO members (family_id, kind, role, name, avatar, color, sort, created_at) VALUES (?,?,?,?,?,?,?,?)',
-        familyId, 'kid', 'kid', text(k.name, '아이 이름', { max: 20 }), k.avatar || AVATARS[i], k.color || KID_COLORS[i % KID_COLORS.length], i, core.now());
+    kids.forEach((k, i) => {
+      core.insert('INSERT INTO members (family_id, kind, role, name, avatar, color, sort, gender, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+        familyId, 'kid', 'kid', k.name, k.avatar || KID_DEFAULT_AVATAR[k.gender], k.color || KID_COLORS[i % KID_COLORS.length], i, k.gender, core.now());
     });
     seedActivities(core, familyId);
-    return { familyId, memberId, userId, session: newSession(core, { familyId, kind: 'user', userId, memberId }) };
+    const recoveryCode = issueRecovery(core, userId);
+    return { familyId, memberId, userId, recoveryCode, familyCode: code, session: newSession(core, { familyId, kind: 'user', userId, memberId }) };
   });
 }
 
@@ -75,9 +102,10 @@ export function join(core, b) {
     if (core.adults(fam.id).length >= 8) throw err(409, 'family_full', '어른 계정은 최대 8명까지예요.');
     if (core.get('SELECT 1 FROM users WHERE login_id = ?', login)) throw err(409, 'login_taken', '이미 사용 중인 아이디예요.');
     const userId = core.insert('INSERT INTO users (login_id, pw_hash, created_at) VALUES (?,?,?)', login, hashPassword(b.password), core.now());
-    const memberId = addAdult(core, { familyId: fam.id, userId, role, name: text(b.name || ROLE_LABEL[role], '이름', { max: 20 }), guardian: role === 'mom' || role === 'dad' });
+    const memberId = addAdult(core, { familyId: fam.id, userId, role, name: text(b.name || ROLE_LABEL[role], '이름', { max: 20 }), guardian: role === 'mom' || role === 'dad' }); // 조부모·기타 어른은 가입 후 부모님이 권한을 줄 수 있다
     core.refresh(fam.id, 'family');
-    return { familyId: fam.id, memberId, userId, session: newSession(core, { familyId: fam.id, kind: 'user', userId, memberId }) };
+    const recoveryCode = issueRecovery(core, userId);
+    return { familyId: fam.id, memberId, userId, recoveryCode, session: newSession(core, { familyId: fam.id, kind: 'user', userId, memberId }) };
   });
 }
 
@@ -155,7 +183,7 @@ export function setKidPin(core, ctx, kidId, pin) {
 export function publicMember(m, ctx) {
   const o = { id: m.id, kind: m.kind, role: m.role, name: m.name, avatar: m.avatar, color: m.color, avatarUrl: m.avatar_photo_id ? `/api/photos/${m.avatar_photo_id}` : null };
   if (m.kind === 'adult') o.isGuardian = !!m.is_guardian;
-  if (m.kind === 'kid') { o.hasPin = !!m.pin_hash; if (ctx) o.unlocked = ctx.kidUnlocked(m); }
+  if (m.kind === 'kid') { o.gender = m.gender || null; o.hasPin = !!m.pin_hash; if (ctx) o.unlocked = ctx.kidUnlocked(m); }
   return o;
 }
 
@@ -164,7 +192,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
+    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -183,6 +211,7 @@ export function updateMember(core, ctx, memberId, b) {
   const name = b.name !== undefined ? text(b.name, '이름', { max: 20 }) : m.name;
   const avatar = b.avatar !== undefined ? text(b.avatar, '아바타', { max: 8 }) : m.avatar;
   const color = b.color !== undefined ? (/^#[0-9a-fA-F]{6}$/.test(b.color) ? b.color : (() => { throw err(400, 'bad_color', '색 형식이 올바르지 않아요.'); })()) : m.color;
+  const gender = b.gender !== undefined && m.kind === 'kid' ? oneOf(b.gender, GENDERS, '성별') : m.gender;
   let guardian = m.is_guardian;
   if (b.isGuardian !== undefined && m.kind === 'adult') {
     if (!adult.is_guardian) throw err(403, 'guardian_only', '부모님만 권한을 바꿀 수 있어요.');
@@ -198,7 +227,7 @@ export function updateMember(core, ctx, memberId, b) {
       photo = ph.id;
     }
   }
-  core.run('UPDATE members SET name = ?, avatar = ?, color = ?, is_guardian = ?, avatar_photo_id = ? WHERE id = ?', name, avatar, color, guardian, photo, m.id);
+  core.run('UPDATE members SET name = ?, avatar = ?, color = ?, is_guardian = ?, avatar_photo_id = ?, gender = ? WHERE id = ?', name, avatar, color, guardian, photo, gender, m.id);
   core.refresh(ctx.familyId, 'family', 'home');
   return publicMember(core.member(m.id), ctx);
 }
@@ -265,12 +294,13 @@ export function updateFamily(core, ctx, b) {
   const sound = b.timerSound !== undefined ? (b.timerSound ? 1 : 0) : fam.timer_sound;
   const cats = b.showCats !== undefined ? (b.showCats ? 1 : 0) : fam.show_cats;
   const dog = b.showDog !== undefined ? (b.showDog ? 1 : 0) : fam.show_dog;
+  const house = b.house !== undefined ? oneOf(b.house, HOUSES, '집 그림') : (HOUSES.includes(fam.house) ? fam.house : 'pastel');
   const pp = b.pets && typeof b.pets === 'object' ? b.pets : {};
   const ruby = pp.ruby !== undefined ? (pp.ruby ? 1 : 0) : fam.show_ruby;
   const crystal = pp.crystal !== undefined ? (pp.crystal ? 1 : 0) : fam.show_crystal;
   const yeoni = pp.yeoni !== undefined ? (pp.yeoni ? 1 : 0) : dog;
   // 예전 '고양이 전체' 설정(show_cats)은 이름별 설정으로 옮겨 오므로, 이름별로 저장할 때는 켜 둔다
-  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, fam.id);
+  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ?, house = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, house, fam.id);
   void adult;
   core.refresh(ctx.familyId, 'family', 'home', 'timers');
   return me(core, ctx).family;
@@ -358,4 +388,69 @@ export function revokeKidDevice(core, ctx, sessionId) {
     core.refresh(ctx.familyId, 'family');
   });
   return { ok: true };
+}
+
+// ---------- 아이 추가 ----------
+export function addKid(core, ctx, b) {
+  ctx.guardian();
+  const kids = core.kids(ctx.familyId);
+  if (kids.length >= MAX_KIDS) throw err(400, 'too_many_kids', `아이는 최대 ${MAX_KIDS}명까지예요.`);
+  const k = cleanKids([b])[0];
+  const sort = kids.reduce((m, x) => Math.max(m, x.sort), -1) + 1;
+  const id = core.insert('INSERT INTO members (family_id, kind, role, name, avatar, color, sort, gender, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+    ctx.familyId, 'kid', 'kid', k.name, k.avatar || KID_DEFAULT_AVATAR[k.gender], k.color || KID_COLORS[kids.length % KID_COLORS.length], sort, k.gender, core.now());
+  core.refresh(ctx.familyId, 'family', 'home');
+  return publicMember(core.member(id), ctx);
+}
+
+// ---------- 비밀번호 바꾸기 · 복구 코드 ----------
+const checkNewPassword = (pw) => { if (typeof pw !== 'string' || pw.length < 6 || pw.length > 100) throw err(400, 'bad_password', '비밀번호는 6자 이상으로 해 주세요.'); };
+
+// 비밀번호를 잊었을 때: 아이디 + 복구 코드(가입 때 받은 12자리)로 새 비밀번호를 정한다. 성공하면 모든 로그인이 풀리고 새 복구 코드가 나온다
+export function resetPassword(core, b, ip = '') {
+  const loginId = text(b.loginId, '아이디', { max: 60 });
+  const code = normCode(b.recoveryCode);
+  checkNewPassword(b.newPassword);
+  const keys = [`reset:${loginId.toLowerCase()}|${ip}`, `reset:${loginId.toLowerCase()}`];
+  keys.forEach((k) => throttle(core, k, { check: true }));
+  const user = core.get('SELECT * FROM users WHERE login_id = ?', loginId);
+  if (!user || !user.recovery_hash || code.length !== 12 || !verifyPassword(code, user.recovery_hash)) {
+    keys.forEach((k) => throttle(core, k, { fail: true }));
+    throw err(401, 'bad_recovery', '아이디나 복구 코드가 맞지 않아요.');
+  }
+  keys.forEach((k) => throttle(core, k, { clear: true }));
+  return core.tx(() => {
+    core.run('UPDATE users SET pw_hash = ? WHERE id = ?', hashPassword(b.newPassword), user.id);
+    core.run('DELETE FROM push_subs WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)', user.id);
+    core.run('DELETE FROM elevations WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)', user.id);
+    core.run('DELETE FROM sessions WHERE user_id = ?', user.id);
+    return { ok: true, recoveryCode: issueRecovery(core, user.id) };
+  });
+}
+
+// 로그인한 채로 비밀번호 바꾸기(현재 비밀번호 확인). 다른 기기의 로그인은 풀린다
+export function changePassword(core, ctx, b) {
+  if (ctx.isDevice || ctx.boundKid) throw err(403, 'own_phone', '내 휴대폰에서 바꿔 주세요.');
+  const adult = ctx.adult();
+  const user = core.get('SELECT * FROM users WHERE id = ?', adult.user_id);
+  checkNewPassword(b.newPassword);
+  const key = `chpw:${adult.id}`;
+  throttle(core, key, { check: true });
+  if (!user || !verifyPassword(String(b.oldPassword || ''), user.pw_hash)) { throttle(core, key, { fail: true }); throw err(401, 'bad_password', '지금 비밀번호가 맞지 않아요.'); }
+  throttle(core, key, { clear: true });
+  core.run('UPDATE users SET pw_hash = ? WHERE id = ?', hashPassword(b.newPassword), user.id);
+  core.run('DELETE FROM sessions WHERE user_id = ? AND id <> ?', user.id, ctx.session.id);
+  return { ok: true };
+}
+
+// 복구 코드를 잃어버렸거나 처음 만들 때(예전에 가입한 계정): 비밀번호를 확인하고 새 코드를 만든다
+export function newRecoveryCode(core, ctx, b, ip = '') {
+  if (ctx.isDevice || ctx.boundKid) throw err(403, 'own_phone', '내 휴대폰에서 해 주세요.');
+  const adult = ctx.adult();
+  const user = core.get('SELECT * FROM users WHERE id = ?', adult.user_id);
+  const key = `recov:${adult.id}|${ip}`;
+  throttle(core, key, { check: true });
+  if (!user || !verifyPassword(String(b.password || ''), user.pw_hash)) { throttle(core, key, { fail: true }); throw err(401, 'bad_password', '비밀번호가 맞지 않아요.'); }
+  throttle(core, key, { clear: true });
+  return { recoveryCode: issueRecovery(core, user.id) };
 }

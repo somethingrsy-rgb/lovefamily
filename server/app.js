@@ -162,7 +162,7 @@ export function createApp(opts = {}) {
       let status = 200; let out = result;
       if (result?.$session) {
         headers['Set-Cookie'] = cookieHeader(result.$session.token, result.$session.maxAge, req);
-        status = result.status || 200; out = { ok: true };
+        status = result.status || 200; out = result.body ?? { ok: true };
       } else if (result?.$clear) {
         headers['Set-Cookie'] = cookieHeader('', 0, req); out = { ok: true };
       } else if (result?.file) {

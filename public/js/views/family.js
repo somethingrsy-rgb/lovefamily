@@ -1,7 +1,9 @@
-import { $, $$, esc, DOW, lsGet, lsSet, wallPickerHtml, wallCur, housePickerHtml, houseCur, shortDate, dateLabel } from '../util.js';
+import { $, $$, esc, DOW, lsGet, lsSet, wallPickerHtml, wallCur, housePickerHtml, shortDate, dateLabel } from '../util.js';
 import { S, get, post, patch, del, put, bus, isDevice, isAdultNow } from '../api.js';
 import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker, openSheet } from '../ui.js';
 import { back } from '../common.js';
+import { houseCur } from '../layout.js';
+import { recoveryBoxHtml, bindRecoveryCopy, ROLE_OPTS } from './auth.js';
 import { supplySheet } from './supplies.js';
 
 // ---- 푸시 알림 ----
@@ -49,7 +51,8 @@ function memberForm(m) {
   return `<label class="field">이름<input name="name" maxlength="20" value="${esc(m.name)}" required></label>
     <div class="field"><span>아바타</span><div class="icon-pick">${(S.info.avatars || []).map((a) => `<label><input type="radio" name="avatar" value="${a}" ${a === m.avatar ? 'checked' : ''}><span>${a}</span></label>`).join('')}</div></div>
     <div class="field"><span>얼굴 사진 <small class="muted">(배경이 투명한 PNG가 가장 예뻐요. 가족만 볼 수 있어요)</small></span><div id="facepp"></div><label class="check"><input type="checkbox" name="rmphoto"> <span>사진 지우고 이모지로 되돌리기</span></label></div>
-    ${m.kind === 'kid' ? `<div class="field"><span>카드 색</span><div class="color-pick">${(S.info.kidColors || []).map((c) => `<label><input type="radio" name="color" value="${c}" ${c === m.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>` : ''}`;
+    ${m.kind === 'kid' ? `<div class="field"><span>성별 <small class="muted">(집 안 캐릭터가 달라져요)</small></span><div class="seg">${[['boy', '남자아이'], ['girl', '여자아이']].map(([v, t]) => `<label class="seg-opt"><input type="radio" name="gender" value="${v}" ${m.gender === v ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
+    <div class="field"><span>카드 색</span><div class="color-pick">${(S.info.kidColors || []).map((c) => `<label><input type="radio" name="color" value="${c}" ${c === m.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>` : ''}`;
 }
 
 export async function mount(el) {
@@ -64,7 +67,7 @@ export async function mount(el) {
     const code = info.family.code;
     const myId = info.me?.id || S.elev?.memberId || null;
     el.innerHTML = `<header class="page-head"><h1>👨‍👩‍👧‍👦 가족</h1></header>
-      <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? '아이' : ({ mom: '엄마', dad: '아빠', grandma: '할머니' })[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' && adult ? `<button class="btn ghost small" data-pair="${m.id}">📱 폰 연결</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</li>`).join('')}</ul></section>
+      <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? ({ boy: '아이 · 남자아이', girl: '아이 · 여자아이' })[m.gender] || '아이' : (Object.fromEntries(ROLE_OPTS))[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' && adult ? `<button class="btn ghost small" data-pair="${m.id}">📱 폰 연결</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</li>`).join('')}</ul>${adult && info.kids.length < 6 ? '<div class="row"><button class="btn ghost" id="addkid">+ 아이 추가</button></div>' : ''}</section>
       <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a><a class="big-btn small" href="#/family-activity"><span class="bi">🎈</span><b>가족 활동</b></a><button class="big-btn small" id="addsup"><span class="bi">🎒</span><b>준비물 직접 추가</b></button></div></section>
       ${adult ? `<details class="card page-card fold" data-fold="act"${fo('act')}><summary><h3>⏱ 활동 설정</h3></summary><p class="muted small">활동 이름과 기본 시간을 바꿀 수 있어요. 30분 이상 활동은 5분 전에 한 번 알려 줘요.</p><ul class="rlist">${(acts || []).map((a) => `<li><span class="ri">${esc(a.icon)}</span><div class="grow"><b>${esc(a.name)}</b><div class="small muted">기본 ${a.minutes}분</div></div><button class="btn ghost small" data-act="${a.id}">수정</button><button class="btn ghost small" data-actdel="${a.id}" aria-label="삭제">🗑</button></li>`).join('')}</ul><div class="row gap wrap"><button class="btn ghost" id="addact">+ 활동 추가</button></div>
         <label class="check"><input type="checkbox" id="tsound" ${info.family.timerSound ? 'checked' : ''}> <span>활동 알람 소리 사용 <small class="muted">(거실 iPad에서 한 번 울려요)</small></span></label>${[['ruby', '다이아', '고양이'], ['crystal', '크리스탈', '고양이'], ['yeoni', '귀요미', '강아지']].map(([k, n, kind]) => `<label class="check"><input type="checkbox" data-pet-toggle="${k}" ${info.family.pets?.[k] !== false ? 'checked' : ''}> <span>집 그림 안에 ${n} 보이기 <small class="muted">(${kind})</small></span></label>`).join('')}</details>` : ''}
@@ -73,10 +76,14 @@ export async function mount(el) {
       <details class="card page-card fold" data-fold="screen"${fo('screen')}><summary><h3>화면·알림 설정</h3></summary>
         <div class="field"><span>테마</span><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
         <div class="field"><span>배경화면 <small class="muted">(낮 테마 · 이 기기만)</small></span>${wallPickerHtml(wallCur())}</div>
-        <div class="field"><span>집 그림 <small class="muted">(우리집 화면 · 이 기기만)</small></span>${housePickerHtml(houseCur())}</div>
-        ${adult ? `<label class="check"><input type="checkbox" id="gs" ${info.family.showGrandmaStatus ? 'checked' : ''}> <span>거실 보드에 할머니 상태 카드 표시</span></label>` : ''}
+        <div class="field"><span>집 그림 <small class="muted">(우리집 화면 · 온 가족)</small></span>${housePickerHtml(houseCur())}</div>
+        ${adult ? `<label class="check"><input type="checkbox" id="gs" ${info.family.showGrandmaStatus ? 'checked' : ''}> <span>거실 보드에 조부모(할머니·할아버지) 상태 카드 표시</span></label>` : ''}
         ${ps ? `<div class="field"><span>휴대폰 알림</span>${ps.s === 'on' ? '<p class="ok">✅ 이 기기에서 알림을 받고 있어요</p><div class="row gap wrap"><button class="btn" id="ptest">🔔 테스트 알림 보내기</button><button class="btn ghost" id="poff">알림 끄기</button></div><p class="small muted">앱을 닫거나 화면을 꺼도 알림이 와요. 안 오면 위 버튼으로 점검해 보세요.</p><details class="push-help"><summary>🔒 잠금 화면에 알림이 안 보여요</summary><ol class="small"><li>설정 → 알림 → <b>우리집</b>을 엽니다. (목록에 없으면 홈 화면 앱에서 먼저 알림을 켜 주세요)</li><li><b>알림 허용</b>을 켭니다.</li><li>알림 표시에서 <b>잠금 화면</b>, 알림 센터, 배너를 모두 체크합니다.</li><li>방해 금지·집중 모드가 켜져 있으면 알림이 숨겨져요. 이 앱을 허용 앱에 넣어 주세요.</li><li><b>안드로이드</b>: 설정 → 앱 → 우리집(또는 Chrome) → 알림에서 알림을 켜고, ‘잠금 화면’을 <b>모든 알림 내용 표시</b>로 바꿔 주세요. 중요도는 ‘소리 및 팝업’(긴급)이 좋아요. 배터리 설정에서 이 앱을 ‘제한 없음’으로 두면 앱을 닫아도 더 잘 와요.</li><li>위의 <b>테스트 알림</b> 버튼을 눌러 잠금 화면에 오는지 확인해요.</li></ol></details>' : ps.s === 'off' ? '<button class="btn primary" id="pon">🔔 알림 허용</button>' : `<p class="muted small">${esc(ps.msg)}</p>`}</div>` : (dev ? '<p class="muted small">이 기기에서 활동 알림(앱이 닫혀 있거나 잠겨 있을 때)을 받으려면 먼저 어른 확인(🔑)을 한 뒤 이 화면에서 알림을 허용해 주세요.</p><button class="btn ghost" id="adultMode">🔑 어른 확인</button>' : '')}
       </details>
+      ${!dev ? `<details class="card page-card fold" data-fold="account"${fo('account')}><summary><h3>🔑 내 계정 · 비밀번호</h3></summary>
+        <p class="muted small">로그인 아이디: <b>${esc(info.me?.name || '')}</b>의 계정</p>
+        <div class="row gap wrap"><button class="btn" id="chpw">비밀번호 바꾸기</button><button class="btn ghost" id="newrec">복구 코드 새로 만들기</button></div>
+        <p class="small muted">복구 코드는 비밀번호를 잊었을 때 아이디와 함께 쓰는 12자리 코드예요. 새로 만들면 예전 코드는 쓸 수 없어요.</p></details>` : ''}
       <section class="card page-card"><button class="btn ghost wide" id="logout">로그아웃</button><p class="muted small center">${dev ? '거실 공용 기기 모드' : '내 휴대폰 모드'} · 우리집 v1</p></section>`;
     el.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => { d.open ? opened.add(d.dataset.fold) : opened.delete(d.dataset.fold); }));
     bind(ps);
@@ -85,7 +92,12 @@ export async function mount(el) {
     const run = (fn) => async () => { try { await fn(); await load(); } catch (e) { errToast(e); } };
     $$('input[name=theme]', el).forEach((r) => r.addEventListener('change', () => { lsSet('theme', r.value); bus.emit('theme'); }));
     $$('input[name=wall]', el).forEach((r) => r.addEventListener('change', () => { lsSet('wall', r.value); bus.emit('theme'); }));
-    $$('input[name=house]', el).forEach((r) => r.addEventListener('change', () => { lsSet('house', r.value); toast('집 그림을 바꿨어요'); }));
+    $$('input[name=house]', el).forEach((r) => r.addEventListener('change', async () => {
+      try {
+        if (!isDevice() || isAdultNow()) { await patch('/api/family', { house: r.value }); S.info.family.house = r.value; lsSet('house', null); toast('집 그림을 바꿨어요 (온 가족 기기에 적용)'); } // 어른: 가족 모두에게
+        else { lsSet('house', r.value); toast('이 기기의 집 그림을 바꿨어요'); } // 공용 기기에서 어른 확인 전: 이 기기만
+      } catch (e) { errToast(e); }
+    }));
     $('#gs', el)?.addEventListener('change', run(() => patch('/api/family', { showGrandmaStatus: $('#gs', el).checked })));
     $('#pon', el)?.addEventListener('click', run(() => enablePush(ps)));
     $('#poff', el)?.addEventListener('click', run(() => disablePush(ps)));
@@ -103,6 +115,21 @@ export async function mount(el) {
       } catch (e) { errToast(e); }
     });
     $('#addsup', el)?.addEventListener('click', () => supplySheet({}));
+    $('#addkid', el)?.addEventListener('click', async () => {
+      if (!(await needAdult())) return;
+      await run(() => formSheet({ title: '아이 추가', submit: '추가', html: '<label class="field">이름<input name="name" maxlength="20" required></label><div class="field"><span>성별 <small class="muted">(집 안 캐릭터가 달라져요)</small></span><div class="seg">' + [['boy', '남자아이'], ['girl', '여자아이']].map(([v, t]) => `<label class="seg-opt"><input type="radio" name="gender" value="${v}"><span>${t}</span></label>`).join('') + '</div></div><p class="small muted">추가한 뒤 할일(루틴)을 만들어 주세요.</p>',
+        onSubmit: (v) => { if (!v.gender) throw new Error('성별을 골라 주세요.'); return post('/api/kids', { name: v.name, gender: v.gender }); } }))();
+    });
+    $('#chpw', el)?.addEventListener('click', run(() => formSheet({ title: '비밀번호 바꾸기', submit: '바꾸기',
+      html: '<label class="field">지금 비밀번호<input name="oldPassword" type="password" autocomplete="current-password" required></label><label class="field">새 비밀번호 <small class="muted">(6자 이상)</small><input name="newPassword" type="password" autocomplete="new-password" required></label><label class="field">새 비밀번호 한 번 더<input name="newPassword2" type="password" autocomplete="new-password" required></label><p class="small muted">바꾸면 다른 기기의 로그인은 풀려요.</p>',
+      onSubmit: async (v) => { if (v.newPassword !== v.newPassword2) throw new Error('새 비밀번호가 서로 달라요.'); await post('/api/me/password', { oldPassword: v.oldPassword, newPassword: v.newPassword }); toast('비밀번호를 바꿨어요'); } })));
+    $('#newrec', el)?.addEventListener('click', run(async () => {
+      const r = await formSheet({ title: '복구 코드 새로 만들기', submit: '만들기', html: '<p class="muted">새로 만들면 예전 복구 코드는 쓸 수 없어요. 비밀번호를 한 번 더 확인할게요.</p><label class="field">비밀번호<input name="password" type="password" autocomplete="current-password" required></label>',
+        onSubmit: (v) => post('/api/me/recovery', { password: v.password }) });
+      if (!r?.recoveryCode) return;
+      const sh = openSheet(`<h2>새 복구 코드</h2><p class="muted">지금만 볼 수 있어요. 캡처하거나 적어 두세요.</p>${recoveryBoxHtml(r.recoveryCode)}<div class="row end"><button class="btn primary" data-close>저장했어요</button></div>`);
+      bindRecoveryCopy(sh.el, r.recoveryCode);
+    }));
     $('#addact', el)?.addEventListener('click', run(() => formSheet({ title: '활동 추가', submit: '추가', html: '<label class="field">활동 이름<input name="name" maxlength="20" required></label><label class="field">아이콘<input name="icon" maxlength="4" value="⏱️"></label><label class="field">기본 시간(분)<input name="minutes" inputmode="numeric" value="30"></label>', onSubmit: (v) => post('/api/activities', { name: v.name, icon: v.icon, minutes: Number(v.minutes) }) })));
     $('#logout', el).onclick = async () => { if (await confirmDialog('로그아웃할까요?')) window.__app.logout(); };
     const code = S.info.family.code;
@@ -119,7 +146,7 @@ export async function mount(el) {
         setTimeout(() => document.getElementById('facepp')?.appendChild(picker), 0);
         await run(() => formSheet({ title: `${m.name} 수정`, submit: '저장', cls: 'tall', html: memberForm(m), onSubmit: (v) => {
           if (picker.state.busy) throw new Error('사진을 올리는 중이에요. 잠깐만요.');
-          const body = { name: v.name, avatar: v.avatar, ...(v.color ? { color: v.color } : {}) };
+          const body = { name: v.name, avatar: v.avatar, ...(v.color ? { color: v.color } : {}), ...(v.gender ? { gender: v.gender } : {}) };
           if (v.rmphoto === 'on') body.photoId = null; else if (picker.state.id) body.photoId = picker.state.id;
           return patch(`/api/members/${m.id}`, body);
         } }))(); }

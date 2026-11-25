@@ -356,7 +356,7 @@ export function home(core, ctx) {
     };
   });
   const adults = core.adults(ctx.familyId)
-    .filter((a) => a.role !== 'grandma' || fam.show_grandma_status)
+    .filter((a) => (a.role !== 'grandma' && a.role !== 'grandpa') || fam.show_grandma_status)
     .map((a) => ({ ...publicMember(a), status: statusOf(core, a.id) }));
   const sched = scheduleFor(core, ctx.familyId, today, kstDate(Date.parse(today + 'T00:00:00Z') + 864e5));
   const posts = core.all('SELECT * FROM posts WHERE family_id = ? ORDER BY pinned DESC, id DESC LIMIT 3', ctx.familyId).map((p) => ({

@@ -167,7 +167,7 @@ const COLUMNS = [
   ['families', 'show_ruby INTEGER NOT NULL DEFAULT 1'], ['families', 'show_crystal INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_dog INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_cats INTEGER NOT NULL DEFAULT 1'],
-  ['families', 'layout TEXT'],
+  ['families', 'layout TEXT'], ['families', 'house TEXT'], ['members', 'gender TEXT'], ['users', 'recovery_hash TEXT'],
   ['money_requests', 'pieces TEXT'],
   ['ledger', 'voided INTEGER NOT NULL DEFAULT 0'], ['ledger', 'voided_at INTEGER'], ['ledger', 'voided_by INTEGER'],
   ['families', 'timer_sound INTEGER NOT NULL DEFAULT 1'], ['push_subs', 'device INTEGER NOT NULL DEFAULT 0'],

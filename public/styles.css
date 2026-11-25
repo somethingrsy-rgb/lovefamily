@@ -854,3 +854,30 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .kid-hub .big-btn .bi { font-size: 2.3rem; } .kid-hub .big-btn .bi-img { height: 2.5rem; } .kid-hub .big-btn small { font-size: .78rem; }
 .kid-hub .row.wrap.center { gap: 10px; row-gap: 12px; } .kid-hub .row.wrap.center .btn { min-height: 42px; padding: 0 14px; font-size: .92rem; }
 @media (min-width: 900px) { .kid-hub .big-grid { max-width: 440px; } }
+
+/* 그림 없는 어른(할아버지·기타): 집 안에서 얼굴 동그라미로 서 있고, 걸을 때는 통통 튄다 */
+.wk-face { display: block; padding-bottom: .6cqw; filter: drop-shadow(0 1cqw .8cqw rgba(70, 40, 110, .25)); pointer-events: none; }
+.wk-face .avatar.wk-avatar { width: 9cqw; height: 9cqw; font-size: 6cqw; border: .7cqw solid #fff; }
+.wk-face.moving { animation: wkbob .45s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .wk-face.moving { animation: none; } }
+
+/* 가입 마법사 · 복구 코드 */
+.auth-links.single { justify-content: center; margin-top: 6px; }
+.wiz-steps { display: flex; justify-content: space-between; gap: 4px; list-style: none; padding: 0; margin: 4px 0 14px; }
+.wiz-steps li { flex: 1; text-align: center; color: var(--muted); font-size: .72rem; font-weight: 700; }
+.wiz-steps i { display: grid; place-items: center; width: 26px; height: 26px; margin: 0 auto 2px; border-radius: 50%; background: var(--card2); border: 2px solid var(--line); font-style: normal; font-size: .8rem; }
+.wiz-steps li.on { color: var(--ink); } .wiz-steps li.on i { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+.wiz-steps li.done i { background: #d9f6e7; border-color: #8fdcb7; color: #146b46; }
+.wiz-nav { display: flex; gap: 10px; margin-top: 14px; } .wiz-nav .btn { min-width: 96px; }
+.kid-row { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; padding: 10px; border-radius: 16px; background: var(--card2); }
+.kid-row .field { flex: 1 1 130px; margin: 0; } .kid-row .seg { flex: 0 1 auto; } .kid-row .seg-opt { min-width: 76px; }
+.pet-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; }
+.pet-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.pet-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 16px; background: var(--card2); border: 3px solid var(--line); cursor: pointer; height: 100%; }
+.pet-card img { width: 64px; height: 64px; object-fit: contain; } .pet-card small { color: var(--muted); font-weight: 600; font-size: .75rem; }
+.pet-opt input:checked + .pet-card { border-color: var(--accent2); background: color-mix(in srgb, var(--accent2) 14%, var(--card2)); }
+.pet-opt input:focus-visible + .pet-card { outline: 3px solid var(--accent2); outline-offset: 2px; }
+.recovery-box { margin: 14px 0 10px; padding: 18px 10px; border: 2.5px dashed var(--accent2); border-radius: 20px; background: var(--card2); text-align: center; }
+.recovery-box b { font-size: 1.7rem; letter-spacing: 3px; word-break: keep-all; user-select: all; -webkit-user-select: all; }
+.recovery-note { margin: 10px 0; padding: 10px 12px; border-radius: 14px; background: var(--card2); line-height: 1.55; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: 2px; }

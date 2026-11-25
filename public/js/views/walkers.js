@@ -3,6 +3,7 @@ import { S, put, isKidPhone, boundKid } from '../api.js';
 import { avatar, toast, errToast } from '../ui.js';
 import { timerOf } from '../timers.js';
 import { actImgUrl } from '../actimg.js';
+import { kidArtKey, adultArtKey, kidHome, adultHome } from '../layout.js';
 
 // ===== 건물 뼈대(집 그림 1086×1448 기준 %) =====
 // 칸은 3×3 격자: 0행=거실(왼·가운데·오른쪽), 1행=유엘방·유하방·확인방, 2행=할머니방·엄마방·아빠방.
@@ -12,10 +13,6 @@ export const COL_X = [19.6, 50.2, 80.3];          // 각 칸의 가운데
 export const PILLAR_X = [35.2, 64.9];             // 층과 층 사이를 오르내리는 기둥 통로
 const SPEED = 16;                                  // 초당 이동량(가로 % 기준, 세로는 화면 비율 보정)
 const V_SCALE = 1448 / 1086;
-const PEOPLE = [
-  { key: 'yuel', home: '10', kind: 'kid', idx: 0 }, { key: 'yuha', home: '11', kind: 'kid', idx: 1 },
-  { key: 'gma', home: '20', kind: 'adult', role: 'grandma' }, { key: 'mom', home: '21', kind: 'adult', role: 'mom' }, { key: 'dad', home: '22', kind: 'adult', role: 'dad' },
-];
 const SPRITE = { gma: 149, dad: 152, yuel: 147, yuha: 166, mom: 156 }; // 걷기 시트 프레임 폭(높이는 280)
 const rc = (cell) => [Number(cell[0]), Number(cell[1])];
 const cellOf = (r, c) => `${r}${c}`;
@@ -46,12 +43,13 @@ let lastTap = { id: null, t: 0 };      // 같은 캐릭터를 빠르게 두 번 
 let P = [];                            // 현재 화면에 그릴 사람 정보
 const reduce = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+// 화면에 그릴 사람들: 아이는 가족 탭 순서대로(성별에 맞는 캐릭터), 어른은 역할에 맞는 방에 선다. 그림이 없는 역할(key=null)은 얼굴 동그라미로 그린다.
 function peopleFrom(h) {
   const out = [];
-  for (const d of PEOPLE) {
-    const m = d.kind === 'kid' ? h.kids[d.idx] : (h.adults.find((a) => a.role === d.role) || S.info.adults.find((a) => a.role === d.role));
-    if (!m) continue;
-    out.push({ ...d, id: m.id, name: m.name, member: m, status: m.status?.state || null });
+  (h.kids || []).forEach((m, idx) => out.push({ key: kidArtKey(m.id), home: kidHome(idx), kind: 'kid', idx, id: m.id, name: m.name, member: m, status: null }));
+  for (const a of S.info.adults) {
+    const st = h.adults.find((x) => x.id === a.id)?.status;
+    out.push({ key: adultArtKey(a.role), home: adultHome(a.role), kind: 'adult', role: a.role, id: a.id, name: a.name, member: a, status: st?.state || null });
   }
   return out;
 }
@@ -77,13 +75,16 @@ function idleImg(p, w) {
     if (p.status === 'working') return `<img class="wk-img wide" src="/assets/chars/${p.role}-work.webp" alt="" draggable="false">`;
     if (p.status === 'heading_home' || p.status === 'picking_up') return `<img class="wk-img wide car" src="/assets/chars/${p.role}-car.webp" alt="" draggable="false">`;
   }
+  if (!p.key) return `<span class="wk-face">${avatar(p.member, 'wk-avatar')}</span>`; // 그림이 없는 역할(할아버지·기타 어른): 얼굴 동그라미
   return `<img class="wk-img" src="/assets/chars/${p.key}.webp" alt="" draggable="false">`;
 }
 function walkerHtml(p) {
   const w = W.get(p.id);
   const timerLift = p.kind === 'kid' && w.cell === p.home && timerOf(p.id) ? 2.9 : 0;
   const x = w.moving ? w.x : slotX(w.cell, p.id); const y = (w.moving ? w.y : baseY(w)) - timerLift;
-  const inner = w.moving
+  const inner = w.moving && !p.key
+    ? `<span class="wk-face moving">${avatar(p.member, 'wk-avatar')}</span>`
+    : w.moving
     ? `<div class="wk-sprite" style="background-image:url(/assets/walk/${p.key}.webp);--fw:${SPRITE[p.key]};transform:scaleX(${w.face})"></div>`
     : idleImg(p, w);
   return `<button class="walker ${w.moving ? 'moving' : 'idle'} ${selected === p.id ? 'sel' : ''}" data-walker="${p.id}" style="left:${x}%;top:${y}%" aria-label="${esc(p.name)} ${selected === p.id ? '선택됨' : '선택하기'}" aria-pressed="${selected === p.id}">${inner}<i class="wk-shadow"></i></button>`;

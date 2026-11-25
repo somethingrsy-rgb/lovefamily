@@ -30,7 +30,7 @@ const R = (pattern, view, opts = {}) => {
   routes.push({ re, keys, view, ...opts });
 };
 // 공개 화면(로그인 전)
-R('/login', auth.login, { pub: true }); R('/pair', auth.pair, { pub: true }); R('/register', auth.register, { pub: true }); R('/join/:code', auth.join, { pub: true }); R('/join', auth.join, { pub: true });
+R('/login', auth.login, { pub: true }); R('/pair', auth.pair, { pub: true }); R('/register', auth.register, { pub: true }); R('/join/:code', auth.join, { pub: true }); R('/join', auth.join, { pub: true }); R('/reset', auth.reset, { pub: true });
 // 메인 화면
 R('/', home, { tab: 'today' });
 R('/adult', adult.page, { tab: 'today', adult: true }); R('/inbox', adult.inbox, { tab: 'today', adult: true });

@@ -38,6 +38,4 @@ export const wallPickerHtml = (cur) => `<div class="wall-grid">${WALLS.map(([k, 
 
 // 집 그림 목록 (우리집 화면의 큰 집). 이 기기에만 저장돼요. 방 칸 위치는 모든 그림이 같다.
 export const HOUSES = [['pastel', '보라 집', '/assets/house.webp?v=4', '/assets/house-t.webp'], ['xmas', '크리스마스 집', '/assets/house-xmas.webp?v=1', '/assets/house-xmas-t.webp']];
-export const houseCur = () => { const h = lsGet('house', 'pastel'); return HOUSES.some(([k]) => k === h) ? h : 'pastel'; };
-export const houseSrc = () => HOUSES.find(([k]) => k === houseCur())[2];
 export const housePickerHtml = (cur) => `<div class="wall-grid house-grid">${HOUSES.map(([k, n, , t]) => `<label class="wall-opt"><input type="radio" name="house" value="${k}" ${cur === k ? 'checked' : ''}><span class="wall-thumb house-thumb" style="background-image:url(${t})"></span><b>${n}</b></label>`).join('')}</div>`;
