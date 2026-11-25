@@ -320,6 +320,29 @@ export function listKidThreads(core, ctx, kidId) {
   }).sort((x, y) => y.last.at - x.last.at);
 }
 
+// ---------- 부모님이 아이들끼리 대화를 읽기 전용으로 보기 ----------
+// 부모님 권한 어른만, 가족 설정에서 켜 둔 경우에만. 보기만 하고 읽음 표시·답장은 하지 않는다.
+function peekAllowed(core, ctx) {
+  ctx.guardian();
+  const fam = core.get('SELECT parents_see_kid_chat FROM families WHERE id = ?', ctx.familyId);
+  if (!fam.parents_see_kid_chat) throw err(403, 'peek_off', '아이들끼리 대화는 가족 설정에서 꺼 두었어요.');
+}
+export function listKidChats(core, ctx) {
+  peekAllowed(core, ctx);
+  const rows = core.all('SELECT kid_a, kid_b, COUNT(*) n FROM kid_messages WHERE family_id = ? GROUP BY kid_a, kid_b', ctx.familyId);
+  return rows.map((r) => {
+    const last = core.get('SELECT * FROM kid_messages WHERE kid_a = ? AND kid_b = ? ORDER BY id DESC LIMIT 1', r.kid_a, r.kid_b);
+    const a = core.member(r.kid_a); const b = core.member(r.kid_b);
+    return { kidA: a.id, kidB: b.id, nameA: a.name, nameB: b.name, avatarA: a.avatar, avatarB: b.avatar, count: r.n, last: kmsgOut(last) };
+  }).sort((x, y) => y.last.at - x.last.at);
+}
+export function peekKidChat(core, ctx, a, b) {
+  peekAllowed(core, ctx);
+  const ka = ctx.kidRow(a); const kb = ctx.kidRow(b); // 같은 가족의 아이만
+  const [x, y] = kidPair(ka.id, kb.id);
+  return { kidA: x, kidB: y, nameA: core.member(x).name, nameB: core.member(y).name, messages: core.all('SELECT * FROM kid_messages WHERE kid_a = ? AND kid_b = ? ORDER BY id DESC LIMIT 100', x, y).reverse().map(kmsgOut) };
+}
+
 // ---------- 알림 목록 (받은 편지함) ----------
 export function listNotifications(core, ctx, kidId) {
   let memberId;

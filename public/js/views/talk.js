@@ -39,6 +39,7 @@ export async function talk(el, { id, adultId, otherId }) {
     const phrases = toKid ? KID_PHRASES : PHRASES;
     const first = !$('.chat', el);
     morph(el, `${back(`/kid/${id}`, `${avatar(other, 'sm')} ${esc(other.name)}에게`)}
+      ${toKid && S.info.family?.parentsSeeKidChat ? '<p class="small muted center">👀 부모님도 볼 수 있어요</p>' : ''}
       <section class="chat card">${bubbles(msgs, Number(id))}</section>
       <div class="phrases">${phrases.map((p) => `<button class="chip big" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
       <form class="chat-form" novalidate><input name="body" maxlength="500" placeholder="직접 쓰기" autocomplete="off" aria-label="메시지">${SR ? '<button type="button" class="btn big mic-btn" id="mic" aria-label="말로 보내기" aria-pressed="false">🎤</button>' : ''}<button class="btn primary">보내기</button></form>
@@ -100,6 +101,20 @@ export async function kidInbox(el, { id }) {
   }
   await load();
   return { refresh: load, topics: ['messages', 'stamps', 'wallet', 'missions', 'day'] };
+}
+
+// 부모님: 아이들끼리 대화 읽기 전용(보내기·읽음 표시 없음)
+export async function kidChatView(el, { a, b }) {
+  async function load() {
+    const t = await get(`/api/kid-chats/${a}/${b}`);
+    const ka = kidOf(t.kidA); const kb = kidOf(t.kidB);
+    el.innerHTML = `${back('/inbox', `${avatar(ka, 'sm')} ${esc(t.nameA)} ↔ ${esc(t.nameB)}`)}<p class="small muted center">👀 읽기 전용이에요. 아이들은 부모님이 볼 수 있다는 걸 알고 있어요.</p>
+      <section class="chat card"><ul class="bubbles">${t.messages.map((m) => `<li class="${m.senderId === t.kidA ? 'other' : 'me'}"><small><b>${esc(m.senderId === t.kidA ? t.nameA : t.nameB)}</b></small><div>${esc(m.body)}</div><small>${timeLabel(m.at)}</small></li>`).join('') || '<li class="muted center">아직 대화가 없어요</li>'}</ul></section>`;
+    const list = $('.bubbles', el); if (list) list.scrollTop = list.scrollHeight;
+    void kb;
+  }
+  await load();
+  return { refresh: load, topics: ['messages'] };
 }
 
 // 어른: 아이와의 대화

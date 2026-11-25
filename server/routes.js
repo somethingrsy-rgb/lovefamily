@@ -127,6 +127,8 @@ export function buildRoutes(app) {
   add('GET', '/api/kid-threads', (c, h) => X.listKidThreads(h.core, c, h.query.kidId));
   add('GET', '/api/kid-threads/:kidId/:otherId', (c, h) => X.getKidThread(h.core, c, P(h, 'kidId'), P(h, 'otherId')));
   add('POST', '/api/kid-threads/:kidId/:otherId/read', (c, h) => X.readKidThread(h.core, c, P(h, 'kidId'), P(h, 'otherId')));
+  add('GET', '/api/kid-chats', (c, h) => X.listKidChats(h.core, c));
+  add('GET', '/api/kid-chats/:a/:b', (c, h) => X.peekKidChat(h.core, c, P(h, 'a'), P(h, 'b')));
   add('POST', '/api/kid-messages', (c, h) => ({ status: 201, body: X.sendKidMessage(h.core, c, h.body) }));
   add('POST', '/api/messages', (c, h) => ({ status: 201, body: X.sendMessage(h.core, c, h.body) }));
   add('GET', '/api/notifications', (c, h) => X.listNotifications(h.core, c, h.query.kidId));

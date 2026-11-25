@@ -42,6 +42,7 @@ R('/notebook', notebook, { tab: 'family' }); R('/notebook/:postId', notebook, { 
 R('/calendar', family.calendar, { tab: 'family' });
 R('/approve/:id', detail.approve, { tab: 'today', adult: true }); R('/money/:id', detail.money, { tab: 'today', adult: true });
 R('/messages/:kidId/:adultId', talk.adultThread, { tab: 'today', adult: true });
+R('/kid-chat/:a/:b', talk.kidChatView, { tab: 'today', adult: true });
 R('/kid/:id', kid.hub, { tab: 'today', kid: true }); R('/kid/:id/today', kid.today, { tab: 'today', kid: true });
 R('/kid/:id/wallet', wallet, { tab: 'today', kid: true }); R('/kid/:id/wishes', wishes, { tab: 'today', kid: true });
 R('/kid/:id/talk', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/timetable', timetable, { tab: 'today', kid: true });

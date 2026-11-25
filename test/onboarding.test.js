@@ -260,3 +260,38 @@ test('아이끼리 메시지: 두 아이만 주고받고, 받으면 알림이 �
     assert.deepEqual((await mom.ok('GET', `/api/kid-threads?kidId=${k0}`)), [], '어른에게는 빈 목록');
   } finally { await app.close(); }
 });
+
+test('부모님이 아이들끼리 대화 보기: 부모님 권한 어른만 읽기 전용, 설정으로 끌 수 있고, 아이 폰은 못 쓴다', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm'); const gma = new Client(base, 'g'); const dad = new Client(base, 'd');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'peek@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }, { name: '바다', gender: 'boy' }] });
+    const me = await mom.ok('GET', '/api/me'); const [k0, k1] = me.kids.map((k) => k.id);
+    assert.equal(me.family.parentsSeeKidChat, true, '기본은 켜짐');
+    await gma.ok('POST', '/api/auth/join', { code: me.family.code, loginId: 'gma@peek', password: 'secret2', role: 'grandma' });
+    await dad.ok('POST', '/api/auth/join', { code: me.family.code, loginId: 'dad@peek', password: 'secret3', role: 'dad' });
+    const phone = async (kid) => { const c = new Client(base, `p${kid}`); await c.ok('POST', '/api/auth/kid-pair', { code: (await mom.ok('POST', `/api/kids/${kid}/pair-code`)).code }); return c; };
+    const p0 = await phone(k0); const p1 = await phone(k1);
+    await p0.ok('POST', '/api/kid-messages', { kidId: k0, toKidId: k1, body: '비밀 이야기' });
+    await p1.ok('POST', '/api/kid-messages', { kidId: k1, toKidId: k0, body: '응!' });
+    // 부모님 권한(엄마·아빠): 목록과 대화를 읽는다. 읽어도 아이의 안 읽은 표시는 그대로
+    const list = await mom.ok('GET', '/api/kid-chats');
+    assert.equal(list.length, 1); assert.equal(list[0].count, 2); assert.equal(list[0].last.body, '응!');
+    const chat = await dad.ok('GET', `/api/kid-chats/${k1}/${k0}`); // 순서를 바꿔 불러도 같은 대화
+    assert.deepEqual(chat.messages.map((m) => m.body), ['비밀 이야기', '응!']);
+    assert.equal((await p0.ok('GET', `/api/kid-threads?kidId=${k0}`))[0].unread, 1, '부모님이 읽어도 아이의 안 읽음은 그대로');
+    // 할머니(부모님 권한 없음)·아이 폰은 못 본다
+    assert.equal((await gma.call('GET', '/api/kid-chats')).status, 403);
+    assert.equal((await gma.call('GET', `/api/kid-chats/${k0}/${k1}`)).status, 403);
+    assert.equal((await p0.call('GET', '/api/kid-chats')).status, 403);
+    // 어른이 보내거나 읽음 처리할 수는 없다(읽기 전용)
+    assert.equal((await mom.call('POST', '/api/kid-messages', { kidId: k0, toKidId: k1, body: '몰래' })).status, 403);
+    // 끄면 부모님도 못 본다. 바꾸는 것은 부모님 권한 어른만
+    assert.equal((await gma.call('PATCH', '/api/family', { parentsSeeKidChat: false })).status, 403);
+    assert.equal((await mom.ok('PATCH', '/api/family', { parentsSeeKidChat: false })).parentsSeeKidChat, false);
+    assert.equal((await mom.call('GET', '/api/kid-chats')).status, 403);
+    assert.equal((await p0.ok('GET', '/api/me')).family.parentsSeeKidChat, false, '아이 폰에서도 꺼진 걸 알 수 있다');
+    await mom.ok('PATCH', '/api/family', { parentsSeeKidChat: true });
+    assert.equal((await mom.ok('GET', '/api/kid-chats')).length, 1);
+  } finally { await app.close(); }
+});

@@ -219,7 +219,7 @@ export function me(core, ctx) {
   const adult = ctx.adultOrNull();
   return {
     session: { kind: ctx.session.kind, memberId: ctx.isDevice ? null : ctx.session.member_id, boundKid: ctx.boundKid },
-    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', petNames: petNamesOf(fam), petOwners: petOwnersOf(fam), showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
+    family: { id: fam.id, name: fam.name, house: HOUSES.includes(fam.house) ? fam.house : 'pastel', petNames: petNamesOf(fam), petOwners: petOwnersOf(fam), parentsSeeKidChat: !!fam.parents_see_kid_chat, showGrandmaStatus: !!fam.show_grandma_status, timerSound: !!fam.timer_sound, pets: { ruby: !!fam.show_ruby && !!fam.show_cats, crystal: !!fam.show_crystal && !!fam.show_cats, yeoni: !!fam.show_dog }, code: adult ? fam.code : undefined, layout: parseLayout(fam.layout) },
     me: !ctx.isDevice && adult ? publicMember(adult) : null,
     elevated: ctx.isDevice && adult ? publicMember(adult) : null,
     kids: core.kids(ctx.familyId).map((k) => publicMember(k, ctx)),
@@ -329,13 +329,16 @@ export function updateFamily(core, ctx, b) {
   const cats = b.showCats !== undefined ? (b.showCats ? 1 : 0) : fam.show_cats;
   const dog = b.showDog !== undefined ? (b.showDog ? 1 : 0) : fam.show_dog;
   const house = b.house !== undefined ? oneOf(b.house, HOUSES, '집 그림') : (HOUSES.includes(fam.house) ? fam.house : 'pastel');
+  // 아이들끼리 메시지를 부모님 권한 어른이 읽기 전용으로 볼 수 있게 할지(아이에게도 알려 준다). 바꾸는 것도 부모님 권한 어른만
+  if (b.parentsSeeKidChat !== undefined) ctx.guardian();
+  const peek = b.parentsSeeKidChat !== undefined ? (b.parentsSeeKidChat ? 1 : 0) : fam.parents_see_kid_chat;
   const petNames = b.petNames && typeof b.petNames === 'object' ? JSON.stringify(petNamesOf(fam, b.petNames)) : fam.pet_names;
   const pp = b.pets && typeof b.pets === 'object' ? b.pets : {};
   const ruby = pp.ruby !== undefined ? (pp.ruby ? 1 : 0) : fam.show_ruby;
   const crystal = pp.crystal !== undefined ? (pp.crystal ? 1 : 0) : fam.show_crystal;
   const yeoni = pp.yeoni !== undefined ? (pp.yeoni ? 1 : 0) : dog;
   // 예전 '고양이 전체' 설정(show_cats)은 이름별 설정으로 옮겨 오므로, 이름별로 저장할 때는 켜 둔다
-  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ?, house = ?, pet_names = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, house, petNames, fam.id);
+  core.run('UPDATE families SET name = ?, show_grandma_status = ?, timer_sound = ?, show_cats = ?, show_dog = ?, show_ruby = ?, show_crystal = ?, house = ?, pet_names = ?, parents_see_kid_chat = ? WHERE id = ?', name, show, sound, (b.pets ? 1 : cats), yeoni, ruby, crystal, house, petNames, peek, fam.id);
   void adult;
   core.refresh(ctx.familyId, 'family', 'home', 'timers');
   return me(core, ctx).family;
