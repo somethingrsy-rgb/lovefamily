@@ -176,7 +176,7 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
 {
   const vp = await (await browser.newContext({ ...devices['iPhone 14'] })).newPage();
   await vp.goto(base + '/#/login'); await vp.fill('input[name=loginId]', 'mom@t'); await vp.fill('input[name=password]', 'secret1'); await vp.click('button[type=submit]'); await vp.waitForSelector('.tabs');
-  await vp.goto(base + '/#/family'); await vp.waitForSelector('#resetall'); await vp.waitForTimeout(400);
+  await vp.goto(base + '/#/family'); await vp.click('details.fold[data-fold=reset] > summary'); await vp.waitForSelector('#resetall'); await vp.waitForTimeout(400);
   const pos = () => vp.$eval('.tabs', (e) => { const r = e.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: window.innerHeight }; });
   const p0 = await pos();
   assert.equal(p0.bottom, p0.h, '하단 메뉴는 화면 맨 아래에 붙어 있다');
@@ -230,7 +230,7 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
 }
 // 전체 리셋: 확인 글자를 써야 하고, 루틴은 남는다
 {
-  await page.goto(base + '/#/family'); await page.waitForSelector('#resetall');
+  await page.goto(base + '/#/family'); await page.click('details.fold[data-fold=reset] > summary'); await page.waitForSelector('#resetall');
   await page.click('#resetall'); await page.waitForSelector('input[name=confirm]');
   await page.fill('input[name=confirm]', '아니요'); await page.click('.sheet button[type=submit]');
   await page.waitForSelector('.form-err:not([hidden])');

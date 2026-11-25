@@ -828,3 +828,29 @@ h1, h2, h3 { word-break: keep-all; overflow-wrap: anywhere; }
 @keyframes totalpop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .piggy-img.happy, .total.pop { animation: none; } }
 .house-grid { grid-template-columns: repeat(2, minmax(0, 150px)); } .house-thumb { aspect-ratio: 3 / 4; background-color: transparent; background-size: contain; }
+
+/* 가족 탭: 자주 안 쓰는 설정은 접어 둔다 (제목 줄 오른쪽 화살표를 누르면 펼쳐진다) */
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary h3 { margin: 0; }
+details.fold > summary::after { content: ''; flex: none; width: 11px; height: 11px; border-right: 3px solid var(--accent2); border-bottom: 3px solid var(--accent2); transform: translateY(-3px) rotate(45deg); transition: transform .2s; margin-right: 6px; }
+details.fold[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+details.fold[open] > summary { margin-bottom: 8px; }
+details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outline-offset: 4px; border-radius: 10px; }
+@media (prefers-reduced-motion: reduce) { details.fold > summary::after { transition: none; } }
+
+/* 도장판: 폰에서 칸이 오른쪽으로 삐져나가지 않게(칸이 줄어들 수 있게 하고, 좁은 화면은 5칸×6줄) */
+.stamp-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.stamp-grid.small { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.stamp-grid .cell { min-width: 0; overflow: hidden; } .cell img { max-width: 100%; }
+@media (max-width: 520px) { .stamp-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; } .stamp-grid.small { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
+
+/* 아이 화면(허브): 큰 버튼을 줄이고 배경이 보이도록 여백을 넉넉히 */
+.kid-hub { padding: 22px 18px 30px; }
+.hub-head { margin: 4px 4px 20px; gap: 16px; } .hub-head h1 { font-size: 1.8rem; }
+.kid-hub .avatar.xxl { width: 88px; height: 88px; font-size: 3rem; }
+.kid-hub .big-grid { max-width: 340px; margin: 6px auto 22px; gap: 14px; }
+.kid-hub .big-btn { min-height: 104px; padding: 10px 8px; border-radius: 22px; font-size: .98rem; gap: 2px; background: color-mix(in srgb, var(--card) 88%, transparent); }
+.kid-hub .big-btn .bi { font-size: 2.3rem; } .kid-hub .big-btn .bi-img { height: 2.5rem; } .kid-hub .big-btn small { font-size: .78rem; }
+.kid-hub .row.wrap.center { gap: 10px; row-gap: 12px; } .kid-hub .row.wrap.center .btn { min-height: 42px; padding: 0 14px; font-size: .92rem; }
+@media (min-width: 900px) { .kid-hub .big-grid { max-width: 440px; } }

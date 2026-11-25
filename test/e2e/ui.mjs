@@ -136,7 +136,7 @@ for (const [href, sel, name] of [['#/routines', '.rlist', '14-ipad-routines'], [
   await ipad.screenshot({ path: path.join(shots, `${name}.png`), fullPage: true });
 }
 // 야간 테마
-await ipad.goto(base + '/#/family'); await ipad.waitForSelector('input[name=theme]');
+await ipad.goto(base + '/#/family'); await ipad.waitForSelector('details.fold[data-fold=screen] > summary'); await ipad.click('details.fold[data-fold=screen] > summary'); await ipad.waitForSelector('input[name=theme]');
 await ipad.click('.seg-opt:has(input[value=dark])'); await ipad.goto(base + '/#/'); await ipad.waitForSelector('.kid-card');
 assert.equal(await ipad.evaluate(() => document.documentElement.dataset.theme), 'dark');
 await ipad.screenshot({ path: path.join(shots, '19-ipad-home-dark.png') });
