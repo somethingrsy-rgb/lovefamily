@@ -785,7 +785,7 @@ ul + .btn, ol + .btn, ul + .row, ol + .row, .rlist + .btn, #addact { margin-top:
 /* 간식주기·산책하기: 아이 본인 폰에서만, 본인 카드의 이름 오른쪽 */
 .kid-card { position: relative; }
 .kid-pet-btns { position: absolute; top: 18px; right: 16px; display: flex; gap: 8px; z-index: 2; }
-.pet-bar-btn { width: 78px; min-height: 66px; padding: 6px 2px; border: 0; border-radius: var(--r-s, 10px); background: rgba(255, 255, 255, .85); color: #3a3252; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 800; font-size: .8rem; line-height: 1.15; }
+.pet-bar-btn { width: 60px; min-height: 58px; padding: 6px 2px; border: 0; border-radius: var(--r-s, 10px); background: rgba(255, 255, 255, .85); color: #3a3252; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 800; font-size: .8rem; line-height: 1.15; }
 .pet-bar-btn b { font-weight: 800; white-space: nowrap; }
 .pet-bar-btn .emo { width: 1.9em; height: 1.9em; }
 .pet-bar-btn:active { transform: scale(.96); }
@@ -915,7 +915,9 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .walker.sz-kid > :not(.wk-shadow) { scale: .978; }
 .walker.sz-adult > :not(.wk-shadow) { scale: 1.089; }
 .walker.small > :not(.wk-shadow) { scale: .908; }
-/* 거실 기기: 카드가 좁아서 이름을 가리지 않도록, 간식주기·산책하기는 이름 아래 별도 줄로 */
-.home.is-living .kid-pet-btns { position: static; width: 100%; margin: 6px 0 8px; }
-.home.is-living .kid-pet-btns .pet-bar-btn { flex: 1; width: auto; min-height: 52px; flex-direction: row; justify-content: center; gap: 6px; }
-.home.is-living .kid-pet-btns .pet-bar-btn .emo { width: 1.5em; height: 1.5em; }
+/* 이름 옆 간식·산책 버튼: 작고 짧게(이름을 가리지 않는다). 여러 마리면 줄마다 이름과 함께 */
+.kid-pet-btns { gap: 6px; } .pet-bar-btn { font-size: .85rem; }
+/* 거실 기기: 카드가 좁아서(반쪽 폭) 이름 옆 버튼을 더 작게 */
+.home.is-living .kid-pet-btns { top: 16px; right: 14px; gap: 5px; }
+.home.is-living .kid-pet-btns .pet-bar-btn { width: 46px; min-height: 48px; padding: 4px 0; font-size: .72rem; }
+.home.is-living .kid-pet-btns .pet-bar-btn .emo { width: 1.45em; height: 1.45em; }
