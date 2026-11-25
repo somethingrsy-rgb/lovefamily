@@ -271,6 +271,54 @@ export function listThreads(core, ctx, kidId) {
   }).sort((a, b) => b.last.at - a.last.at);
 }
 
+// ---------- 아이끼리 메시지 (두 아이 본인만 보고 보낸다. 어른에게도 보이지 않는다) ----------
+const kidPair = (a, b) => (a < b ? [a, b] : [b, a]);
+function peerAccess(core, ctx, kidId, otherId) {
+  const me = ctx.asKid(kidId); // 아이 폰, 또는 그 아이로 전환한(비밀번호를 푼) 거실 기기
+  const other = ctx.kidRow(otherId);
+  if (me.id === other.id) throw err(400, 'self', '다른 친구에게 보내 주세요.');
+  return { me, other };
+}
+const kmsgOut = (m) => ({ id: m.id, kidId: m.kid_a, otherId: m.kid_b, senderId: m.sender_id, body: m.body, at: m.created_at, readAt: m.read_at });
+export function sendKidMessage(core, ctx, b) {
+  const kidId = vid(b.kidId, '아이');
+  const toId = vid(b.toKidId, '받는 아이');
+  const body = text(b.body, '메시지', { max: 500 });
+  const { me, other } = peerAccess(core, ctx, kidId, toId);
+  const [a, c] = kidPair(me.id, other.id);
+  return core.tx(() => {
+    const mid = core.insert('INSERT INTO kid_messages (family_id, kid_a, kid_b, sender_id, body, created_at) VALUES (?,?,?,?,?,?)', ctx.familyId, a, c, me.id, body, core.now());
+    core.notify({ familyId: ctx.familyId, memberId: other.id, kind: 'message', title: `${me.name}의 메시지`, body, url: `/#/kid/${other.id}/talk/kid/${me.id}`, dedupe: `kmsg:${mid}`, lock: `${me.name} · 새 메시지` });
+    core.refresh(ctx.familyId, 'messages');
+    return kmsgOut(core.get('SELECT * FROM kid_messages WHERE id = ?', mid));
+  });
+}
+export function getKidThread(core, ctx, kidId, otherId) {
+  const { me, other } = peerAccess(core, ctx, kidId, otherId);
+  const [a, c] = kidPair(me.id, other.id);
+  return core.all('SELECT * FROM kid_messages WHERE kid_a = ? AND kid_b = ? ORDER BY id DESC LIMIT 100', a, c).reverse().map(kmsgOut);
+}
+export function readKidThread(core, ctx, kidId, otherId) {
+  const { me, other } = peerAccess(core, ctx, kidId, otherId);
+  const [a, c] = kidPair(me.id, other.id);
+  const r1 = core.run('UPDATE kid_messages SET read_at = ? WHERE kid_a = ? AND kid_b = ? AND sender_id != ? AND read_at IS NULL', core.now(), a, c, me.id);
+  const r2 = core.run("UPDATE notifications SET read_at = ? WHERE member_id = ? AND kind = 'message' AND read_at IS NULL AND url = ?", core.now(), me.id, `/#/kid/${me.id}/talk/kid/${other.id}`);
+  if (r1.changes || r2.changes) core.refresh(ctx.familyId, 'messages');
+  return { ok: true };
+}
+// 내가 주고받은 아이끼리 대화 목록(어른은 볼 수 없어서 빈 목록)
+export function listKidThreads(core, ctx, kidId) {
+  if (ctx.adultOrNull()) return [];
+  const me = ctx.asKid(vid(kidId, '아이'));
+  const rows = core.all('SELECT kid_a, kid_b FROM kid_messages WHERE kid_a = ? OR kid_b = ? GROUP BY kid_a, kid_b', me.id, me.id);
+  return rows.map((r) => {
+    const otherId = r.kid_a === me.id ? r.kid_b : r.kid_a; const other = core.member(otherId);
+    const last = core.get('SELECT * FROM kid_messages WHERE kid_a = ? AND kid_b = ? ORDER BY id DESC LIMIT 1', r.kid_a, r.kid_b);
+    const unread = core.get('SELECT COUNT(*) c FROM kid_messages WHERE kid_a = ? AND kid_b = ? AND sender_id != ? AND read_at IS NULL', r.kid_a, r.kid_b, me.id).c;
+    return { otherId, otherName: other.name, otherAvatar: other.avatar, last: kmsgOut(last), unread };
+  }).sort((x, y) => y.last.at - x.last.at);
+}
+
 // ---------- 알림 목록 (받은 편지함) ----------
 export function listNotifications(core, ctx, kidId) {
   let memberId;

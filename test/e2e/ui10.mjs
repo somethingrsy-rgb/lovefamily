@@ -35,13 +35,13 @@ page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(base + '/#/login'); await page.fill('input[name=loginId]', 'mom@t'); await page.fill('input[name=password]', 'secret1'); await page.check('input[name=device]');
 await page.click('button[type=submit]'); await page.waitForSelector('.kid-card'); await page.waitForSelector('.pet'); await page.waitForTimeout(600);
 
-// 1) 어른·거실 화면에는 간식·산책 버튼이 없고, 아이 폰에는 자기 것 [간식][산책] 두 버튼만 있다
-assert.equal(await page.$('.kid-pet-btns'), null, '거실 기기에는 버튼 없음'); assert.equal(await page.$('[data-pet-act]'), null);
+// 1) 거실 기기와 아이 폰에는 간식·산책 버튼이 있다(아이 폰에는 자기 것 두 버튼만). 어른 개인 폰은 요청이 거절된다
+assert.ok(await page.$('.kid-card .kid-pet-btns'), '거실 기기(공용 기기)에도 간식·산책 버튼이 있다'); assert.equal(await page.$$eval('.kid-card .kid-pet-btns [data-pet-act]', (e) => e.length), 4, '아이 둘 × [간식][산책]');
 // 어른이 저장한 카드 순서가 [유엘, 유하]여도, 아이 폰에서는 본인 카드가 맨 위
 await call('PUT', '/api/layout', { layout: { 'home.kids': [`k${yuel}`, `k${yuha}`] } });
 const phY = await kidPhone(codeY); const phH = await kidPhone(codeH);
 for (const ph of [phY, phH]) {
-  assert.deepEqual(await ph.$$eval('.pet-bar-btn', (e) => e.map((x) => x.textContent.trim())), ['간식주기', '산책하기']);
+  assert.deepEqual(await ph.$$eval('.pet-bar-btn', (e) => e.map((x) => x.textContent.trim())), ['간식', '산책']);
   assert.equal(await ph.$('.topbar'), null, '날짜·시계 줄 없음'); assert.equal(await ph.$('.adult-row'), null, '엄마·아빠·할머니 줄 없음');
   assert.ok(await ph.$eval('.kids .kid-card:first-child .kid-pet-btns', () => true), '본인 카드가 맨 위, 이름 옆에 버튼');
   assert.ok(await ph.$('.pet-bar-btn img.emo'), '쿠키·나무 그림 아이콘');

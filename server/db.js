@@ -119,6 +119,11 @@ CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, adult_id INTEGER NOT NULL,
   sender_id INTEGER NOT NULL, body TEXT NOT NULL, created_at INTEGER NOT NULL, read_at INTEGER);
 CREATE INDEX IF NOT EXISTS messages_pair ON messages(kid_id, adult_id, id);
+-- 아이끼리 주고받는 메시지: 두 아이 사이의 대화(kid_a < kid_b). 두 아이 본인만 볼 수 있다
+CREATE TABLE IF NOT EXISTS kid_messages (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_a INTEGER NOT NULL, kid_b INTEGER NOT NULL,
+  sender_id INTEGER NOT NULL, body TEXT NOT NULL, created_at INTEGER NOT NULL, read_at INTEGER);
+CREATE INDEX IF NOT EXISTS kid_messages_pair ON kid_messages(kid_a, kid_b, id);
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, member_id INTEGER NOT NULL, kind TEXT NOT NULL,
   title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', dedupe TEXT UNIQUE,

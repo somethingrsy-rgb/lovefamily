@@ -31,7 +31,7 @@ function petBtns(k) {
   if (!phone && !(isDevice() && !boundKid())) return '';
   // 아직 주인이 된 동물이 없으면(아이 폰) 내 설정에서 고르도록 안내한다. 거실 기기는 어른이 가족 탭에서 주인을 정한다
   if (!mine.length) return phone && PET_IDS.some(petEnabled) ? '<div class="kid-pet-btns"><a class="pet-bar-btn pet-pick-link" href="#/me">🐾<b>내 반려동물<br>고르기</b></a></div>' : '';
-  const btns = (id) => `<button type="button" class="pet-bar-btn" data-pet-act="snack" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(petLabel(id))}에게 간식 주기">🍪<b>간식주기</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${esc(petLabel(id))} 산책하기">🌳<b>산책하기</b></button>`;
+  const btns = (id) => `<button type="button" class="pet-bar-btn" data-pet-act="snack" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(petLabel(id))}에게 간식 주기">🍪<b>간식</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${esc(petLabel(id))} 산책하기">🌳<b>산책</b></button>`;
   if (mine.length === 1) return `<div class="kid-pet-btns">${btns(mine[0])}</div>`;
   return `<div class="kid-pet-btns multi">${mine.map((id) => `<div class="pet-row"><span class="pet-name">${esc(petLabel(id))}</span>${btns(id)}</div>`).join('')}</div>`;
 }

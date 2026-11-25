@@ -227,3 +227,36 @@ test('간식·산책: 거실 공용 기기에서도 그 아이의 동물이면 �
     assert.equal((await mom.call('POST', '/api/pets/act', { kidId: k0, kind: 'snack', pet: 'ruby' })).status, 403, '어른 개인 폰');
   } finally { await app.close(); }
 });
+
+test('아이끼리 메시지: 두 아이만 주고받고, 받으면 알림이 가고, 읽으면 사라지며, 어른·다른 아이는 못 본다', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'sib@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }, { name: '바다', gender: 'boy' }, { name: '구름', gender: 'girl' }] });
+    const [k0, k1, k2] = (await mom.ok('GET', '/api/me')).kids.map((k) => k.id);
+    const phone = async (kid) => { const c = new Client(base, `p${kid}`); await c.ok('POST', '/api/auth/kid-pair', { code: (await mom.ok('POST', `/api/kids/${kid}/pair-code`)).code }); return c; };
+    const p0 = await phone(k0); const p1 = await phone(k1); const p2 = await phone(k2);
+    // 하늘 → 바다
+    const sent = await p0.ok('POST', '/api/kid-messages', { kidId: k0, toKidId: k1, body: '같이 놀자!' });
+    assert.equal(sent.body, '같이 놀자!'); assert.equal(sent.senderId, k0);
+    assert.equal((await p0.call('POST', '/api/kid-messages', { kidId: k0, toKidId: k0, body: '나한테' })).status, 400, '자기 자신에게는 못 보낸다');
+    assert.equal((await p0.call('POST', '/api/kid-messages', { kidId: k1, toKidId: k0, body: '바다인 척' })).status, 403, '다른 아이인 척은 못 한다');
+    assert.equal((await p0.call('POST', '/api/kid-messages', { kidId: k0, toKidId: k1, body: '   ' })).status, 400, '빈 메시지');
+    // 바다: 대화 목록에 안 읽은 1건 + 알림 1건, 읽으면 둘 다 사라진다
+    let th = await p1.ok('GET', `/api/kid-threads?kidId=${k1}`);
+    assert.equal(th.length, 1); assert.equal(th[0].otherId, k0); assert.equal(th[0].unread, 1); assert.equal(th[0].last.body, '같이 놀자!');
+    assert.equal((await p1.ok('GET', `/api/notifications?kidId=${k1}`)).unread, 1);
+    assert.equal((await p1.ok('GET', `/api/kid-threads/${k1}/${k0}`)).length, 1);
+    await p1.ok('POST', `/api/kid-threads/${k1}/${k0}/read`);
+    assert.equal((await p1.ok('GET', `/api/kid-threads?kidId=${k1}`))[0].unread, 0);
+    assert.equal((await p1.ok('GET', `/api/notifications?kidId=${k1}`)).unread, 0);
+    // 답장
+    await p1.ok('POST', '/api/kid-messages', { kidId: k1, toKidId: k0, body: '좋아!' });
+    assert.deepEqual((await p0.ok('GET', `/api/kid-threads/${k0}/${k1}`)).map((m) => m.body), ['같이 놀자!', '좋아!']);
+    // 셋째 아이·어른은 두 아이의 대화를 볼 수 없다
+    assert.equal((await p2.call('GET', `/api/kid-threads/${k2}/${k0}`)).json.length, 0, '구름은 하늘과 대화한 적이 없다');
+    assert.equal((await p2.call('GET', `/api/kid-threads/${k0}/${k1}`)).status, 403);
+    assert.equal((await mom.call('GET', `/api/kid-threads/${k0}/${k1}`)).status, 403, '어른은 못 본다');
+    assert.deepEqual((await mom.ok('GET', `/api/kid-threads?kidId=${k0}`)), [], '어른에게는 빈 목록');
+  } finally { await app.close(); }
+});

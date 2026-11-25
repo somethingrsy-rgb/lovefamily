@@ -11,31 +11,47 @@ function bubbles(msgs, meId) {
   return `<ul class="bubbles">${msgs.map((m) => `<li class="${m.senderId === meId ? 'me' : 'other'}"><div>${esc(m.body)}</div><small>${timeLabel(m.at)}</small></li>`).join('') || '<li class="muted center">아직 대화가 없어요</li>'}</ul>`;
 }
 
-// 아이: 누구에게 보낼지 고르고 문구를 보낸다
-export async function talk(el, { id, adultId }) {
+const KID_PHRASES = ['같이 놀자', '뭐 해?', '사랑해 💕', '고마워', '미안해', '도와줘'];
+
+// 아이: 누구에게 보낼지(어른 또는 형제·친구) 고르고 문구를 보낸다
+export async function talk(el, { id, adultId, otherId }) {
   const kid = kidOf(id);
-  let to = adultId ? Number(adultId) : null;
+  let to = adultId ? Number(adultId) : null;       // 어른에게
+  let toKid = otherId ? Number(otherId) : null;    // 다른 아이에게
   async function load() {
-    if (!to) {
-      const ths = await get(`/api/threads?kidId=${id}`);
+    if (!to && !toKid) {
+      const [ths, kths] = await Promise.all([get(`/api/threads?kidId=${id}`), get(`/api/kid-threads?kidId=${id}`)]);
+      const sibs = S.info.kids.filter((k) => k.id !== Number(id));
       el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} 가족에게 말하기`)}<p class="center big-q">누구에게 말할까요?</p>
-        <div class="big-grid">${S.info.adults.map((a) => { const t = ths.find((x) => x.adultId === a.id); return `<button class="big-btn" data-to="${a.id}" style="--kc:${esc(a.color)}"><span class="bi">${memberAvatar(a.id, 'xl', a)}</span><b>${esc(a.name)}에게</b>${t?.unread ? `<span class="badge">${t.unread}</span>` : ''}</button>`; }).join('')}</div>`;
-      el.onclick = (e) => { const b = e.target.closest('[data-to]'); if (b) { to = Number(b.dataset.to); load().catch(errToast); } };
+        <div class="big-grid">${S.info.adults.map((a) => { const t = ths.find((x) => x.adultId === a.id); return `<button class="big-btn" data-to="${a.id}" style="--kc:${esc(a.color)}"><span class="bi">${memberAvatar(a.id, 'xl', a)}</span><b>${esc(a.name)}에게</b>${t?.unread ? `<span class="badge">${t.unread}</span>` : ''}</button>`; }).join('')}</div>
+        ${sibs.length ? `<p class="center big-q">형제·친구에게</p><div class="big-grid">${sibs.map((k) => { const t = kths.find((x) => x.otherId === k.id); return `<button class="big-btn" data-tokid="${k.id}" style="--kc:${esc(k.color)}"><span class="bi">${memberAvatar(k.id, 'xl', k)}</span><b>${esc(k.name)}에게</b>${t?.unread ? `<span class="badge">${t.unread}</span>` : ''}</button>`; }).join('')}</div>` : ''}`;
+      el.onclick = (e) => {
+        const b = e.target.closest('[data-to]'); const k = e.target.closest('[data-tokid]');
+        if (b) { to = Number(b.dataset.to); load().catch(errToast); } else if (k) { toKid = Number(k.dataset.tokid); load().catch(errToast); }
+      };
       return;
     }
-    const a = adultById(to);
-    const msgs = await get(`/api/threads/${id}/${to}`);
-    if (msgs.some((m) => m.senderId !== Number(id) && !m.readAt)) post(`/api/threads/${id}/${to}/read`).catch(() => {}); // 안 읽은 게 있을 때만
+    // 대화방: 상대가 어른이면 /api/threads, 다른 아이면 /api/kid-threads
+    const other = toKid ? kidOf(toKid) : adultById(to);
+    const base = toKid ? `/api/kid-threads/${id}/${toKid}` : `/api/threads/${id}/${to}`;
+    const msgs = await get(base);
+    if (msgs.some((m) => m.senderId !== Number(id) && !m.readAt)) post(`${base}/read`).catch(() => {}); // 안 읽은 게 있을 때만
+    const phrases = toKid ? KID_PHRASES : PHRASES;
     const first = !$('.chat', el);
-    morph(el, `${back(`/kid/${id}`, `${avatar(a, 'sm')} ${esc(a.name)}에게`)}
+    morph(el, `${back(`/kid/${id}`, `${avatar(other, 'sm')} ${esc(other.name)}에게`)}
       <section class="chat card">${bubbles(msgs, Number(id))}</section>
-      <div class="phrases">${PHRASES.map((p) => `<button class="chip big" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
+      <div class="phrases">${phrases.map((p) => `<button class="chip big" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
       <form class="chat-form" novalidate><input name="body" maxlength="500" placeholder="직접 쓰기" autocomplete="off" aria-label="메시지">${SR ? '<button type="button" class="btn big mic-btn" id="mic" aria-label="말로 보내기" aria-pressed="false">🎤</button>' : ''}<button class="btn primary">보내기</button></form>
       ${SR ? '<p class="mic-status small muted center" id="micstat" aria-live="polite">🎤 를 누르고 말해 보세요. 5초 동안 조용하면 보내요.</p>' : ''}
       <div class="row center"><button class="btn ghost small" id="other">다른 사람에게</button></div>`);
     const list = $('.bubbles', el); if (first || list.scrollHeight - list.scrollTop - list.clientHeight < 80) list.scrollTop = list.scrollHeight;
-    const send = async (body) => { try { await post('/api/messages', { kidId: Number(id), adultId: to, body }); const inp = $('.chat-form input', el); if (inp) inp.value = ''; toast(`${a.name}에게 보냈어요 💌`); load(); } catch (e) { errToast(e); } };
-    el.onclick = (e) => { const p = e.target.closest('[data-p]'); if (p) send(p.dataset.p); if (e.target.id === 'other') { to = null; load(); } };
+    const send = async (body) => {
+      try {
+        await post(toKid ? '/api/kid-messages' : '/api/messages', toKid ? { kidId: Number(id), toKidId: toKid, body } : { kidId: Number(id), adultId: to, body });
+        const inp = $('.chat-form input', el); if (inp) inp.value = ''; toast(`${other.name}에게 보냈어요 💌`); load();
+      } catch (e) { errToast(e); }
+    };
+    el.onclick = (e) => { const p = e.target.closest('[data-p]'); if (p) send(p.dataset.p); if (e.target.id === 'other') { to = null; toKid = null; load(); } };
     $('.chat-form', el).onsubmit = (e) => { e.preventDefault(); const v = e.target.body.value.trim(); if (v) send(v); };
     bindMic(el, send);
   }
@@ -76,9 +92,9 @@ function bindMic(root, send) {
 export async function kidInbox(el, { id }) {
   const kid = kidOf(id);
   async function load() {
-    const [ths, nt] = await Promise.all([get(`/api/threads?kidId=${id}`), get(`/api/notifications?kidId=${id}`)]);
+    const [ths, nt, kths] = await Promise.all([get(`/api/threads?kidId=${id}`), get(`/api/notifications?kidId=${id}`), get(`/api/kid-threads?kidId=${id}`).catch(() => [])]);
     el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} 받은 편지함`, nt.unread ? '<button class="btn small ghost" id="ra">모두 읽음</button>' : '')}
-      <section class="card page-card"><h3>💌 메시지</h3>${ths.length ? `<ul class="threads">${ths.map((t) => `<li><a href="#/kid/${id}/talk/${t.adultId}">${memberAvatar(t.adultId, 'sm', { avatar: t.adultAvatar, color: '#e8e0f5' })}<div class="grow"><b>${esc(t.adultName)}</b><div class="small">${esc(t.last.body.slice(0, 40))}</div></div>${t.unread ? `<span class="badge">${t.unread}</span>` : ''}</a></li>`).join('')}</ul>` : '<p class="muted">아직 메시지가 없어요</p>'}</section>
+      <section class="card page-card"><h3>💌 메시지</h3>${ths.length || kths.length ? `<ul class="threads">${kths.map((t) => `<li><a href="#/kid/${id}/talk/kid/${t.otherId}">${memberAvatar(t.otherId, 'sm', { avatar: t.otherAvatar, color: '#e8e0f5' })}<div class="grow"><b>${esc(t.otherName)}</b><div class="small">${esc(t.last.body.slice(0, 40))}</div></div>${t.unread ? `<span class="badge">${t.unread}</span>` : ''}</a></li>`).join('')}${ths.map((t) => `<li><a href="#/kid/${id}/talk/${t.adultId}">${memberAvatar(t.adultId, 'sm', { avatar: t.adultAvatar, color: '#e8e0f5' })}<div class="grow"><b>${esc(t.adultName)}</b><div class="small">${esc(t.last.body.slice(0, 40))}</div></div>${t.unread ? `<span class="badge">${t.unread}</span>` : ''}</a></li>`).join('')}</ul>` : '<p class="muted">아직 메시지가 없어요</p>'}</section>
       <section class="card page-card"><h3>🔔 소식</h3>${nt.items.length ? `<ul class="notif">${nt.items.map((n) => `<li class="${n.read ? '' : 'unread'}"><b>${esc(n.title)}</b><div class="small muted">${esc(n.body)}</div><span class="small muted">${ago(n.at)}</span></li>`).join('')}</ul>` : '<p class="muted">소식이 없어요</p>'}</section>`;
     $('#ra', el)?.addEventListener('click', async () => { await post(`/api/notifications/read-all?kidId=${id}`); load(); });
   }
