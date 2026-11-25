@@ -54,7 +54,7 @@ function peopleFrom(h) {
   return out;
 }
 function slotX(cell, id) { // 한 칸에 여럿이면 좌우로 나눠 선다
-  const here = [...W.values()].filter((w) => !w.moving && w.cell === cell).map((w) => w.id);
+  const here = [...W.values()].filter((w) => !w.moving && w.cell === cell && P.some((p) => p.id === w.id)).map((w) => w.id); // 지금 가족이 아닌 사람(예전 로그인·삭제된 사람)은 세지 않는다
   if (!here.includes(id)) here.push(id);
   here.sort((a, b) => a - b);
   const n = here.length; const i = here.indexOf(id);
@@ -241,8 +241,13 @@ function armIdle() {
 }
 
 // 홈 화면을 다시 그리지 않고, 서버에서 온 위치만 맞춘다(다른 기기에서 누가 움직였을 때 이 화면에서도 걸어서 이동)
+// 가족이 바뀌었거나(다른 계정으로 로그인) 어른이 삭제됐으면, 더는 없는 사람의 위치 기록을 지운다
+function pruneGone() {
+  const ids = new Set(P.map((p) => p.id));
+  for (const id of [...W.keys()]) if (!ids.has(id)) { W.delete(id); PENDING.delete(id); CHEER.delete(id); if (selected === id) selected = null; }
+}
 export function syncWalkers(h) {
-  P = peopleFrom(h);
+  P = peopleFrom(h); pruneGone();
   const server = h.walkers || {};
   for (const p of P) {
     const target = server[p.id] || p.home;
@@ -253,7 +258,7 @@ export function syncWalkers(h) {
 
 // ===== 연결 =====
 export function mountWalkers(houseEl, h, { onOpen, onDouble, onArrive } = {}) {
-  P = peopleFrom(h); arriveCb = onArrive || null;
+  P = peopleFrom(h); pruneGone(); arriveCb = onArrive || null;
   const server = h.walkers || {};
   for (const p of P) {
     const target = server[p.id] || p.home;
