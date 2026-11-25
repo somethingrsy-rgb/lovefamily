@@ -5,8 +5,8 @@ import { kidArtKey } from './layout.js';
 const layer = () => document.getElementById('layer');
 
 // 프로필 얼굴: 올린 사진 > 가족 캐릭터 얼굴(기본 이모지를 쓰는 경우) > 이모지
-const DEFAULT_AVATARS = new Set(['🐰', '🐱', '👦', '👧', '👩', '👨', '👵', '🙂']);
-const ROLE_FACE = { grandma: 'gma', mom: 'mom', dad: 'dad' };
+const DEFAULT_AVATARS = new Set(['🐰', '🐱', '👦', '👧', '👩', '👨', '👵', '👴', '🙂']);
+const ROLE_FACE = { grandma: 'gma', grandpa: 'gpa', mom: 'mom', dad: 'dad' };
 function cartoonFace(m) {
   if (!DEFAULT_AVATARS.has(m.avatar)) return null; // 직접 고른 이모지는 그대로 존중
   const info = S.info; if (!info) return null;

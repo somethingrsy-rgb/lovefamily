@@ -13,7 +13,7 @@ export const COL_X = [19.6, 50.2, 80.3];          // 각 칸의 가운데
 export const PILLAR_X = [35.2, 64.9];             // 층과 층 사이를 오르내리는 기둥 통로
 const SPEED = 16;                                  // 초당 이동량(가로 % 기준, 세로는 화면 비율 보정)
 const V_SCALE = 1448 / 1086;
-const SPRITE = { gma: 149, dad: 152, yuel: 147, yuha: 166, mom: 156 }; // 걷기 시트 프레임 폭(높이는 280)
+const SPRITE = { gpa: 140, gma: 149, dad: 152, yuel: 147, yuha: 166, mom: 156 }; // 걷기 시트 프레임 폭(높이는 280)
 const rc = (cell) => [Number(cell[0]), Number(cell[1])];
 const cellOf = (r, c) => `${r}${c}`;
 

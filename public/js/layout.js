@@ -5,8 +5,8 @@ import { HOUSES, lsGet } from './util.js';
 // ---- 캐릭터 그림 세트: public/assets/{chars,walk,act}/ 아래 파일 이름 ----
 // 남자아이는 yuel 세트, 여자아이는 yuha 세트를 쓴다(새 캐릭터를 만들면 여기만 늘리면 된다).
 export const KID_ART = { boy: 'yuel', girl: 'yuha' };
-// 어른은 엄마·아빠·할머니 그림이 있고, 할아버지·기타 어른은 아직 그림이 없어 얼굴(사진·이모지) 동그라미로 보여 준다.
-export const ADULT_ART = { mom: 'mom', dad: 'dad', grandma: 'gma' };
+// 어른은 엄마·아빠·할머니·할아버지 그림이 있고, 기타 어른은 그림이 없어 얼굴(사진·이모지) 동그라미로 보여 준다.
+export const ADULT_ART = { mom: 'mom', dad: 'dad', grandma: 'gma', grandpa: 'gpa' };
 export const adultArtKey = (role) => ADULT_ART[role] || null;
 
 // 성별이 없는 예전 아이(가입 마법사 이전)는 순서로 짐작한다: 첫째 남자아이, 둘째 여자아이
