@@ -214,3 +214,16 @@ test('방 고르기: 구성원이 지낼 방을 정하고(8곳 중), 잘못된 �
     assert.equal((await mom.ok('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '' })).homeCell, null);
   } finally { await app.close(); }
 });
+
+test('간식·산책: 거실 공용 기기에서도 그 아이의 동물이면 할 수 있고, 어른 개인 폰은 안 된다', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm'); const device = new Client(base, 'd');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'dev@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }, { name: '바다', gender: 'boy' }], pets: { ruby: true, yeoni: true }, petOwners: { ruby: 0 } });
+    await device.ok('POST', '/api/auth/login', { loginId: 'dev@x', password: 'secret1', device: true });
+    const [k0, k1] = (await mom.ok('GET', '/api/me')).kids.map((k) => k.id);
+    assert.equal((await device.call('POST', '/api/pets/act', { kidId: k0, kind: 'snack', pet: 'ruby' })).status, 200, '거실 기기: 하늘의 동물');
+    assert.equal((await device.call('POST', '/api/pets/act', { kidId: k1, kind: 'walk', pet: 'ruby' })).status, 403, '바다의 동물이 아님');
+    assert.equal((await mom.call('POST', '/api/pets/act', { kidId: k0, kind: 'snack', pet: 'ruby' })).status, 403, '어른 개인 폰');
+  } finally { await app.close(); }
+});

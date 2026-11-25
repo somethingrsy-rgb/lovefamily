@@ -389,8 +389,9 @@ export function petAct(core, ctx, kidId, kind, petId) {
   if (kind !== 'snack' && kind !== 'walk') throw err(400, 'bad_kind', '알 수 없는 동작이에요.');
   const m = core.member(Number(kidId));
   if (!m || m.family_id !== ctx.familyId || m.removed || m.kind !== 'kid') throw err(404, 'not_found', '찾을 수 없어요.');
-  if (!ctx.boundKid) throw err(403, 'forbidden', '아이 폰에서만 간식을 주고 산책할 수 있어요.'); // 아이 본인 폰만
-  if (ctx.boundKid !== m.id) throw err(403, 'forbidden', '내 반려동물만 돌볼 수 있어요.');
+  // 아이 본인 폰, 또는 거실 공용 기기(아이들이 직접 누르는 기기)에서만. 어른 개인 폰은 안 된다
+  if (!ctx.boundKid && !ctx.isDevice) throw err(403, 'forbidden', '아이 폰이나 거실 기기에서만 간식을 주고 산책할 수 있어요.');
+  if (ctx.boundKid && ctx.boundKid !== m.id) throw err(403, 'forbidden', '내 반려동물만 돌볼 수 있어요.');
   const fam = core.get('SELECT pet_owners FROM families WHERE id = ?', ctx.familyId);
   let owners = {}; try { owners = JSON.parse(fam?.pet_owners || '{}') || {}; } catch { owners = {}; }
   if (!['ruby', 'crystal', 'yeoni'].includes(petId)) throw err(400, 'bad_pet', '어떤 반려동물인지 알려 주세요.');

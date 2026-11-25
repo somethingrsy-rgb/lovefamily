@@ -25,10 +25,12 @@ const dayBadge = (k) => {
 
 // 간식주기·산책하기는 아이 본인 폰에서만 누른다: 본인 카드의 이름 옆에 [🍪 간식주기][🌳 산책하기]. 그 아이가 주인인 동물이 있을 때만 보인다
 function petBtns(k) {
-  if (!boundKid() || boundKid() !== k.id) return '';
+  // 아이 본인 폰이거나 거실 공용 기기(아이들이 직접 누르는 기기)에서만 보인다. 어른 폰에서는 보이지 않는다
   const mine = petsOfKid(k.id);
-  // 아직 주인이 된 동물이 없으면 내 설정에서 고르도록 안내한다
-  if (!mine.length) return PET_IDS.some(petEnabled) ? '<div class="kid-pet-btns"><a class="pet-bar-btn pet-pick-link" href="#/me">🐾<b>내 반려동물<br>고르기</b></a></div>' : '';
+  const phone = boundKid() === k.id;
+  if (!phone && !(isDevice() && !boundKid())) return '';
+  // 아직 주인이 된 동물이 없으면(아이 폰) 내 설정에서 고르도록 안내한다. 거실 기기는 어른이 가족 탭에서 주인을 정한다
+  if (!mine.length) return phone && PET_IDS.some(petEnabled) ? '<div class="kid-pet-btns"><a class="pet-bar-btn pet-pick-link" href="#/me">🐾<b>내 반려동물<br>고르기</b></a></div>' : '';
   const btns = (id) => `<button type="button" class="pet-bar-btn" data-pet-act="snack" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(petLabel(id))}에게 간식 주기">🍪<b>간식주기</b></button><button type="button" class="pet-bar-btn" data-pet-act="walk" data-pet="${id}" data-kid="${k.id}" aria-label="${esc(k.name)}와 ${esc(petLabel(id))} 산책하기">🌳<b>산책하기</b></button>`;
   if (mine.length === 1) return `<div class="kid-pet-btns">${btns(mine[0])}</div>`;
   return `<div class="kid-pet-btns multi">${mine.map((id) => `<div class="pet-row"><span class="pet-name">${esc(petLabel(id))}</span>${btns(id)}</div>`).join('')}</div>`;
@@ -77,13 +79,13 @@ function houseHtml(h) {
     const t = timerOf(k.id); const d = k.day;
     const chips = [d.total ? `${d.done}/${d.total}` : '', d.status === 'approved' ? '💮' : d.status === 'requested' ? '✋' : d.status === 'ready' ? '🎉' : ''].filter(Boolean);
     // 활동 중이면 방 안의 캐릭터가 그 활동 그림으로 바뀌고(그림이 없으면 서 있는 모습 유지), 지난 시간·남은 시간·진행 막대를 보여 준다
-    const total = t ? t.totalMs : 1; const rem = t ? remaining(t) : 0;
-    // 지나간 시간만 그림 바로 아래에 표시(남은 시간·막대는 보여 주지 않는다)
+    const rem = t ? remaining(t) : 0;
+    // 방에는 아이 카드와 같은 '남은 시간'만 작게 보여 준다(1초마다 줄어든다)
     const timeTag = !t ? '' : t.state === 'paused'
       ? `<span class="room-time paused" role="timer" aria-label="${esc(t.name)} 일시 중단, 남은 시간">⏸ 남은 <span data-timer="${t.id}">${fmt(remaining(t))}</span></span>`
       : t.state === 'ended'
       ? `<span class="room-time ended" role="timer" aria-label="${esc(t.name)} 끝남">⏰ 끝났어요</span>`
-      : `<span class="room-time" role="timer" aria-label="${esc(t.name)} 지난 시간">⏱ <span data-elapsed="${t.id}">${fmt(Math.max(0, total - rem))}</span></span>`;
+      : `<span class="room-time" role="timer" aria-label="${esc(t.name)} 남은 시간">⏱ <span data-timer="${t.id}">${fmt(rem)}</span></span>`; // 아이 카드와 같은 '남은 시간'(줄어든다)
     return `<button class="room kid ${t ? 'has-time' : ''}" style="${style};--kc:${esc(k.color)}" data-room="kid" data-id="${k.id}" aria-label="${esc(k.name)}방 열기">${chips.length ? `<span class="room-chips">${chips.map((c) => `<i>${c}</i>`).join('')}</span>` : ''}${timeTag}</button>`;
   };
   const adultBtn = (a, style) => {
@@ -175,7 +177,7 @@ export async function mount(el) {
   function draw(h, ah) {
     const p = kstParts(h.now);
     const dev = isDevice() || kidPhone;
-    el.innerHTML = `<div class="home ${dev ? 'is-device' : ''}">
+    el.innerHTML = `<div class="home ${dev ? 'is-device' : ''} ${isDevice() && !kidPhone ? 'is-living' : ''}">
       <aside class="house-col">${houseHtml(h)}</aside>
       <div class="home-main" data-rc="home.sections">
       ${kidPhone ? '' : `<header class="topbar" data-rk="topbar" data-section="1">

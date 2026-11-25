@@ -915,3 +915,7 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .walker.sz-kid > :not(.wk-shadow) { scale: .978; }
 .walker.sz-adult > :not(.wk-shadow) { scale: 1.089; }
 .walker.small > :not(.wk-shadow) { scale: .908; }
+/* 거실 기기: 카드가 좁아서 이름을 가리지 않도록, 간식주기·산책하기는 이름 아래 별도 줄로 */
+.home.is-living .kid-pet-btns { position: static; width: 100%; margin: 6px 0 8px; }
+.home.is-living .kid-pet-btns .pet-bar-btn { flex: 1; width: auto; min-height: 52px; flex-direction: row; justify-content: center; gap: 6px; }
+.home.is-living .kid-pet-btns .pet-bar-btn .emo { width: 1.5em; height: 1.5em; }
