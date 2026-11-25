@@ -207,7 +207,8 @@ test('방 고르기: 구성원이 지낼 방을 정하고(8곳 중), 잘못된 �
     assert.equal(me.kids[0].homeCell, null);
     const k = await mom.ok('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '11' });
     assert.equal(k.homeCell, '11');
-    assert.equal((await mom.call('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '12' })).status, 400, '도장방은 못 고른다');
+    assert.equal((await mom.call('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '12' })).status, 200, '6번(도장방)도 고를 수 있다');
+    assert.equal((await mom.call('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '13' })).status, 400, '없는 방');
     assert.equal((await mom.call('PATCH', `/api/members/${me.kids[0].id}`, { homeCell: '99' })).status, 400);
     const a = await mom.ok('PATCH', `/api/members/${me.me.id}`, { homeCell: '22' });
     assert.equal(a.homeCell, '22');
@@ -293,5 +294,53 @@ test('부모님이 아이들끼리 대화 보기: 부모님 권한 어른만 읽
     assert.equal((await p0.ok('GET', '/api/me')).family.parentsSeeKidChat, false, '아이 폰에서도 꺼진 걸 알 수 있다');
     await mom.ok('PATCH', '/api/family', { parentsSeeKidChat: true });
     assert.equal((await mom.ok('GET', '/api/kid-chats')).length, 1);
+  } finally { await app.close(); }
+});
+
+test('방 선택: 한 방에는 최대 2명까지(기본 방에 있는 사람도 센다), 번호 6번(도장방)도 고를 수 있다', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'full@x', password: 'secret1', kids: [{ name: '하나', gender: 'girl' }, { name: '둘', gender: 'boy' }, { name: '셋', gender: 'girl' }] });
+    const me = await mom.ok('GET', '/api/me'); const [a, b, c] = me.kids.map((k) => k.id);
+    const set = (id, cell) => mom.call('PATCH', `/api/members/${id}`, { homeCell: cell });
+    // 엄마의 기본 방은 21(2번). 하나를 2번으로 → 엄마+하나 = 2명
+    assert.equal((await set(a, '21')).status, 200);
+    const third = await set(b, '21');
+    assert.equal(third.status, 409); assert.match(third.json.message, /최대 2명/); assert.match(third.json.message, /하나/);
+    // 같은 방을 다시 고르는 것(이미 그 방)은 문제 없다
+    assert.equal((await set(a, '21')).status, 200);
+    // 다른 방·6번은 된다. 6번에 2명까지
+    assert.equal((await set(b, '12')).status, 200); assert.equal((await set(c, '12')).status, 200);
+    assert.equal((await set(me.me.id, '12')).status, 409, '6번에 이미 둘째·셋째');
+    // 기본 방(비움)으로 돌아가면 자리가 난다
+    assert.equal((await set(c, '')).status, 200);
+    assert.equal((await set(me.me.id, '12')).status, 200);
+  } finally { await app.close(); }
+});
+
+test('알림장 수정: 쓴 사람이나 부모님만, 보낸 항목만 바뀌고 사진은 유지/지움을 고른다', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm'); const gma = new Client(base, 'g'); const dad = new Client(base, 'd');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'post@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }, { name: '바다', gender: 'boy' }] });
+    const me = await mom.ok('GET', '/api/me'); const [k0, k1] = me.kids.map((k) => k.id);
+    await gma.ok('POST', '/api/auth/join', { code: me.family.code, loginId: 'gma@post', password: 'secret2', role: 'grandma' });
+    await dad.ok('POST', '/api/auth/join', { code: me.family.code, loginId: 'dad@post', password: 'secret3', role: 'dad' });
+    const p = await mom.ok('POST', '/api/posts', { title: '소풍 안내', body: '11/30 소풍', kidId: k0, supplies: '도시락', dueDate: '2026-11-29' });
+    const u = await mom.ok('PATCH', `/api/posts/${p.id}`, { title: '소풍 안내(수정)', body: '12/1 소풍으로 변경', kidId: 'all', dueDate: null });
+    assert.equal(u.title, '소풍 안내(수정)'); assert.equal(u.body, '12/1 소풍으로 변경'); assert.equal(u.kidId, null); assert.equal(u.tag, '공용'); assert.equal(u.dueDate, null);
+    assert.equal(u.supplies, '도시락', '보내지 않은 항목은 그대로');
+    assert.equal((await mom.call('PATCH', `/api/posts/${p.id}`, { title: '' })).status, 400);
+    assert.equal((await mom.call('PATCH', `/api/posts/${p.id}`, { dueDate: '내일' })).status, 400);
+    assert.equal((await mom.call('PATCH', `/api/posts/${p.id}`, { kidId: 99999 })).status, 404, '다른 가족/없는 아이');
+    // 쓴 사람이 아니고 부모님 권한도 없는 할머니는 못 고친다. 부모님 권한이 있는 아빠는 고칠 수 있다
+    assert.equal((await gma.call('PATCH', `/api/posts/${p.id}`, { title: '할머니가' })).status, 403);
+    assert.equal((await dad.ok('PATCH', `/api/posts/${p.id}`, { supplies: '도시락, 물통' })).supplies, '도시락, 물통');
+    // 다른 가족은 못 본다
+    const other = new Client(base, 'o'); await other.ok('POST', '/api/auth/register', { loginId: 'post2@x', password: 'secret1', kids: [{ name: '남', gender: 'boy' }] });
+    assert.equal((await other.call('PATCH', `/api/posts/${p.id}`, { title: '침입' })).status, 404);
+    assert.equal((await mom.ok('GET', '/api/posts'))[0].title, '소풍 안내(수정)');
+    void k1;
   } finally { await app.close(); }
 });

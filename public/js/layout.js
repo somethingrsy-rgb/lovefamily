@@ -22,14 +22,11 @@ export const kidArtKey = (kidId) => KID_ART[kidGenderOf(kidId)];
 // 구성원이 직접 고른 방(homeCell)이 있으면 그것이 먼저다.
 const KID_HOME = ['10', '11', '00', '02', '01', '01'];
 const ADULT_HOME = { grandma: '20', grandpa: '20', other: '20', mom: '21', dad: '22' };
-export const HOME_CELLS = ['00', '01', '02', '10', '11', '20', '21', '22'];
-// 방 고르기 화면에 보여 줄 이름 (12번 칸은 도장방이라 고를 수 없다)
-export const ROOM_OPTIONS = [
-  ['거실', [['00', '왼쪽'], ['01', '가운데'], ['02', '오른쪽']]],
-  ['가운데층', [['10', '왼쪽 방'], ['11', '가운데 방']]],
-  ['아래층', [['20', '왼쪽 방'], ['21', '가운데 방'], ['22', '오른쪽 방']]],
-];
-export const roomName = (cell) => { for (const [floor, rooms] of ROOM_OPTIONS) { const r = rooms.find(([c]) => c === cell); if (r) return `${floor} ${r[1]}`; } return ''; };
+export const HOME_CELLS = ['00', '01', '02', '10', '11', '12', '20', '21', '22'];
+export const ROOM_MAX = 2; // 한 방에 최대 2명
+// 방 고르기: 번호 1~6 (안내 그림 public/assets/room-guide.webp 의 번호와 같다). 아래층 1·2·3, 가운데층 4·5·6(6=도장방)
+export const ROOM_NUMS = [['1', '20'], ['2', '21'], ['3', '22'], ['4', '10'], ['5', '11'], ['6', '12']];
+export const roomName = (cell) => { const r = ROOM_NUMS.find(([, c]) => c === cell); return r ? `${r[0]}번 방` : ''; };
 export const defaultHomeOf = (m) => {
   if (m.kind === 'kid') { const i = Math.max(0, (S.info?.kids || []).findIndex((k) => k.id === m.id)); return KID_HOME[Math.min(i, KID_HOME.length - 1)]; }
   return ADULT_HOME[m.role] || '20';

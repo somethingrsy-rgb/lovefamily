@@ -943,3 +943,13 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 /* 할일·활동 목록: 버튼이 많아도 이름이 한 글자씩 쪼개지지 않게(좁으면 버튼이 아래 줄로) */
 .rlist li > .grow { flex: 1 1 120px; min-width: 100px; word-break: keep-all; }
 .rlist li > .row.gap, .rlist li > .row { flex: 0 1 auto; flex-wrap: wrap; margin-left: auto; }
+
+/* 방 선택: 번호 1~6 + 옆에 안내 그림. 번호 칸은 그림처럼 위(4·5·6) 아래(1·2·3) 순서로 놓는다 */
+.room-pick2 { display: flex; gap: 12px; align-items: flex-start; }
+.room-guide { width: 40%; max-width: 230px; flex: none; border-radius: 12px; background: var(--card2); }
+.room-nums { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.room-nums .room-chip.base { grid-column: 1 / -1; }
+.room-chip.num span { flex-direction: column; justify-content: center; min-height: 54px; padding: 4px 2px; width: 100%; text-align: center; line-height: 1.15; } .room-chip.num b { font-size: 1.15rem; } .room-chip.num small { font-size: .62rem; color: var(--muted); font-weight: 700; word-break: keep-all; }
+.room-chip.num { display: block; } .room-chip.num input:checked + span small { color: inherit; }
+.room-chip.full span { opacity: .45; text-decoration: none; background: repeating-linear-gradient(135deg, var(--card2), var(--card2) 6px, var(--line) 6px, var(--line) 7px); }
+@media (max-width: 330px) { .room-pick2 { flex-direction: column; align-items: center; } .room-guide { width: 62%; } .room-nums { width: 100%; } }

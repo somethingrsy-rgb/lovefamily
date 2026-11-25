@@ -138,6 +138,31 @@ export function pinPost(core, ctx, pid, pinned) {
   core.refresh(ctx.familyId, 'posts', 'home');
   return postOut(core, ctx, core.get('SELECT * FROM posts WHERE id = ?', p.id));
 }
+
+// 알림장 글 수정: 쓴 사람이나 부모님 권한 어른만. 보낸 항목만 바꾼다(사진은 안 보내면 그대로, null 이면 지움)
+export function updatePost(core, ctx, pid, b) {
+  const adult = ctx.adult();
+  const p = core.get('SELECT * FROM posts WHERE id = ?', pid);
+  if (!p || p.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없는 글이에요.');
+  if (p.author_id !== adult.id && !adult.is_guardian) throw err(403, 'forbidden', '쓴 사람이나 부모님만 고칠 수 있어요.');
+  const title = b.title !== undefined ? text(b.title, '제목', { max: 60 }) : p.title;
+  const body = b.body !== undefined ? text(b.body, '내용', { max: 2000, optional: true }) : p.body;
+  const kidId = b.kidId !== undefined ? (b.kidId && b.kidId !== 'all' ? ctx.kid(vid(b.kidId, '대상')).id : null) : p.kid_id;
+  let photo = p.photo_id;
+  if (b.photoId !== undefined) {
+    if (b.photoId === null) photo = null;
+    else {
+      const ph = core.get('SELECT * FROM photos WHERE id = ?', vid(b.photoId, '사진'));
+      if (!ph || ph.family_id !== ctx.familyId) throw err(400, 'bad_photo', '사진을 찾을 수 없어요.');
+      photo = ph.id;
+    }
+  }
+  const due = b.dueDate !== undefined ? (b.dueDate ? (isDate(b.dueDate) ? b.dueDate : (() => { throw err(400, 'bad_date', '기한 날짜가 올바르지 않아요.'); })()) : null) : p.due_date;
+  const supplies = b.supplies !== undefined ? text(b.supplies, '준비물', { max: 120, optional: true }) : p.supplies;
+  core.run('UPDATE posts SET title = ?, body = ?, kid_id = ?, photo_id = ?, due_date = ?, supplies = ? WHERE id = ?', title, body, kidId, photo, due, supplies, p.id);
+  core.refresh(ctx.familyId, 'posts', 'home', 'calendar');
+  return postOut(core, ctx, core.get('SELECT * FROM posts WHERE id = ?', p.id));
+}
 export function deletePost(core, ctx, pid) {
   const adult = ctx.adult();
   const p = core.get('SELECT * FROM posts WHERE id = ?', pid);

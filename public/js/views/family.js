@@ -2,7 +2,7 @@ import { $, $$, esc, DOW, lsGet, lsSet, wallPickerHtml, wallCur, housePickerHtml
 import { S, get, post, patch, del, put, bus, isDevice, isAdultNow } from '../api.js';
 import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker, openSheet } from '../ui.js';
 import { back } from '../common.js';
-import { houseCur, petLabel, petEnabled, ROOM_OPTIONS } from '../layout.js';
+import { houseCur, petLabel, petEnabled, homeOf, ROOM_NUMS, ROOM_MAX } from '../layout.js';
 import { recoveryBoxHtml, bindRecoveryCopy, ROLE_OPTS } from './auth.js';
 import { supplySheet } from './supplies.js';
 import * as routines from './routines.js';
@@ -48,11 +48,21 @@ export async function testPush() {
 export async function disablePush(st) { if (st.sub) { await post('/api/push/unsubscribe', { endpoint: st.sub.endpoint }); await st.sub.unsubscribe(); } }
 
 const AV = (S.info?.avatars) || [];
+// 방 고르기: 번호 1~6 + 옆에 번호가 적힌 집 그림. 이미 2명이 있는 방은 고를 수 없다
+function roomPickHtml(m) {
+  const all = [...S.info.kids, ...S.info.adults];
+  const who = (cell) => all.filter((x) => x.id !== m.id && homeOf(x) === cell);
+  const chip = ([n, cell]) => { const w = who(cell); const full = w.length >= ROOM_MAX;
+    return `<label class="room-chip num ${full ? 'full' : ''}" style="order:${Number(n) <= 3 ? Number(n) + 3 : Number(n) - 3}"><input type="radio" name="homeCell" value="${cell}" ${m.homeCell === cell ? 'checked' : ''} ${full ? 'disabled' : ''}><span><b>${n}</b><small>${w.length ? esc(w.map((x) => x.name).join('·')) : '비었어요'}</small></span></label>`; };
+  const legacy = ['00', '01', '02'].includes(m.homeCell) ? `<label class="room-chip num" style="order:9"><input type="radio" name="homeCell" value="${m.homeCell}" checked><span><b>거실</b><small>예전 설정</small></span></label>` : '';
+  return `<div class="field"><span>방 선택 <small class="muted">(한 방에 최대 ${ROOM_MAX}명까지)</small></span><div class="room-pick2"><img class="room-guide" src="/assets/room-guide.webp" alt="방 번호 안내 그림" draggable="false">
+    <div class="room-nums"><label class="room-chip num base" style="order:0"><input type="radio" name="homeCell" value="" ${!m.homeCell ? 'checked' : ''}><span><b>기본 방</b></span></label>${ROOM_NUMS.map(chip).join('')}${legacy}</div></div></div>`;
+}
 function memberForm(m) {
   return `<label class="field">이름<input name="name" maxlength="20" value="${esc(m.name)}" required></label>
     <div class="field"><span>아바타</span><div class="icon-pick">${(S.info.avatars || []).map((a) => `<label><input type="radio" name="avatar" value="${a}" ${a === m.avatar ? 'checked' : ''}><span>${a}</span></label>`).join('')}</div></div>
     <div class="field"><span>얼굴 사진 <small class="muted">(배경이 투명한 PNG가 가장 예뻐요. 가족만 볼 수 있어요)</small></span><div id="facepp"></div><label class="check"><input type="checkbox" name="rmphoto"> <span>사진 지우고 이모지로 되돌리기</span></label></div>
-    <div class="field"><span>지낼 방 <small class="muted">(집 그림에서 서 있는 곳)</small></span><div class="room-pick"><label class="room-chip"><input type="radio" name="homeCell" value="" ${!m.homeCell ? 'checked' : ''}><span>기본 방</span></label>${ROOM_OPTIONS.map(([floor, rooms]) => `<div class="room-floor"><b>${floor}</b>${rooms.map(([c, n]) => `<label class="room-chip"><input type="radio" name="homeCell" value="${c}" ${m.homeCell === c ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>`).join('')}</div></div>
+    ${roomPickHtml(m)}
     ${m.kind === 'kid' ? `<div class="field"><span>성별 <small class="muted">(집 안 캐릭터가 달라져요)</small></span><div class="seg">${[['boy', '남자아이'], ['girl', '여자아이']].map(([v, t]) => `<label class="seg-opt"><input type="radio" name="gender" value="${v}" ${m.gender === v ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div></div>
     <div class="field"><span>카드 색</span><div class="color-pick">${(S.info.kidColors || []).map((c) => `<label><input type="radio" name="color" value="${c}" ${c === m.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>` : ''}`;
 }
@@ -69,7 +79,7 @@ export async function mount(el) {
     const code = info.family.code;
     const myId = info.me?.id || S.elev?.memberId || null;
     el.innerHTML = `<header class="page-head"><h1>⚙️ 설정</h1></header>
-      <section class="card page-card"><h3>우리 가족 <small class="muted">${esc(info.family.name)}</small></h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? ({ boy: '아이 · 남자아이', girl: '아이 · 여자아이' })[m.gender] || '아이' : (Object.fromEntries(ROLE_OPTS))[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><div class="m-actions"><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' && adult ? `<button class="btn ghost small" data-pair="${m.id}">📱 폰 연결</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</div></li>`).join('')}</ul>${adult && info.kids.length < 6 ? '<div class="row"><button class="btn ghost" id="addkid">+ 아이 추가</button></div>' : ''}</section>
+      <section class="card page-card"><h3>우리 가족 · 방 선택</h3><ul class="members">${[...info.adults, ...info.kids].map((m) => `<li>${avatar(m, 'md')}<div class="grow"><b>${esc(m.name)}</b><div class="small muted">${m.kind === 'kid' ? ({ boy: '아이 · 남자아이', girl: '아이 · 여자아이' })[m.gender] || '아이' : (Object.fromEntries(ROLE_OPTS))[m.role] || '어른'}${m.isGuardian ? ' · 부모님 권한' : ''}${m.kind === 'kid' && m.hasPin ? ' · 🔒' : ''}</div></div><div class="m-actions"><button class="btn ghost small" data-edit="${m.id}">수정</button>${m.kind === 'adult' && adult && m.id !== myId ? `<button class="btn ghost small" data-rmadult="${m.id}" aria-label="${esc(m.name)} 삭제">🗑 삭제</button>` : ''}${m.kind === 'kid' && adult ? `<button class="btn ghost small" data-pair="${m.id}">📱 폰 연결</button>` : ''}${m.kind === 'kid' ? `<button class="btn ghost small" data-pin="${m.id}">${m.hasPin ? '🔒 비번' : '🔓 비번'}</button>` : ''}</div></li>`).join('')}</ul>${adult && info.kids.length < 6 ? '<div class="row"><button class="btn ghost" id="addkid">+ 아이 추가</button></div>' : ''}</section>
       <section class="card page-card"><h3>메뉴</h3><div class="big-grid three"><a class="big-btn small" href="#/notebook"><span class="bi">📒</span><b>사진 알림장</b></a><a class="big-btn small" href="#/calendar"><span class="bi">📅</span><b>가족 달력</b></a><a class="big-btn small" href="#/adult"><span class="bi">🔑</span><b>어른 홈</b></a><a class="big-btn small" href="#/family-activity"><span class="bi">🎈</span><b>가족 활동</b></a><button class="big-btn small" id="addsup"><span class="bi">🎒</span><b>준비물 직접 추가</b></button></div></section>
       ${adult ? `<details class="card page-card fold" data-fold="routines"${fo('routines')}><summary><h3>📝 할일 관리</h3></summary><p class="muted small">아이별 할일(루틴)을 만들고 고치고 순서를 바꿔요.</p><div id="routinesHost"></div></details>` : ''}
       ${adult ? `<details class="card page-card fold" data-fold="act"${fo('act')}><summary><h3>⏱ 활동 설정</h3></summary><p class="muted small">활동 이름과 기본 시간을 바꿀 수 있어요. 30분 이상 활동은 5분 전에 한 번 알려 줘요.</p><ul class="rlist">${(acts || []).map((a) => `<li><span class="ri">${esc(a.icon)}</span><div class="grow"><b>${esc(a.name)}</b><div class="small muted">기본 ${a.minutes}분</div></div><button class="btn ghost small" data-act="${a.id}">수정</button><button class="btn ghost small" data-actdel="${a.id}" aria-label="삭제">🗑</button></li>`).join('')}</ul><div class="row gap wrap"><button class="btn ghost" id="addact">+ 활동 추가</button></div>

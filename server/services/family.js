@@ -30,7 +30,16 @@ function petOwnersOf(fam) {
   return Object.fromEntries(PET_IDS.map((id) => [id, Number.isInteger(cur[id]) ? cur[id] : null]));
 }
 // 집 안에서 지낼 수 있는 방(칸): 거실 세 칸, 가운데층 두 방, 아래층 세 방. (12번 칸은 도장방이라 제외)
-export const HOME_CELLS = ['00', '01', '02', '10', '11', '20', '21', '22'];
+export const HOME_CELLS = ['00', '01', '02', '10', '11', '12', '20', '21', '22']; // 화면에서는 번호 1~6(20·21·22·10·11·12)로 고른다. 거실(00~02)은 예전 설정·기본 방으로만 남는다
+export const ROOM_MAX = 2; // 한 방에 함께 지낼 수 있는 최대 인원
+const KID_HOME_DEFAULT = ['10', '11', '00', '02', '01', '01'];
+const ADULT_HOME_DEFAULT = { grandma: '20', grandpa: '20', other: '20', mom: '21', dad: '22' };
+// 고른 방이 없으면 쓰는 기본 방(화면의 layout.js 와 같은 규칙)
+function effectiveHome(core, familyId, m) {
+  if (HOME_CELLS.includes(m.home_cell)) return m.home_cell;
+  if (m.kind === 'kid') { const i = Math.max(0, core.kids(familyId).findIndex((k) => k.id === m.id)); return KID_HOME_DEFAULT[Math.min(i, KID_HOME_DEFAULT.length - 1)]; }
+  return ADULT_HOME_DEFAULT[m.role] || '20';
+}
 export const AVATARS = ['🐰', '🐱', '🐻', '🐶', '🦊', '🐼', '🐥', '🦄', '🐯', '🐸', '🐧', '🐨', '🌸', '⭐', '👧', '👦', '👩', '👨', '👵', '👴'];
 export const KID_COLORS = ['#bfe3ff', '#e4d4ff', '#ffd9e6', '#ffe9b8', '#cdeccf', '#ffd8bd'];
 const DEFAULT_ADULT = { mom: ['👩', '#ffd9e6'], dad: ['👨', '#cfe4ff'], grandma: ['👵', '#ffe9b8'], grandpa: ['👴', '#ffe9b8'], other: ['🙂', '#e8e0f5'] };
@@ -244,6 +253,10 @@ export function updateMember(core, ctx, memberId, b) {
     if (b.homeCell === null || b.homeCell === '') homeCell = null;
     else if (HOME_CELLS.includes(b.homeCell)) homeCell = b.homeCell;
     else throw err(400, 'bad_room', '고를 수 없는 방이에요.');
+    if (homeCell && homeCell !== m.home_cell) {
+      const here = [...core.kids(ctx.familyId), ...core.adults(ctx.familyId)].filter((x) => x.id !== m.id && effectiveHome(core, ctx.familyId, x) === homeCell);
+      if (here.length >= ROOM_MAX) throw err(409, 'room_full', `그 방에는 이미 ${here.map((x) => x.name).join('·')}이(가) 있어요. 한 방에는 최대 ${ROOM_MAX}명까지예요.`);
+    }
   }
   let guardian = m.is_guardian;
   if (b.isGuardian !== undefined && m.kind === 'adult') {

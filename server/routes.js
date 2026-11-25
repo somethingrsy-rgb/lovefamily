@@ -113,6 +113,7 @@ export function buildRoutes(app) {
   add('POST', '/api/posts', (c, h) => ({ status: 201, body: X.createPost(h.core, c, h.body) }));
   add('POST', '/api/posts/:id/pin', (c, h) => X.pinPost(h.core, c, P(h), !!h.body.pinned));
   add('POST', '/api/posts/:id/read', (c, h) => X.readPost(h.core, c, P(h)));
+  add('PATCH', '/api/posts/:id', (c, h) => X.updatePost(h.core, c, P(h), h.body));
   add('DELETE', '/api/posts/:id', (c, h) => X.deletePost(h.core, c, P(h)));
   add('GET', '/api/notes', (c, h) => X.listNotes(h.core, c, 20));
   add('POST', '/api/notes', (c, h) => ({ status: 201, body: X.addNote(h.core, c, h.body) }));
