@@ -33,7 +33,7 @@ export const daysText = (days) => {
 
 // 배경화면 목록 (밝은 테마에서만 보임). 이 기기에만 저장돼요.
 export const WALLS = [['cloud', '솜구름'], ['candy', '솜사탕'], ['rose', '로즈'], ['lilac', '라일락'], ['none', '없음']];
-export const wallCur = () => { const w = lsGet('wall', 'cloud'); return WALLS.some(([k]) => k === w) ? w : 'cloud'; };
+export const wallCur = () => { const w = lsGet('wall', 'candy'); return WALLS.some(([k]) => k === w) ? w : 'candy'; }; // 처음 기본: 솜사탕
 export const wallPickerHtml = (cur) => `<div class="wall-grid">${WALLS.map(([k, n]) => `<label class="wall-opt"><input type="radio" name="wall" value="${k}" ${cur === k ? 'checked' : ''}><span class="wall-thumb${k === 'none' ? ' none' : ''}" ${k === 'none' ? '' : `style="background-image:url(/assets/bg/${k}-t.webp)"`}></span><b>${n}</b></label>`).join('')}</div>`;
 
 // 집 그림 목록 (우리집 화면의 큰 집). 이 기기에만 저장돼요. 방 칸 위치는 모든 그림이 같다.

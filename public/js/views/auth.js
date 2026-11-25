@@ -1,4 +1,4 @@
-import { $, $$, esc } from '../util.js';
+import { $, $$, esc, lsSet } from '../util.js';
 import { post, ApiError } from '../api.js';
 
 const shellHtml = (title, body) => `<div class="auth-card card"><div class="auth-logo">🏠</div><h1>${title}</h1>${body}</div>`;
@@ -73,7 +73,7 @@ export async function register(el) {
       <div class="pet-pick">${PETS.map(([id, d, img]) => `<label class="pet-opt"><input type="checkbox" name="pet" value="${id}" ${W.pets[id] ? 'checked' : ''}><span class="pet-card"><img src="${img}" alt="" draggable="false"><b>${esc(W.petNames[id] || d)}</b><small>${W.petNames[id] ? d : '이름을 지어 주세요'}</small></span></label>`).join('')}</div>
       <div class="pet-names">${PETS.filter(([id]) => W.pets[id]).map(([id, d]) => `<div class="pet-setup"><label class="field">${d} 이름<input name="pn_${id}" maxlength="10" value="${esc(W.petNames[id])}" placeholder="이름을 지어 주세요"></label>
         <label class="field">주인 <small class="muted">(간식주기·산책하기를 해요)</small><select name="po_${id}"><option value="">나중에 정할게요</option>${W.kids.filter((k) => k.name).map((k, i) => `<option value="${i}" ${String(W.petOwners[id]) === String(i) ? 'selected' : ''}>${esc(k.name)}</option>`).join('')}</select></label></div>`).join('')}</div>`;
-    return `<p class="muted center">우리 집 그림을 골라 주세요 <small>(나중에 바꿀 수 있어요)</small></p>
+    return `<p class="muted center">우리 집 그림을 골라 주세요 <small>(이 기기에서 보여요. 가족은 각자 자기 폰에서 고르고, 나중에 바꿀 수 있어요)</small></p>
       <div class="wall-grid house-grid">${HOUSE_PICKS.map(([k, n, t]) => `<label class="wall-opt"><input type="radio" name="house" value="${k}" ${W.house === k ? 'checked' : ''}><span class="wall-thumb house-thumb" style="background-image:url(${t})"></span><b>${n}</b></label>`).join('')}</div>
       <p class="small muted center">아이는 순서대로 2층 방에, 엄마·아빠·할머니는 아래층 방에 살아요. 셋째 아이부터는 거실에서 지내요.</p>`;
   };
@@ -121,6 +121,7 @@ export async function register(el) {
       try {
         const kids = W.kids.filter((k) => k.name);
         const r = await post('/api/auth/register', { loginId: W.loginId, password: W.password, role: W.role, name: W.name || undefined, familyName: W.familyName, kids, pets: W.pets, petNames: Object.fromEntries(Object.entries(W.petNames).filter(([id]) => W.pets[id])), petOwners: Object.fromEntries(Object.entries(W.petOwners).filter(([id, v]) => W.pets[id] && v !== '').map(([id, v]) => [id, Number(v)])), house: W.house });
+        lsSet('house', W.house); // 고른 집 그림은 이 기기에서 쓴다(다른 가족 기기는 각자 고른다)
         recoveryScreen(el, { code: r.recoveryCode, familyCode: r.familyCode, title: '가족이 만들어졌어요 🎉', lead: '마지막으로, <b>복구 코드</b>를 꼭 저장해 주세요.', button: '우리집 시작하기', onDone: () => window.__app.afterLogin() });
       } catch (x) {
         err.textContent = errText(x); err.hidden = false; btn.disabled = false;

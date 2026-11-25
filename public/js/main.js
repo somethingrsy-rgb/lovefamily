@@ -65,7 +65,7 @@ window.__go = go;
 function themeApply() {
   const night = lsGet('theme', 'light') === 'dark'; // 자동 없음: 낮/밤만 직접 고른다
   document.documentElement.dataset.theme = night ? 'dark' : 'light';
-  const w = lsGet('wall', 'cloud');
+  const w = lsGet('wall', 'candy');
   document.documentElement.style.setProperty('--wall', /^(cloud|candy|rose|lilac)$/.test(w) ? `url(/assets/bg/${w}.webp)` : 'none');
   document.querySelector('meta[name=theme-color]')?.setAttribute('content', night ? '#241d3a' : '#f3dff3');
 }

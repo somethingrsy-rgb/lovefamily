@@ -47,6 +47,6 @@ export const petOwnerKidId = (id) => (petEnabled(id) ? S.info?.family?.petOwners
 export const petOwnerIdx = (id) => { const k = petOwnerKidId(id); const i = (S.info?.kids || []).findIndex((x) => x.id === k); return i >= 0 ? i : undefined; };
 export const petsOfKid = (kidId) => PET_IDS.filter((id) => petOwnerKidId(id) === Number(kidId));
 
-// ---- 집 그림: 이 기기에서 따로 고른 것이 있으면 그것, 없으면 가족 설정(가입할 때 고른 것) ----
-export const houseCur = () => { const h = lsGet('house', null) || S.info?.family?.house; return HOUSES.some(([k]) => k === h) ? h : 'pastel'; };
+// ---- 집 그림: 각자 이 기기에서 고른 것(안 골랐으면 보라 집). 가족 전체에는 영향을 주지 않는다 ----
+export const houseCur = () => { const h = lsGet('house', null); return HOUSES.some(([k]) => k === h) ? h : 'pastel'; }; // 처음 기본: 보라 집
 export const houseSrc = () => HOUSES.find(([k]) => k === houseCur())[2];

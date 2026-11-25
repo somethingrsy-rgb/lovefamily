@@ -17,7 +17,7 @@ body { margin: 0; font-family: var(--font); color: var(--ink); line-height: 1.45
   background: var(--bg); background-attachment: fixed; }
 body.noscroll { overflow: hidden; }
 /* 배경화면: 솜구름·별 (밝은 테마). iOS 는 background-attachment: fixed 를 무시해서 고정 레이어로 깐다. 어두운 테마는 기존 색 유지 */
-body::before { content: ''; position: fixed; inset: 0; z-index: -1; background: #e6d3cd var(--wall, url(/assets/bg/cloud.webp)) center / cover no-repeat; pointer-events: none; }
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; background: #e6d3cd var(--wall, url(/assets/bg/candy.webp)) center / cover no-repeat; pointer-events: none; }
 :root[data-theme=dark] body::before { display: none; }
 .wall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 10px; margin-top: 6px; }
 .wall-opt { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; } .wall-opt input { position: absolute; opacity: 0; pointer-events: none; } .wall-opt b { font-size: .85rem; }
