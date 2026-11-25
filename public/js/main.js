@@ -17,6 +17,7 @@ import * as notebook from './views/notebook.js';
 import * as detail from './views/detail.js';
 import * as timerui from './views/timerui.js';
 import * as supplies from './views/supplies.js';
+import * as timetable from './views/timetable.js';
 import * as plan from './views/plan.js';
 import { startTimerManager } from './timers.js';
 import { syncPush } from './views/family.js';
@@ -43,7 +44,8 @@ R('/approve/:id', detail.approve, { tab: 'today', adult: true }); R('/money/:id'
 R('/messages/:kidId/:adultId', talk.adultThread, { tab: 'today', adult: true });
 R('/kid/:id', kid.hub, { tab: 'today', kid: true }); R('/kid/:id/today', kid.today, { tab: 'today', kid: true });
 R('/kid/:id/wallet', wallet, { tab: 'today', kid: true }); R('/kid/:id/wishes', wishes, { tab: 'today', kid: true });
-R('/kid/:id/talk', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/talk/kid/:otherId', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/talk/:adultId', talk.talk, { tab: 'today', kid: true });
+R('/kid/:id/talk', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/timetable', timetable, { tab: 'today', kid: true });
+R('/kid/:id/talk/kid/:otherId', talk.talk, { tab: 'today', kid: true }); R('/kid/:id/talk/:adultId', talk.talk, { tab: 'today', kid: true });
 R('/kid/:id/inbox', talk.kidInbox, { tab: 'today', kid: true }); R('/kid/:id/missions', kid.missions, { tab: 'today', kid: true });
 R('/kid/:id/stamps', stamps, { tab: 'stamps', kid: true });
 R('/me', kidme, { tab: 'me' });

@@ -124,6 +124,11 @@ CREATE TABLE IF NOT EXISTS kid_messages (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_a INTEGER NOT NULL, kid_b INTEGER NOT NULL,
   sender_id INTEGER NOT NULL, body TEXT NOT NULL, created_at INTEGER NOT NULL, read_at INTEGER);
 CREATE INDEX IF NOT EXISTS kid_messages_pair ON kid_messages(kid_a, kid_b, id);
+-- 아이별 주간 시간표: dow 1=월 … 7=일, 시각은 하루 중 몇 분째(0~1439)
+CREATE TABLE IF NOT EXISTS timetable (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, dow INTEGER NOT NULL CHECK (dow BETWEEN 1 AND 7),
+  start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, title TEXT NOT NULL, place TEXT, color TEXT NOT NULL, created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS timetable_kid ON timetable(kid_id, dow, start_min);
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, member_id INTEGER NOT NULL, kind TEXT NOT NULL,
   title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', dedupe TEXT UNIQUE,

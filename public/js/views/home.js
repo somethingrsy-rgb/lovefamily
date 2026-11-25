@@ -40,6 +40,13 @@ function kidLinks(k) {
   const done = `${k.day.done}/${k.day.total}`;
   return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"><b>통장</b></a><a class="kl" href="${isDevice() || boundKid() || !S.info.me ? `#/kid/${k.id}/talk` : `#/messages/${k.id}/${S.info.me.id}`}">💌<b>메시지</b></a></nav>`;
 }
+// 오늘의 지금·다음 수업 한 줄(시간표가 있는 날만)
+function ttLine(k) {
+  const t = k.timetable; if (!t || (!t.now && !t.next)) return '';
+  const a = t.now ? `<b>지금</b> ${esc(t.now.title)} <small>~${esc(t.now.end)}</small>` : '';
+  const b = t.next ? `<span class="tt-next">다음 ${esc(t.next.start)} ${esc(t.next.title)}</span>` : '';
+  return `<div class="tt-line" style="--tc:${esc((t.now || t.next).color)}">📅 ${a}${a && b ? ' · ' : ''}${b}</div>`;
+}
 function kidCard(k, i) {
   const pct = k.day.total ? Math.round((k.day.done / k.day.total) * 100) : 0;
   const rem = k.day.remaining;
@@ -47,6 +54,7 @@ function kidCard(k, i) {
     <div class="kid-top">${avatar(k, 'xl')}<div class="kid-name"><h2>${esc(k.name)}</h2>${k.hasPin ? '<span class="lock" title="비밀번호가 있어요">🔒</span>' : ''}</div></div>
     <div class="kid-progress" role="img" aria-label="오늘 할일 ${k.day.done}/${k.day.total}"><div class="bar"><i style="width:${pct}%"></i></div><b>${k.day.total ? `${k.day.done}/${k.day.total}` : '–'}</b></div>
     ${dayBadge(k)}
+    ${ttLine(k)}
     ${rem.length && k.day.status === 'open' ? `<ul class="rem-chips">${rem.slice(0, 3).map((n) => `<li>${esc(n)}</li>`).join('')}${rem.length > 3 ? `<li class="more">+${rem.length - 3}</li>` : ''}</ul>` : ''}
     <div class="stamp-mini" aria-label="도장 ${k.board.count}/${k.board.size}"><span>💮 도장 <b>${k.board.count}</b>/${k.board.size}</span><div class="bar thin"><i style="width:${(k.board.count / k.board.size) * 100}%"></i></div></div>
   </a>${petBtns(k)}${kidTimerHtml(k)}${kidLinks(k)}</article>`;

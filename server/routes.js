@@ -8,6 +8,7 @@ import * as X from './services/social.js';
 import * as T from './services/timers.js';
 import * as SP from './services/supplies.js';
 import * as FA from './services/famact.js';
+import * as TT from './services/timetable.js';
 import { id as vid } from './util.js';
 
 // [method, path, handler(ctx, h) , opts]
@@ -152,6 +153,10 @@ export function buildRoutes(app) {
   add('PUT', '/api/timers/:id/next', (c, h) => T.setNext(h.core, c, P(h), h.body));
 
   // ---- 내일 준비물 ----
+  add('GET', '/api/kids/:id/timetable', (c, h) => TT.listTimetable(h.core, c, P(h)));
+  add('POST', '/api/kids/:id/timetable', (c, h) => ({ status: 201, body: TT.createTimetable(h.core, c, P(h), h.body) }));
+  add('PATCH', '/api/timetable/:id', (c, h) => TT.updateTimetable(h.core, c, P(h), h.body));
+  add('DELETE', '/api/timetable/:id', (c, h) => TT.deleteTimetable(h.core, c, P(h)));
   add('POST', '/api/supplies', (c, h) => ({ status: 201, body: SP.createSupplies(h.core, c, h.body) }));
   add('GET', '/api/kids/:id/supplies', (c, h) => SP.listSupplies(h.core, c, P(h)));
   add('PUT', '/api/supplies/:id/kids/:kidId', (c, h) => SP.setChecked(h.core, c, P(h), P(h, 'kidId'), h.body.checked));

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { ttNowNext } from './timetable.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { err, text, oneOf, isDate, isMonth, monthRange, id as vid, kstDate, kstMinutesOfDay } from '../util.js';
@@ -401,6 +402,7 @@ export function home(core, ctx) {
       day: { status: d.status, total: d.total, done: d.done, remaining: d.items.filter((i) => !i.done).map((i) => i.name), requestId: d.requestId || null, stampBy: d.stamp?.providerName || null },
       board: { no: b.boardNo, count: b.count, size: b.size },
       timer: kidTimer(core, ctx.familyId, k.id),
+      timetable: ttNowNext(core, k.id), // 지금·다음 수업(오늘 것만)
     };
   });
   const adults = core.adults(ctx.familyId)
