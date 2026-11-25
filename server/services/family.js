@@ -243,7 +243,8 @@ export function updateMember(core, ctx, memberId, b) {
   const adult = ctx.adult();
   const m = core.member(memberId);
   if (!m || m.family_id !== ctx.familyId) throw err(404, 'not_found', '찾을 수 없어요.');
-  if (m.kind === 'adult' && m.id !== adult.id && !adult.is_guardian) throw err(403, 'forbidden', '다른 어른 정보는 부모님만 바꿀 수 있어요.');
+  // 다른 어른의 이름·사진 같은 정보는 부모님만 바꾸지만, 지낼 방만 바꾸는 것은 어른이면 누구나 할 수 있다
+  if (m.kind === 'adult' && m.id !== adult.id && !adult.is_guardian && Object.keys(b).some((k) => k !== 'homeCell')) throw err(403, 'forbidden', '다른 어른 정보는 부모님만 바꿀 수 있어요.');
   const name = b.name !== undefined ? text(b.name, '이름', { max: 20 }) : m.name;
   const avatar = b.avatar !== undefined ? text(b.avatar, '아바타', { max: 8 }) : m.avatar;
   const color = b.color !== undefined ? (/^#[0-9a-fA-F]{6}$/.test(b.color) ? b.color : (() => { throw err(400, 'bad_color', '색 형식이 올바르지 않아요.'); })()) : m.color;

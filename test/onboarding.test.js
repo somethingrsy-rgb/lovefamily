@@ -344,3 +344,19 @@ test('알림장 수정: 쓴 사람이나 부모님만, 보낸 항목만 바뀌�
     void k1;
   } finally { await app.close(); }
 });
+
+test('방 선택은 어른이면 누구나(부모님 권한 없는 어른도 다른 어른의 방을 바꿀 수 있고, 이름 같은 정보는 못 바꾼다)', async () => {
+  const { app, base } = await boot();
+  try {
+    const mom = new Client(base, 'm'); const gma = new Client(base, 'g');
+    await mom.ok('POST', '/api/auth/register', { loginId: 'adultroom@x', password: 'secret1', kids: [{ name: '하늘', gender: 'girl' }] });
+    const me = await mom.ok('GET', '/api/me');
+    await gma.ok('POST', '/api/auth/join', { code: me.family.code, loginId: 'gma@ar', password: 'secret2', role: 'grandma' });
+    const momId = me.me.id; const gmaId = (await gma.ok('GET', '/api/me')).me.id;
+    assert.equal((await gma.call('PATCH', `/api/members/${momId}`, { homeCell: '22' })).status, 200, '할머니가 엄마의 방을 바꿈');
+    assert.equal((await gma.call('PATCH', `/api/members/${momId}`, { name: '바뀐이름' })).status, 403, '이름은 부모님만');
+    assert.equal((await gma.call('PATCH', `/api/members/${momId}`, { homeCell: '22', name: '섞어서' })).status, 403, '방과 이름을 같이 보내도 거절');
+    assert.equal((await gma.call('PATCH', `/api/members/${gmaId}`, { homeCell: '12', name: '내 이름' })).status, 200, '내 정보는 모두 바꿀 수 있다');
+    assert.equal((await mom.ok('GET', '/api/me')).adults.find((a) => a.id === momId).homeCell, '22');
+  } finally { await app.close(); }
+});
