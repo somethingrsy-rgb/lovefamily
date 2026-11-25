@@ -910,3 +910,8 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .members li > .grow { flex: 1 1 130px; min-width: 110px; word-break: keep-all; align-self: center; }
 .members .m-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: 0 1 auto; margin-left: auto; }
 @media (max-width: 520px) { .members .m-actions { flex: 1 1 100%; justify-content: flex-start; padding-left: 54px; } }
+/* 캐릭터 크기(폰 기준 높이): 아이 1·2 = 70px, 어른 = 78px, 셋째 이후 아이 = 65px. 집 그림 너비에 비례해서 커지고 줄어든다 */
+.walker.sz-kid > :not(.wk-shadow), .walker.sz-adult > :not(.wk-shadow), .walker.small > :not(.wk-shadow) { transform-origin: 50% 100%; }
+.walker.sz-kid > :not(.wk-shadow) { scale: .978; }
+.walker.sz-adult > :not(.wk-shadow) { scale: 1.089; }
+.walker.small > :not(.wk-shadow) { scale: .908; }
