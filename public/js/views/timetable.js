@@ -64,7 +64,7 @@ export async function mount(el, { id }) {
     if (!it) return;
     const sh = openSheet(`<h2 style="border-left:8px solid ${esc(it.color)};padding-left:10px">${esc(it.title)}</h2>
       <p><b>${DOWS[it.dow]}요일 ${esc(rangeTxt(it))}</b></p>${it.place ? `<p class="muted">📍 ${esc(it.place)}</p>` : ''}
-      <div class="row gap end">${canEdit ? '<button class="btn ghost danger-text" data-del>삭제</button><button class="btn" data-edit>수정</button>' : ''}<button class="btn primary" data-close>닫기</button></div>`);
+      <div class="row gap end">${canEdit ? '<button class="btn ghost danger-text" data-del>삭제</button><button class="btn" data-edit>수정</button>' : ''}<button class="btn primary" data-close>✕ 닫기</button></div>`);
     sh.el.querySelector('[data-edit]')?.addEventListener('click', async () => { if (await needAdult()) { sh.close(); editSheet(it); } });
     sh.el.querySelector('[data-del]')?.addEventListener('click', async () => {
       if (!(await needAdult())) return;

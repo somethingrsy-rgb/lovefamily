@@ -2,7 +2,7 @@
 // 빌드 번호는 서버가 넣어 준다: 앱 파일이 바뀌면 번호가 바뀌고, 새 번호의 파일 묶음을 '전부' 받은 뒤에야 바꿔 끼운다(옛 코드와 새 코드가 섞이지 않는다).
 const BUILD = '__BUILD__';
 const CODE_CACHE = `lovefamily-code-${BUILD}`;
-const IMG_CACHE = 'lovefamily-img-v1'; // 그림·아이콘: 빌드가 바뀌어도 유지
+const IMG_CACHE = 'lovefamily-img-v2'; // 그림·아이콘: 빌드가 바뀌어도 유지
 
 async function precache() {
   const c = await caches.open(CODE_CACHE);

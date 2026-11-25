@@ -130,7 +130,7 @@ function syncBankReq(col, h, reload) {
 }
 function openAdultSheet(id, h, reload) {
   const a = adultById(id); const st = h.adults.find((x) => x.id === a.id)?.status;
-  const sh = openSheet(`<h2>${avatar(a, 'sm')} ${esc(a.name)}의 상태</h2><p class="adult-status">${statusLine(st)}</p>${statusButtons(a.id, st?.state)}<div class="row end"><button class="btn ghost" data-close>닫기</button></div>`);
+  const sh = openSheet(`<h2>${avatar(a, 'sm')} ${esc(a.name)}의 상태</h2><p class="adult-status">${statusLine(st)}</p>${statusButtons(a.id, st?.state)}<div class="row end"><button class="btn ghost" data-close>✕ 닫기</button></div>`);
   bindStatus(sh.el, () => { sh.close(); reload(); });
 }
 function bindHouse(root, reload, h) {
@@ -148,7 +148,7 @@ function bindHouse(root, reload, h) {
     else if (t === 'living') location.hash = '#/notebook';
     else if (t === 'adult') {
       const a = adultById(r.dataset.id); const st = h.adults.find((x) => x.id === a.id)?.status;
-      const sh = openSheet(`<h2>${avatar(a, 'sm')} ${esc(a.name)}의 상태</h2><p class="adult-status">${statusLine(st)}</p>${statusButtons(a.id, st?.state)}<div class="row end"><button class="btn ghost" data-close>닫기</button></div>`);
+      const sh = openSheet(`<h2>${avatar(a, 'sm')} ${esc(a.name)}의 상태</h2><p class="adult-status">${statusLine(st)}</p>${statusButtons(a.id, st?.state)}<div class="row end"><button class="btn ghost" data-close>✕ 닫기</button></div>`);
       bindStatus(sh.el, () => { sh.close(); reload(); });
     }
   });

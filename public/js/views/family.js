@@ -227,7 +227,7 @@ async function pairSheet(kid) {
     <div class="code-box" id="pcode"><button class="btn primary big" id="mk">코드 만들기</button></div>
     <h3>연결된 폰</h3>
     <ul class="members" id="devs">${dev.length ? dev.map((d) => `<li><span>📱</span><div class="grow"><b>${esc(d.label)}</b><div class="small muted">${new Date(d.connectedAt + 9 * 3600e3).toISOString().slice(0, 10)} 연결${d.push ? ' · 알림 켜짐' : ''}</div></div><button class="btn ghost small" data-rev="${d.id}">연결 해제</button></li>`).join('') : '<li class="muted">아직 연결된 폰이 없어요</li>'}</ul>
-    <div class="row end"><button class="btn ghost" data-close>닫기</button></div>`);
+    <div class="row end"><button class="btn ghost" data-close>✕ 닫기</button></div>`);
   sh.el.addEventListener('click', async (e) => {
     try {
       if (e.target.closest('#mk')) {

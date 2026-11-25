@@ -968,3 +968,5 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 @media (min-width: 700px) { .kid-hub .big-btn b { word-break: keep-all; text-align: center; } }
 @media (min-width: 700px) and (max-width: 899px) { .kid-hub .big-btn { font-size: 1.1rem; } }
 @media (min-width: 1000px) { .kid-hub .row.wrap.center .btn { font-size: .95rem; gap: .25rem; } }
+.photo-viewer .pv-close img.emo { width: 26px; height: 26px; flex: none; }
+.btn img.emo { height: 1.2em; width: auto; vertical-align: -.2em; }
