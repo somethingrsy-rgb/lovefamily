@@ -164,6 +164,7 @@ export function buildRoutes(app) {
   add('PUT', '/api/kids/:id/meals/:date', (c, h) => ML.setMeal(h.core, c, P(h), h.params.date, h.body));
   add('DELETE', '/api/kids/:id/meals/:date', (c, h) => ML.deleteMeal(h.core, c, P(h), h.params.date));
   add('GET', '/api/meals/alert', (c, h) => ML.getAlert(h.core, c));
+  add('POST', '/api/meals/alert/test', (c, h) => ML.testAlert(h.core, c));
   add('PUT', '/api/meals/alert', (c, h) => ML.setAlert(h.core, c, h.body));
   add('PATCH', '/api/timetable/:id', (c, h) => TT.updateTimetable(h.core, c, P(h), h.body));
   add('DELETE', '/api/timetable/:id', (c, h) => TT.deleteTimetable(h.core, c, P(h)));

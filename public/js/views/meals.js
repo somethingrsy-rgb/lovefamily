@@ -42,7 +42,8 @@ export async function mount(el, { id }) {
   function alertHtml() {
     if (!myAlert || !alert) return '';
     return `<section class="card page-card meal-alert"><h3>🔔 아침 급식 알림</h3><p class="muted small">평일 정한 시각에 오늘 급식을 이 폰으로 알려 줘요. 식단이 없는 날은 알리지 않아요. 알림은 어른마다 따로 정해요.</p>
-      <div class="row gap wrap"><label class="check"><input type="checkbox" id="malert" ${alert.enabled ? 'checked' : ''}> <span>알림 받기</span></label><label class="field inline">시각 <input type="time" id="mtime" value="${esc(alert.time)}" ${alert.enabled ? '' : 'disabled'}></label></div></section>`;
+      <div class="row gap wrap"><label class="check"><input type="checkbox" id="malert" ${alert.enabled ? 'checked' : ''}> <span>알림 받기</span></label><label class="field inline">시각 <input type="time" id="mtime" value="${esc(alert.time)}" ${alert.enabled ? '' : 'disabled'}></label></div>
+      <div class="row gap wrap"><button class="btn ghost small" id="mtest">지금 알림 보내 보기</button></div><p class="muted small">알림이 안 오면 이 버튼으로 점검해 보세요. 알림이 오지 않으면 설정 탭 → 화면·알림 설정에서 이 폰의 알림을 허용했는지 확인해 주세요.</p></section>`;
   }
 
   function draw() {
@@ -60,6 +61,15 @@ export async function mount(el, { id }) {
     $('#edit', el)?.addEventListener('click', async () => { if (await needAdult()) editSheet(); });
     const ma = $('#malert', el); const mt = $('#mtime', el);
     ma?.addEventListener('change', async () => { try { alert = await put('/api/meals/alert', { enabled: ma.checked }); mt.disabled = !alert.enabled; toast(alert.enabled ? '아침 알림을 켰어요' : '아침 알림을 껐어요'); } catch (e) { ma.checked = !ma.checked; errToast(e); } });
+    $('#mtest', el)?.addEventListener('click', async (e) => {
+      const b = e.currentTarget; b.disabled = true;
+      try {
+        const r = await post('/api/meals/alert/test', {});
+        if (!r.sent) toast('오늘 급식 식단이 없어서 보낼 게 없어요. 식단을 먼저 넣어 주세요.');
+        else if (!r.devices) toast('앱 안에는 알림이 왔지만, 이 폰은 알림 허용이 안 되어 있어요. 설정 탭에서 알림을 허용해 주세요.', 'bad');
+        else toast('알림을 보냈어요. 잠시 뒤에 폰에 떠요.');
+      } catch (err) { errToast(err); } finally { b.disabled = false; }
+    });
     mt?.addEventListener('change', async () => { try { alert = await put('/api/meals/alert', { time: mt.value }); toast(`평일 ${alert.time}에 알려 드릴게요`); } catch (e) { mt.value = alert.time; errToast(e); } });
   }
 

@@ -119,6 +119,30 @@ export function setAlert(core, ctx, b) {
   return { enabled: !!enabled, time: hhmm(min) };
 }
 
+function todayLines(core, familyId, today) {
+  const lines = [];
+  for (const k of core.kids(familyId)) {
+    const r = core.get('SELECT * FROM meals WHERE kid_id = ? AND date = ?', k.id, today);
+    if (r) lines.push({ kid: k, items: JSON.parse(r.items) });
+  }
+  return lines;
+}
+const short = (items) => (items.length > 4 ? `${items.slice(0, 4).join(', ')} 외` : items.join(', '));
+const sendMeal = (core, a, lines, dedupe) => core.tx(() => core.notify({
+  familyId: a.family_id, memberId: a.id, kind: 'meal', title: '🍽 오늘 급식',
+  body: lines.map((l) => `${l.kid.name}: ${l.items.join(', ')}`).join('\n'), url: `/#/kid/${lines[0].kid.id}/meals`,
+  dedupe, lock: `🍽 오늘 급식 · ${lines.map((l) => `${l.kid.name} ${short(l.items)}`).join(' / ')}`.slice(0, 110),
+}));
+// 설정 점검용: 지금 오늘 급식 알림을 한 번 보내 본다(날짜·시각·평일 조건 없이). 이 폰에 알림 구독이 있는지도 알려 준다.
+export function testAlert(core, ctx) {
+  const a = ctx.adult();
+  const lines = todayLines(core, ctx.familyId, core.today());
+  const devices = core.get('SELECT COUNT(*) AS n FROM push_subs WHERE member_id = ?', a.id).n;
+  if (!lines.length) return { sent: false, reason: 'no_meal', devices };
+  sendMeal(core, a, lines, null);
+  return { sent: true, devices };
+}
+
 // 평일, 각자 정한 시각이 지나면(3시간 안에서) 그날 급식을 한 번만 알린다. 식단이 하나도 없는 날은 보내지 않는다.
 export function mealAlerts(core) {
   const now = core.now();
@@ -127,19 +151,9 @@ export function mealAlerts(core) {
   const adults = core.all("SELECT * FROM members WHERE kind = 'adult' AND removed = 0 AND meal_alert = 1");
   for (const a of adults) {
     if (min < a.meal_alert_min || min > a.meal_alert_min + ALERT_WINDOW_MIN) continue;
-    const lines = [];
-    for (const k of core.kids(a.family_id)) {
-      const r = core.get('SELECT * FROM meals WHERE kid_id = ? AND date = ?', k.id, today);
-      if (r) lines.push({ kid: k, items: JSON.parse(r.items) });
-    }
+    const lines = todayLines(core, a.family_id, today);
     if (!lines.length) continue;
-    const short = (items) => (items.length > 4 ? `${items.slice(0, 4).join(', ')} 외` : items.join(', '));
-    const r = core.tx(() => core.notify({
-      familyId: a.family_id, memberId: a.id, kind: 'meal', title: '🍽 오늘 급식',
-      body: lines.map((l) => `${l.kid.name}: ${l.items.join(', ')}`).join('\n'), url: `/#/kid/${lines[0].kid.id}/meals`,
-      dedupe: `meal:${a.id}:${today}`, lock: `🍽 오늘 급식 · ${lines.map((l) => `${l.kid.name} ${short(l.items)}`).join(' / ')}`.slice(0, 110),
-    }));
-    if (r) sent++;
+    if (sendMeal(core, a, lines, `meal:${a.id}:${today}`)) sent++;
   }
   return sent;
 }

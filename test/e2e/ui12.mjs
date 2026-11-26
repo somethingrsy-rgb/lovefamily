@@ -68,6 +68,16 @@ await mp.goto(`${base}/#/family`); await mp.waitForSelector('#refresh'); await m
 await Promise.all([mp.waitForNavigation({ waitUntil: 'load' }), mp.click('#refresh')]);
 await mp.waitForSelector('.tab'); assert.equal(await mp.evaluate(() => window.__marker), undefined, '어른 폰: 페이지가 다시 불러와짐');
 assert.ok((await mom.call('GET', '/api/me')).status === 200, '로그인 유지');
+// 7) 바탕화면 설치 버튼: 이미 설치돼 있지 않으면 안내(아이폰은 공유→홈 화면에 추가)가 뜬다
+await mp.goto(`${base}/#/family`); await mp.waitForSelector('#install'); await mp.click('#install');
+await mp.waitForSelector('.sheet'); assert.ok((await mp.textContent('.sheet')).includes('홈 화면에 추가'), '아이폰 안내');
+await mp.click('.sheet [data-close]');
+await kp.goto(`${base}/#/me`); await kp.waitForSelector('#install'); await kp.click('#install');
+await kp.waitForSelector('.sheet'); assert.ok((await kp.textContent('.sheet')).includes('앱 설치'), '안드로이드 안내');
+console.log('✓ 바탕화면 설치 버튼');
+// 8) 급식 알림 점검 버튼
+await mp.goto(`${base}/#/kid/${yuel}/meals`); await mp.waitForSelector('#mtest'); await mp.click('#mtest'); await mp.waitForSelector('.toast');
+console.log('✓ 급식 알림 점검 버튼');
 console.log('✓ 설정 새로고침(어른·아이)');
 
 await browser.close(); await app.close();

@@ -52,6 +52,25 @@ export async function refreshApp(btn) {
   } catch {}
   location.reload();
 }
+// ---- 바탕화면(홈 화면)에 설치 ----
+// 안드로이드·크롬은 설치 창을 앱이 직접 띄울 수 있고, 아이폰(Safari)은 공유 버튼으로만 설치돼서 방법을 안내한다.
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; });
+window.addEventListener('appinstalled', () => { installEvt = null; });
+export const isInstalled = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+export async function installApp() {
+  if (isInstalled()) { toast('이미 바탕화면에 설치돼 있어요'); return; }
+  if (installEvt) {
+    const e = installEvt; installEvt = null;
+    try { e.prompt(); const r = await e.userChoice; toast(r.outcome === 'accepted' ? '설치하고 있어요. 바탕화면을 확인해 보세요' : '설치를 취소했어요'); } catch { /* 이미 사용한 창 */ }
+    return;
+  }
+  const steps = isIOS()
+    ? '<ol><li>아래쪽(또는 위쪽)의 <b>공유</b> 버튼(네모에 위쪽 화살표)을 눌러요.</li><li><b>홈 화면에 추가</b>를 골라요.</li><li>오른쪽 위 <b>추가</b>를 누르면 바탕화면에 생겨요.</li></ol><p class="muted small">꼭 <b>Safari</b>에서 해야 해요(크롬·카카오톡 안에서는 안 보여요). 알림도 바탕화면의 앱 아이콘으로 열어야 받을 수 있어요.</p>'
+    : '<ol><li>브라우저 오른쪽 위 <b>⋮ 메뉴</b>를 눌러요.</li><li><b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 골라요.</li><li><b>설치</b>를 누르면 바탕화면에 생겨요.</li></ol><p class="muted small">메뉴에 보이지 않으면 <b>크롬</b>(안드로이드) 또는 <b>Safari</b>(아이폰)에서 다시 열어 주세요.</p>';
+  openSheet(`<h2>바탕화면에 설치</h2>${steps}<div class="row end"><button class="btn primary" data-close>확인</button></div>`);
+}
 export function errToast(e) { toast(e instanceof ApiError || e?.net ? e.message : '문제가 생겼어요. 다시 해 주세요.', 'bad'); if (!(e instanceof ApiError) && !e?.net) console.error(e); }
 
 export function toastAction(msg, label, fn) {

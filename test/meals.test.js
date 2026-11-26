@@ -83,3 +83,22 @@ test('급식 알림: 평일 정한 시각에 정한 어른에게만, 하루 한 
     f.clock.t = at(8, 0, '2026-11-24'); assert.equal(f.app.meals(), 2, '화요일 8시: 엄마·아빠(할머니는 9시)');
   } finally { await f.close(); }
 });
+
+test('급식 알림 점검: 지금 보내 보기는 식단이 있을 때만, 폰 알림 구독 여부를 알려 주고 실제 푸시가 나간다', async () => {
+  const f = await setup({ withRoutines: false });
+  try {
+    const { yuel } = f.ids;
+    const base = (await f.mom.ok('POST', '/api/meals/alert/test'));
+    assert.equal(base.sent, false); assert.equal(base.reason, 'no_meal');
+    await f.mom.ok('POST', `/api/kids/${yuel}/meals/import`, { text: SAMPLE });
+    const before = f.pushes.length;
+    const r = await f.mom.ok('POST', '/api/meals/alert/test'); assert.equal(r.sent, true); assert.equal(r.devices, base.devices); await f.flush();
+    if (base.devices) { assert.ok(f.pushes.length > before, '실제 푸시가 나감'); assert.match(f.pushes.at(-1).payload.body, /오늘 급식 · 유엘 카레라이스/); }
+    // 이 폰에 알림 구독을 하나 더 하면 기기 수가 늘어난다
+    await f.mom.ok('POST', '/api/push/subscribe', { subscription: { endpoint: 'https://push.example/mom-extra', keys: { p256dh: 'p', auth: 'a' } } });
+    assert.equal((await f.mom.ok('POST', '/api/meals/alert/test')).devices, base.devices + 1);
+    assert.equal((await f.device.call('POST', '/api/meals/alert/test')).status, 401, '어른 확인 없이는 안 됨');
+    // 같은 날 정시 알림은 점검 알림과 별개로 한 번 더 간다(점검이 정시 알림을 막지 않는다)
+    f.clock.t = Date.parse('2026-11-20T08:00:00+09:00'); assert.ok(f.app.meals() >= 1);
+  } finally { await f.close(); }
+});
