@@ -1,7 +1,7 @@
 import { $, $$, esc, dateLabel, addDays } from '../util.js';
 import { S, get, post, put, boundKid, isDevice, kidById } from '../api.js';
 import { avatar, errToast, toast, formSheet, needAdult } from '../ui.js';
-import { back } from '../common.js';
+import { back, topKidId, kidTabsHtml, kidTabsBind } from '../common.js';
 
 // 아이별 급식 식단: 하루씩 넘겨 보고, 이번 주 목록에서 날짜를 고른다. 어른은 식단표를 붙여넣거나 하루씩 고친다.
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
@@ -10,8 +10,11 @@ const weekdayStep = (date, dir) => { let d = addDays(date, dir); while ([0, 6].i
 const mondayOf = (date) => addDays(date, -((dowOf(date) + 6) % 7));
 const md = (date) => `${Number(date.slice(5, 7))}/${Number(date.slice(8))}`;
 
-export async function mount(el, { id }) {
-  const kid = kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
+export async function mount(el, params) {
+  const top = !params.id; // 하단 탭에서 열면 위쪽 이름표로 아이를 고른다
+  let id = top ? topKidId(params) : Number(params.id);
+  const kidNow = () => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
+  let kid = kidNow();
   const canEdit = !boundKid(); // 아이 폰은 보기만(거실 기기는 누를 때 어른 확인)
   const myAlert = !isDevice() && !boundKid() && !!S.info.me; // 어른 폰에서만 아침 알림 설정을 보인다
   let data = { days: [], from: '', to: '', today: S.info.today }; let date = null; let alert = null;
@@ -51,12 +54,15 @@ export async function mount(el, { id }) {
 
   function draw() {
     const isToday = date === data.today;
-    el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 급식`, canEdit ? '<button class="btn primary small" id="paste">+ 식단 넣기</button>' : '')}
+    kid = kidNow();
+    const addBtn = canEdit ? '<button class="btn primary small" id="paste">+ 식단 넣기</button>' : '';
+    el.innerHTML = `${top ? `<header class="page-head"><h1>🍽 급식</h1><div class="head-right">${addBtn}</div></header>${kidTabsHtml(id)}` : back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 급식`, addBtn)}
       <div class="day-nav"><button class="btn ghost" id="prev" aria-label="전날">‹</button><h2>${dateLabel(date)}${isToday ? ' <span class="tag">오늘</span>' : ''}</h2><button class="btn ghost" id="next" aria-label="다음날">›</button></div>
       <section class="card page-card meal-card">${menuHtml()}${canEdit ? `<div class="row gap end"><button class="btn ghost small" id="edit">${dayOf(date) ? '이 날 고치기' : '이 날 넣기'}</button></div>` : ''}</section>
       <section class="card page-card"><h3>이번 주 급식</h3>${weekHtml()}</section>
       ${alertHtml()}
       ${canEdit && !data.days.length ? '<p class="muted small center">+ 식단 넣기에서 가정통신문 식단표를 그대로 붙여넣을 수 있어요. 한 줄에 <b>11/2(월) / 밥, 국, 반찬</b> 모양이에요. 아이마다 학교가 다르면 아이마다 따로 넣어 주세요.</p>' : ''}`;
+    kidTabsBind(el, (k) => { id = k; load(true).catch(errToast); });
     $('#prev', el).addEventListener('click', () => go(weekdayStep(date, -1)));
     $('#next', el).addEventListener('click', () => go(weekdayStep(date, 1)));
     $$('[data-d]', el).forEach((b) => b.addEventListener('click', () => { date = b.dataset.d; draw(); }));

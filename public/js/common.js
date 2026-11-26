@@ -1,8 +1,12 @@
-import { $, $$, esc, won, timeLabel, ago } from './util.js';
+import { $, $$, esc, won, timeLabel, ago, lsGet, lsSet } from './util.js';
 import { S, put, isDevice, kidById, hooks } from './api.js';
 import { avatar, formSheet, toast, errToast } from './ui.js';
 
 export const back = (href, title, right = '') => `<header class="page-head"><a class="back" href="#${href}" aria-label="뒤로"><img src="/assets/back-arrow2.webp" alt="" draggable="false"></a><h1>${title}</h1><div class="head-right">${right}</div></header>`;
+// 하단 탭에서 바로 여는 아이별 화면(급식·시간표): 위쪽 이름표로 아이를 고르고, 마지막으로 본 아이를 기억한다
+export const topKidId = (p) => { const kids = S.info.kids; const want = Number(p.id || lsGet('tabkid', 0)); return (kids.find((k) => k.id === want) || kids[0])?.id; };
+export const kidTabsHtml = (id) => `<div class="kid-tabs" role="tablist">${S.info.kids.map((k) => `<button role="tab" class="kid-tab ${k.id === id ? 'on' : ''}" aria-selected="${k.id === id}" data-kid="${k.id}" style="--kc:${esc(k.color)}">${avatar(k, 'sm')} ${esc(k.name)}</button>`).join('')}</div>`;
+export const kidTabsBind = (el, onPick) => el.querySelectorAll('.kid-tab').forEach((t) => t.addEventListener('click', () => { lsSet('tabkid', Number(t.dataset.kid)); onPick(Number(t.dataset.kid)); }));
 export const kidTitle = (kid, text) => `${avatar(kid, 'sm')} ${esc(kid.name)}의 ${text}`;
 
 // ---- 금액 입력 (500원·1,000원·5,000원 그림 버튼 + 직접 입력, 정확한 금액을 글자로도 표시) ----

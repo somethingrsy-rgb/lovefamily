@@ -116,9 +116,9 @@ assert.deepEqual(await names(page), ['유하', '유엘'], '새로고침 후에�
 const ipad = await login(await browser.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: true }), true);
 assert.deepEqual(await names(ipad), ['유하', '유엘'], '거실 iPad에도 같은 순서');
 console.log('✓ 새로고침·다른 기기에도 같은 순서');
-// 하단 메뉴도 순서 바꾸기: 처음 순서 [우리집, 도장판, 통장, 설정] → 설정을 맨 앞으로
+// 하단 메뉴도 순서 바꾸기: 처음 순서 [우리집, 급식, 시간표, 통장, 설정] → 설정을 맨 앞으로
 const tabsNow = () => page.$$eval('.tabs .tab', (e) => e.map((x) => x.dataset.tab));
-assert.deepEqual(await tabsNow(), ['today', 'stamps', 'bank', 'family']);
+assert.deepEqual(await tabsNow(), ['today', 'meals', 'timetable', 'bank', 'family']);
 const fb = await (await page.$('.tab[data-tab=family]')).boundingBox(); const tb = await (await page.$('.tab[data-tab=today]')).boundingBox();
 await page.mouse.move(fb.x + fb.width / 2, fb.y + fb.height / 2); await page.mouse.down(); await page.waitForTimeout(750);
 await page.mouse.move(fb.x + fb.width / 2 - 30, fb.y + fb.height / 2, { steps: 3 }); await page.mouse.move(tb.x + 10, tb.y + tb.height / 2, { steps: 12 }); await page.mouse.up(); await page.waitForTimeout(400);
@@ -181,7 +181,7 @@ console.log('✓ 폰 가로 화면도 아이패드 가로 배열(2단)');
   const p0 = await pos();
   assert.equal(p0.bottom, p0.h, '하단 메뉴는 화면 맨 아래에 붙어 있다');
   for (const y of [300, 1200, 99999, 0]) { await vp.evaluate((v) => { (document.querySelector('#main') || document.scrollingElement).scrollTo(0, v); window.scrollTo(0, v); }, y); await vp.waitForTimeout(150); assert.deepEqual(await pos(), p0, `스크롤(${y})해도 하단 메뉴 위치가 그대로`); }
-  assert.deepEqual(await vp.$$eval('.tabs .tab span:last-child', (e) => e.map((x) => x.textContent.trim())), ['우리집', '도장판', '통장', '설정'], '첫 탭 이름은 우리집');
+  assert.deepEqual(await vp.$$eval('.tabs .tab span:last-child', (e) => e.map((x) => x.textContent.trim())), ['우리집', '급식', '시간표', '통장', '설정'], '첫 탭 이름은 우리집');
   await vp.close();
   console.log('✓ 하단 메뉴 고정(스크롤해도 안 움직임), 첫 탭 우리집');
 }

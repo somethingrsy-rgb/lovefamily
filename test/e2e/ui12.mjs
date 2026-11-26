@@ -79,6 +79,16 @@ console.log('✓ 바탕화면 설치 버튼');
 await mp.goto(`${base}/#/kid/${yuel}/meals`); await mp.waitForSelector('#mtest'); await mp.click('#mtest'); await mp.waitForSelector('.toast');
 console.log('✓ 급식 알림 점검 버튼');
 console.log('✓ 설정 새로고침(어른·아이)');
+// 9) 어른 폰 하단 탭: 우리집·급식·시간표·통장·설정 — 급식·시간표는 위쪽 이름표로 아이를 고른다
+await mp.goto(`${base}/#/`); await mp.waitForSelector('.tabs .tab');
+assert.deepEqual(await mp.$$eval('.tabs .tab span:last-child', (e) => e.map((x) => x.textContent.trim())), ['우리집', '급식', '시간표', '통장', '설정']);
+await mp.click('.tab[data-tab=meals]'); await mp.waitForSelector('.kid-tabs .kid-tab');
+assert.equal(await mp.$$eval('.kid-tab', (e) => e.length), 2);
+await mp.click(`.kid-tab[data-kid="${yuha}"]`); await mp.waitForTimeout(400); assert.ok((await mp.textContent('.meal-card')).includes('식단이 없어요'), '유하 탭: 식단 없음');
+await mp.click(`.kid-tab[data-kid="${yuel}"]`); await mp.waitForTimeout(400); assert.ok((await mp.$$('.meal-list li')).length > 0, '유엘 탭: 식단 있음');
+await mp.click('.tab[data-tab=timetable]'); await mp.waitForSelector('.tt-seg'); assert.ok((await mp.$('#add')) !== null, '시간표 + 수업 추가'); assert.equal(await mp.$$eval('.kid-tab', (e) => e.length), 2);
+await mp.screenshot({ path: path.join(shots, '92-tabs-timetable.png') });
+console.log('✓ 하단 탭 급식·시간표(아이 고르기)');
 
 await browser.close(); await app.close();
 assert.deepEqual(errors, [], '브라우저 오류: ' + errors.join(' | '));

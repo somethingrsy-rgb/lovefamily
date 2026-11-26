@@ -1,7 +1,7 @@
 import { $, $$, esc, lsGet, lsSet } from '../util.js';
 import { S, get, post, patch, del, boundKid, kidById } from '../api.js';
 import { avatar, errToast, toast, formSheet, openSheet, confirmDialog, needAdult } from '../ui.js';
-import { back } from '../common.js';
+import { back, topKidId, kidTabsHtml, kidTabsBind } from '../common.js';
 
 // 아이별 주간 시간표: [오늘] 요일별 목록 / [주간표] 한눈에 보는 표. 어른은 수업을 만들고 고치고, 아이는 보기만 한다.
 const DOWS = ['', '월', '화', '수', '목', '금', '토', '일'];
@@ -13,8 +13,11 @@ const mins = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 
 const kstNow = () => { const d = new Date(Date.now() + 9 * 3600e3); return { dow: ((d.getUTCDay() + 6) % 7) + 1, min: d.getUTCHours() * 60 + d.getUTCMinutes() }; };
 const rangeTxt = (it) => `${it.start}~${it.end}`;
 
-export async function mount(el, { id }) {
-  const kid = kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
+export async function mount(el, params) {
+  const top = !params.id; // 하단 탭에서 열면 위쪽 이름표로 아이를 고른다
+  let id = top ? topKidId(params) : Number(params.id);
+  const kidNow = () => kidById(id) || { id: Number(id), name: '아이', avatar: '🙂', color: '#e8e0f5' };
+  let kid = kidNow();
   const canEdit = !boundKid(); // 아이 폰은 보기만(거실 기기는 누를 때 어른 확인)
   let data = { items: [] }; let day = null; let view = lsGet('ttview', 'today') === 'week' ? 'week' : 'today';
 
@@ -49,10 +52,13 @@ export async function mount(el, { id }) {
   }
 
   function draw() {
-    el.innerHTML = `${back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 시간표`, canEdit ? '<button class="btn primary small" id="add">+ 수업 추가</button>' : '')}
+    kid = kidNow();
+    const addBtn = canEdit ? '<button class="btn primary small" id="add">+ 수업 추가</button>' : '';
+    el.innerHTML = `${top ? `<header class="page-head"><h1>📝 시간표</h1><div class="head-right">${addBtn}</div></header>${kidTabsHtml(id)}` : back(`/kid/${id}`, `${avatar(kid, 'sm')} ${esc(kid.name)}의 시간표`, addBtn)}
       <div class="seg wide tt-seg" role="tablist"><label class="seg-opt"><input type="radio" name="v" value="today" ${view === 'today' ? 'checked' : ''}><span>요일별</span></label><label class="seg-opt"><input type="radio" name="v" value="week" ${view === 'week' ? 'checked' : ''}><span>주간표</span></label></div>
       ${view === 'today' ? `<div class="tt-days" role="tablist">${shownDays().map((d) => `<button type="button" class="chip ${d === day ? 'on' : ''} ${d === kstNow().dow ? 'is-today' : ''}" data-day="${d}">${DOWS[d]}</button>`).join('')}</div><section class="card page-card">${listHtml()}</section>` : `<section class="card page-card tt-wrap">${gridHtml()}</section>`}
       ${canEdit && !data.items.length ? '<p class="muted small center">+ 수업 추가로 학교·학원·방과후 시간표를 넣어 보세요. 같은 수업을 여러 요일에 한 번에 넣을 수 있어요.</p>' : ''}`;
+    kidTabsBind(el, (k) => { id = k; day = null; load().catch(errToast); });
     $$('input[name=v]', el).forEach((r) => r.addEventListener('change', () => { view = r.value; lsSet('ttview', view); draw(); }));
     $$('[data-day]', el).forEach((b) => b.addEventListener('click', () => { day = Number(b.dataset.day); draw(); }));
     $$('[data-it]', el).forEach((b) => b.addEventListener('click', () => itemSheet(data.items.find((i) => i.id === Number(b.dataset.it)))));

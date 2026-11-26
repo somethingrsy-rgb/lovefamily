@@ -29,7 +29,7 @@ await page.click('button[type=submit]');
 await page.waitForSelector('.tab');
 // 우리집 대시보드(집 그림·캐릭터·아이 카드)가 보인다
 await page.goto(base + '/#/'); await page.waitForSelector('.house .walker', { timeout: 8000 });
-assert.equal(await page.$$eval('.tab', (e) => e.length), 5, '탭: 우리집 · 내 화면 · 도장판 · 통장 · 내 설정');
+assert.equal(await page.$$eval('.tab', (e) => e.length), 5, '탭(아이 폰): 우리집 · 내 화면 · 도장판 · 통장 · 내 설정');
 assert.ok(await page.$('.kid-card'), '아이 카드가 보인다');
 assert.equal(await page.isVisible('#adultMenu'), false, '어른 메뉴 버튼은 없다');
 assert.equal(!!(await page.$('.adult-panel')), false, '어른 패널은 없다');
