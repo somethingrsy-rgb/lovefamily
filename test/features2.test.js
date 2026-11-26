@@ -52,7 +52,8 @@ test('⑨ 30분 타이머: 25분에 예고 1회, 30분에 종료 1회 · 알겠�
     assert.equal(cur.texts.end, 'TV 보는 시간이 끝났어요. 이제 TV를 끄고 마무리해요.');
     assert.equal(cur.texts.nextEnd, '이제 양치할 시간이에요');
     await advance(f, 5 * MIN);
-    assert.equal(sse.timer().length, 2, '종료 후 추가 알림 없음');
+    assert.equal(sse.timer('end').length, 1, '종료 알림 자체는 1회');
+    assert.equal(sse.timer('remind').length, 1, '확인 안 하면 1분 뒤 재알림 1회(나머지 시간 동안 몰아서 보내지 않음)');
     // 푸시(거실 기기 구독에만): 예고/종료 각 1건, 잠금화면 문구엔 이름+종류
     const dev = f.pushes.filter((p) => p.payload.tag?.startsWith('timer-'));
     void dev;

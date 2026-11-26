@@ -93,17 +93,16 @@ const endCards = await ipad.$$eval('.tp-card.end', (c) => c.map((x) => x.innerTe
 assert.ok(endCards.some((t) => t.includes('TV 보는 시간이 끝났어요') && t.includes('이제 잠옷 갈아입을 시간이에요')), endCards.join('|'));
 assert.ok(endCards.some((t) => t.includes('식사 시간이 끝났어요. 더 필요하면 어른에게 알려 주세요.')));
 await ipad.screenshot({ path: path.join(shots, '35-ipad-end-popup.png') });
+// 확인(알겠어요) 전에는 새로고침해도 종료 알림이 다시 뜨고, 화면 전체를 덮는다
+await ipad.reload(); await ipad.waitForSelector('.tp-wrap.full .tp-card.end', { timeout: 8000 });
+const fullBox = await ipad.$eval('.tp-wrap.full', (e) => { const r = e.getBoundingClientRect(); return [r.width, r.height, innerWidth, innerHeight]; });
+assert.ok(fullBox[0] >= fullBox[2] - 1 && fullBox[1] >= fullBox[3] - 1, '전체 화면: ' + fullBox);
+// 종료 [알겠어요] = 확인 처리(연장·체크·도장 요청 아님)
 await ipad.click('.tp-card.end >> nth=0 >> [data-ok]'); await ipad.click('.tp-card.end >> [data-ok]');
-assert.ok(await ipad.$('.kid-card:has-text("유하") .kid-timer.ended'));
-// 종료만으로 루틴이 체크되거나 도장 요청이 생기지 않음
+await ipad.waitForFunction(() => !document.querySelector('.tp-card'));
 const approvals = await mom.call('GET', '/api/approvals'); assert.equal(approvals.pending.length, 0);
-// 새로고침/잠금 해제 후에도 종료 상태가 바로 보이고 같은 알림이 다시 뜨지 않는다
-await ipad.reload(); await ipad.waitForSelector('.kid-timer.ended'); await ipad.waitForTimeout(1500);
-assert.equal((await ipad.$$('.tp-card')).length, 0);
-await ipad.screenshot({ path: path.join(shots, '36-ipad-home-ended.png') });
-// 종료 확인 버튼 → 카드에서 내려감(연장·체크 아님)
-await ipad.click('.kid-card:has-text("유하") [data-dismiss]');
-await ipad.waitForFunction(() => !document.querySelector('.kid-card .kid-timer.ended') || document.querySelectorAll('.kid-timer.ended').length === 1);
+await ipad.reload(); await ipad.waitForSelector('.kid-card'); await ipad.waitForTimeout(1500);
+assert.equal((await ipad.$$('.tp-card')).length, 0, '확인한 종료 알림은 다시 뜨지 않음');
 
 // 내일 준비물: 알림장 글에서 여러 개 등록(엄마 폰 API) → 거실 보드 카드, 아이별 체크
 const post = await mom.call('POST', '/api/posts', { title: '미술 시간 안내', body: '색종이와 풀', kidId: 'all' });

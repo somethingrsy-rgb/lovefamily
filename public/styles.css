@@ -975,3 +975,11 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .pet-card2 { display: flex; gap: 12px; align-items: flex-start; } .pet-pic { width: 64px; height: 64px; object-fit: contain; flex: none; background: var(--card2); border-radius: 16px; padding: 4px; }
 .pet-card2 .pet-line { flex-wrap: wrap; justify-content: flex-start; } .pet-title { font-size: 1.05rem; }
 .pet-card2 .check { margin: 2px 0; min-height: 0; } .pet-card2 .pet-owner { margin: 0; padding-left: 0; } .pet-card2 .pet-owner select { min-height: 42px; }
+
+/* 활동 종료: 화면 전체를 불투명하게 덮고, 확인(알겠어요)할 때까지 남는다 */
+.tp-wrap.full { background: radial-gradient(circle at 50% 30%, #5a3a8e, #2a1d4f 70%); z-index: 400; }
+.tp-wrap.full .tp-card.end { border-color: #ffd36e; box-shadow: 0 0 0 6px rgba(255, 211, 110, .35), 0 16px 60px rgba(0, 0, 0, .5); }
+.tp-bell { font-size: 5.5rem; line-height: 1.1; animation: bellshake .8s ease-in-out infinite; transform-origin: 50% 10%; } .tp-bell .emo { height: 1.1em; }
+.tp-big { font-size: 1.7rem; font-weight: 900; margin: 6px 0 10px; word-break: keep-all; }
+@keyframes bellshake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg); } 40% { transform: rotate(12deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(6deg); } }
+@media (prefers-reduced-motion: reduce) { .tp-bell { animation: none; } }

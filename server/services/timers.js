@@ -124,16 +124,18 @@ export const kidTimer = (core, familyId, kidId) => {
 export const homeTimers = (core, familyId) => core.all(`SELECT * FROM timers WHERE family_id = ? AND ${ACTIVE} ORDER BY id`, familyId).map((t) => timerOut(core, t));
 
 // 진동 패턴(ms): 5분 전 예고는 짧게 두 번, 시간이 끝났을 때는 길게 여러 번(안드로이드 폰)
-const VIBRATE = { warn: [300, 150, 300], end: [600, 200, 600, 200, 600, 200, 900] };
+const VIBRATE = { warn: [300, 150, 300], end: [600, 200, 600, 200, 600, 200, 900], remind: [900, 200, 900, 200, 900, 200, 1200] };
+// 시간이 끝났는데 아이가 확인(알겠어요)하지 않으면 1분마다 최대 5번 다시 알린다(다른 앱을 보고 있어도 알림이 다시 뜨도록)
+export const REMIND_MS = 60 * 1000; export const MAX_REMIND = 5;
 function alert(core, t, kind) {
   const out = timerOut(core, t);
   const key = kind === 'warn' ? out.warnKey : out.endKey;
-  const lock = kind === 'warn' ? `${out.kidName} · ${t.name} 5분 남았어요` : `${out.kidName} · ${t.name} 시간이 끝났어요`;
+  const lock = kind === 'warn' ? `${out.kidName} · ${t.name} 5분 남았어요` : kind === 'remind' ? `⏰ ${out.kidName} · ${t.name} 시간이 끝났어요! 아직 확인 안 했어요` : `${out.kidName} · ${t.name} 시간이 끝났어요`;
   core.afterCommit(() => {
     core.hub.publish(t.family_id, { t: 'timer', kind, key, timerId: t.id, kidId: t.kid_id }, { devices: true });
-    core.sendPushDevices(t.family_id, { title: '우리집', body: lock, url: '/#/', tag: `timer-${t.id}-${kind}`, nid: null, vibrate: VIBRATE[kind] });
+    core.sendPushDevices(t.family_id, { title: '우리집', body: lock, url: '/#/', tag: `timer-${t.id}-${kind === 'remind' ? 'end' : kind}`, nid: null, sticky: kind !== 'warn', vibrate: VIBRATE[kind] });
     // 그 아이의 전용 폰에도(앱을 닫아 두거나 화면이 잠겨 있어도 알림이 오도록). 형제·어른 폰에는 가지 않는다.
-    core.sendPush(t.kid_id, { title: '우리집', body: lock, url: `/#/kid/${t.kid_id}/timer`, tag: `timer-${t.id}-${kind}`, nid: null, sticky: true, vibrate: VIBRATE[kind] });
+    core.sendPush(t.kid_id, { title: '우리집', body: lock, url: `/#/kid/${t.kid_id}/timer`, tag: `timer-${t.id}-${kind === 'remind' ? 'end' : kind}`, nid: null, sticky: true, vibrate: VIBRATE[kind] }); // 같은 tag 는 알림을 겹쳐 쌓지 않고 다시 울린다
   });
 }
 
@@ -163,6 +165,19 @@ export function settleTimers(core, familyId = null) {
         core.refresh(fresh.family_id, 'timers', 'home');
       });
     }
+  }
+  // 끝났는데 아직 확인(알겠어요) 안 한 활동: 1분마다(최대 5번) 다시 알린다. 서버가 한동안 꺼져 있었어도 한 번에 몰아서 보내지 않는다.
+  const ended = familyId ? core.all("SELECT * FROM timers WHERE status = 'ended' AND family_id = ? AND remind_n < ?", familyId, MAX_REMIND) : core.all("SELECT * FROM timers WHERE status = 'ended' AND remind_n < ?", MAX_REMIND);
+  for (const t of ended) {
+    const due = Math.min(MAX_REMIND, Math.floor((now - t.ends_at) / REMIND_MS));
+    if (due > t.remind_n && now - t.ends_at < (MAX_REMIND + 1) * REMIND_MS + 60000) {
+      core.tx(() => {
+        const fresh = core.get('SELECT * FROM timers WHERE id = ?', t.id);
+        if (fresh.status !== 'ended' || fresh.remind_n >= due) return;
+        core.run('UPDATE timers SET remind_n = ? WHERE id = ?', due, fresh.id);
+        alert(core, fresh, 'remind');
+      });
+    } else if (due > t.remind_n) core.run('UPDATE timers SET remind_n = ? WHERE id = ?', MAX_REMIND, t.id);
   }
 }
 

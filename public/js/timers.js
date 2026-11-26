@@ -32,13 +32,14 @@ export async function loadTimers() {
   T.offset = r.serverNow - Date.now(); T.sound = r.soundEnabled; T.timers = r.timers; T.loaded = true;
   bus.emit('timers');
   catchUp();
+  pruneEnd();
   return T.timers;
 }
 
 // ---- 1초 틱: 화면에 있는 활동 숫자/링만 갱신(재렌더 없음) ----
 const reloaded = new Set();
 setInterval(tick, 1000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); loadTimers().catch(() => {}); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); loadTimers().catch(() => {}); if (document.querySelector('.tp-card.end')) alarmNow('end'); } }); // 다른 앱을 보다 돌아오면 종료 알림이 떠 있고 바로 울린다
 function tick() {
   for (const t of T.timers) {
     const rem = remaining(t);
@@ -78,6 +79,8 @@ function popupHost() {
   if (!h) { h = document.createElement('div'); h.className = 'tp-wrap'; h.setAttribute('role', 'alertdialog'); h.setAttribute('aria-label', '활동 알림'); document.getElementById('layer').appendChild(h); }
   return h;
 }
+// 소리 + 진동(안드로이드). 다른 앱에서 돌아오면 바로 다시 울린다
+function alarmNow(kind) { chime(kind); if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; navigator.vibrate?.(kind === 'end' ? [600, 200, 600, 200, 600, 200, 900] : [300, 150, 300]); }
 export function showAlert(kind, t, { quiet = false } = {}) {
   const host = popupHost();
   const next = t.next;
@@ -87,26 +90,35 @@ export function showAlert(kind, t, { quiet = false } = {}) {
   card.style.setProperty('--kc', t.kidColor);
   card.dataset.key = kind === 'warn' ? t.warnKey : t.endKey;
   card.innerHTML = `<div class="tp-head">${memberAvatar(t.kidId, 'md', { avatar: t.kidAvatar, color: t.kidColor })}<h2>${esc(t.kidName)} · ${kind === 'warn' ? '5분 남았어요' : '시간이 끝났어요'}</h2></div>
+    ${kind === 'end' ? `<div class="tp-bell" aria-hidden="true">⏰</div><p class="tp-big">${esc(t.name)} 시간이 끝났어요!</p>` : ''}
     ${nextCards(t)}
     <p class="tp-text">${esc(kind === 'warn' ? t.texts.warn : t.texts.end)}</p>
     ${kind === 'end' && t.texts.nextEnd ? `<p class="tp-next">${esc(t.texts.nextEnd)}</p>` : ''}
     <div class="row gap wrap center"><button class="btn primary big" data-ok>알겠어요</button>${openRoutine ? `<button class="btn big" data-open>${esc(next.name)} 할일 열기</button>` : ''}</div>
     ${T.sound && !audioReady() ? '<p class="small muted center">🔇 소리를 들으려면 화면을 한 번 눌러 주세요</p>' : ''}`;
-  const close = () => { card.remove(); if (!host.children.length) host.remove(); };
-  // [알겠어요]는 팝업만 닫는다. 카운트다운·시간·할일 체크에는 아무 영향이 없다.
-  card.querySelector('[data-ok]').onclick = close;
-  card.querySelector('[data-open]')?.addEventListener('click', () => { close(); location.hash = `#/kid/${t.kidId}/today`; });
+  let nag = null;
+  const close = () => { clearInterval(nag); card.remove(); if (!host.children.length) host.remove(); };
+  // 경고 [알겠어요]는 팝업만 닫는다. 종료 [알겠어요]는 '확인했어요'로 처리해서 다시 알림이 가지 않게 한다(시간·할일 체크에는 영향 없음)
+  const okBtn = card.querySelector('[data-ok]');
+  okBtn.onclick = () => { if (kind === 'end') post(`/api/timers/${t.id}/dismiss`).catch(() => {}); close(); };
+  okBtn.addEventListener('prune', close);
+  if (kind === 'end') { host.classList.add('full'); nag = setInterval(() => { if (!document.hidden) alarmNow('end'); }, 12000); } // 확인할 때까지 12초마다 다시 울린다
+  card.querySelector('[data-open]')?.addEventListener('click', () => { if (kind === 'end') post(`/api/timers/${t.id}/dismiss`).catch(() => {}); close(); location.hash = `#/kid/${t.kidId}/today`; });
   host.appendChild(card);
-  if (!quiet) { chime(kind); navigator.vibrate?.(kind === 'end' ? [600, 200, 600, 200, 600, 200, 900] : [300, 150, 300]); } // 앱이 열려 있을 때 진동(안드로이드)
+  if (!quiet) alarmNow(kind);
 }
 
 // 같은 알림 키는 한 번만 보여 준다(새로고침·재접속·여러 번 조회해도 중복 없음)
+const shownEnd = new Set(); // 이 화면(페이지)에서 이미 띄운 종료 알림
 function present(kind, t, quiet) {
   const key = kind === 'warn' ? t.warnKey : t.endKey;
+  if (kind === 'end') { if (shownEnd.has(key)) return; shownEnd.add(key); showAlert(kind, t, { quiet }); return; } // 종료는 확인(알겠어요)할 때까지 남아 있다
   if (seen.has(key)) return;
   markSeen(key);
   showAlert(kind, t, { quiet });
 }
+// 다른 곳에서 이미 확인한 종료 알림은 이 화면에서도 닫는다
+function pruneEnd() { document.querySelectorAll('.tp-card.end').forEach((c) => { if (!T.timers.some((x) => x.state === 'ended' && x.endKey === c.dataset.key)) c.querySelector('[data-ok]')?.dispatchEvent(new CustomEvent('prune')); }); }
 // 화면이 닫혀 있다가 돌아온 경우: 이미 끝난 활동은 종료 상태를 바로 보여 주고, 지난 5분 예고는 다시 띄우지 않는다.
 function catchUp() {
   if (!isDevice()) return;
@@ -124,6 +136,7 @@ bus.on('timer', async (ev) => {
   // 서버가 보낸 key 와 같은 알림만 (연장 등으로 key 가 바뀐 이전 알림은 무시)
   if (ev.kind === 'warn' && t.warnKey === ev.key) present('warn', t, false);
   if (ev.kind === 'end' && t.endKey === ev.key) present('end', t, false);
+  if (ev.kind === 'remind' && t.state === 'ended' && t.endKey === ev.key) { if (document.querySelector(`.tp-card.end[data-key="${t.endKey}"]`)) alarmNow('end'); else present('end', t, false); } // 아직 확인 안 했으면 다시 울린다
 });
 bus.on('refresh', (topics) => { if (S.info && (topics.includes('timers') || topics.includes('all') || topics.includes('home'))) loadTimers().catch(() => {}); });
 export function startTimerManager() { if (S.info) loadTimers().catch(() => {}); }
