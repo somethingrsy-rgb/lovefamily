@@ -1,7 +1,7 @@
 import { $, esc, lsGet, lsSet, wallPickerHtml, wallCur } from '../util.js';
 import { S, get, put, boundKid, kidById, bus } from '../api.js';
 import { PET_IDS, PET_IMG, petEnabled, petLabel, petOwnerKidId } from '../layout.js';
-import { avatar, toast, errToast, confirmDialog } from '../ui.js';
+import { avatar, toast, errToast, confirmDialog, refreshApp } from '../ui.js';
 import { pushState, enablePush, disablePush, testPush } from './family.js';
 
 // 아이 폰 전용 '내 설정': 알림 켜기, 밤 모드, 연결 끊기(로그아웃)
@@ -23,6 +23,7 @@ export async function mount(el) {
           return `<button type="button" class="pet-own ${mine ? 'mine' : ''}" data-pet-own="${id}" ${other ? 'disabled' : ''} aria-pressed="${mine}"><img src="${PET_IMG[id]}" alt="" draggable="false"><b>${esc(petLabel(id))}</b><small>${mine ? '✅ 내 반려동물 (누르면 놓아 줘요)' : other ? `${esc(other.name)}의 반려동물` : '내 반려동물로 고르기'}</small></button>`; }).join('')}</div></section>` : ''}
       <section class="card page-card"><h3>화면</h3><div class="seg">${[['light', '낮'], ['dark', '밤']].map(([k, t]) => `<label class="seg-opt"><input type="radio" name="theme" value="${k}" ${theme === k ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
         <h3 style="margin-top:14px">배경화면</h3>${wallPickerHtml(wallCur())}</section>
+      <section class="card page-card"><button class="btn wide" id="refresh">새로고침</button><p class="muted small center">화면이 이상하거나 새 기능이 안 보일 때 눌러 주세요.</p></section>
       <section class="card page-card"><button class="btn ghost wide" id="logout">이 폰 연결 끊기</button><p class="muted small center">다시 쓰려면 어른에게 새 코드를 받아야 해요.</p></section>`;
     $('#pon', el)?.addEventListener('click', async () => { try { await enablePush(ps); toast('알림을 켰어요'); load(); } catch (e) { errToast(e); } });
     $('#poff', el)?.addEventListener('click', async () => { try { await disablePush(ps); load(); } catch (e) { errToast(e); } });
@@ -33,6 +34,7 @@ export async function mount(el) {
       try { await put(`/api/pets/${id}/owner`, { kidId: mine ? null : kid.id }); S.info = await get('/api/me'); toast(mine ? `${petLabel(id)}을(를) 놓아 줬어요` : `${petLabel(id)}은(는) 이제 내 반려동물이에요 🐾`); load(); } catch (e) { errToast(e); }
     }));
     el.querySelectorAll('input[name=wall]').forEach((r) => r.addEventListener('change', () => { lsSet('wall', r.value); bus.emit('theme'); }));
+    $('#refresh', el).onclick = (e) => refreshApp(e.currentTarget);
     $('#logout', el).onclick = async () => { if (await confirmDialog('이 폰의 연결을 끊을까요?', { danger: true, yes: '끊기' })) window.__app.logout(); };
   }
   await load();

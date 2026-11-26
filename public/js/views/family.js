@@ -1,6 +1,6 @@
 import { $, $$, esc, DOW, lsGet, lsSet, wallPickerHtml, wallCur, housePickerHtml, shortDate, dateLabel } from '../util.js';
 import { S, get, post, patch, del, put, bus, isDevice, isAdultNow } from '../api.js';
-import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker, openSheet } from '../ui.js';
+import { avatar, toast, errToast, formSheet, confirmDialog, needAdult, photoPicker, openSheet, refreshApp } from '../ui.js';
 import { back } from '../common.js';
 import { houseCur, petLabel, petEnabled, homeOf, ROOM_NUMS, ROOM_MAX, PET_IMG } from '../layout.js';
 import { recoveryBoxHtml, bindRecoveryCopy, ROLE_OPTS } from './auth.js';
@@ -102,7 +102,7 @@ export async function mount(el) {
         <p class="muted small">로그인 아이디: <b>${esc(info.me?.name || '')}</b>의 계정</p>
         <div class="row gap wrap"><button class="btn" id="chpw">비밀번호 바꾸기</button><button class="btn ghost" id="newrec">복구 코드 새로 만들기</button></div>
         <p class="small muted">복구 코드는 비밀번호를 잊었을 때 아이디와 함께 쓰는 12자리 코드예요. 새로 만들면 예전 코드는 쓸 수 없어요.</p></details>` : ''}
-      <section class="card page-card"><button class="btn ghost wide" id="logout">로그아웃</button><p class="muted small center">${dev ? '거실 공용 기기 모드' : '내 휴대폰 모드'} · 우리집 v1</p></section>`;
+      <section class="card page-card"><button class="btn wide" id="refresh">새로고침</button><p class="muted small center">화면이 이상하거나 새 기능이 안 보일 때 눌러 주세요. 새 버전을 받고 그림을 다시 불러와요.</p><button class="btn ghost wide" id="logout">로그아웃</button><p class="muted small center">${dev ? '거실 공용 기기 모드' : '내 휴대폰 모드'} · 우리집 v1</p></section>`;
     const loadRoutines = () => { const h = $('#routinesHost', el); if (h && !h.dataset.on) { h.dataset.on = '1'; routines.mount(h, { embedded: true }).catch(errToast); } };
     el.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => { d.open ? opened.add(d.dataset.fold) : opened.delete(d.dataset.fold); if (d.open && d.dataset.fold === 'routines') loadRoutines(); }));
     if (opened.has('routines')) loadRoutines();
@@ -156,6 +156,7 @@ export async function mount(el) {
       bindRecoveryCopy(sh.el, r.recoveryCode);
     }));
     $('#addact', el)?.addEventListener('click', run(() => formSheet({ title: '활동 추가', submit: '추가', html: '<label class="field">활동 이름<input name="name" maxlength="20" required></label><label class="field">아이콘<input name="icon" maxlength="4" value="⏱️"></label><label class="field">기본 시간(분)<input name="minutes" inputmode="numeric" value="30"></label>', onSubmit: (v) => post('/api/activities', { name: v.name, icon: v.icon, minutes: Number(v.minutes) }) })));
+    $('#refresh', el).onclick = (e) => refreshApp(e.currentTarget);
     $('#logout', el).onclick = async () => { if (await confirmDialog('로그아웃할까요?')) window.__app.logout(); };
     const code = S.info.family.code;
     $('#copy', el)?.addEventListener('click', () => { navigator.clipboard?.writeText(code).then(() => toast('복사했어요')).catch(() => toast(code)); });

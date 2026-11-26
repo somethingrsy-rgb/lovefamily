@@ -59,6 +59,17 @@ assert.ok((await mp.textContent('.meal-card')).includes('식단이 없어요'), 
 await kp.screenshot({ path: path.join(shots, '91-meals-kid.png') });
 console.log('✓ 아이 폰은 보기만 · 아이별로 따로');
 
+// 6) 설정의 [새로고침]: 어른·아이 모두. 눌러도 로그인은 유지되고 화면이 다시 불러와진다
+await kp.goto(`${base}/#/me`); await kp.waitForSelector('#refresh');
+await kp.evaluate(() => { window.__marker = 1; });
+await Promise.all([kp.waitForNavigation({ waitUntil: 'load' }), kp.click('#refresh')]);
+await kp.waitForSelector('#refresh'); assert.equal(await kp.evaluate(() => window.__marker), undefined, '아이 폰: 페이지가 다시 불러와짐');
+await mp.goto(`${base}/#/family`); await mp.waitForSelector('#refresh'); await mp.evaluate(() => { window.__marker = 1; });
+await Promise.all([mp.waitForNavigation({ waitUntil: 'load' }), mp.click('#refresh')]);
+await mp.waitForSelector('.tab'); assert.equal(await mp.evaluate(() => window.__marker), undefined, '어른 폰: 페이지가 다시 불러와짐');
+assert.ok((await mom.call('GET', '/api/me')).status === 200, '로그인 유지');
+console.log('✓ 설정 새로고침(어른·아이)');
+
 await browser.close(); await app.close();
 assert.deepEqual(errors, [], '브라우저 오류: ' + errors.join(' | '));
 console.log('UI E2E 12 통과 · 스크린샷:', shots);

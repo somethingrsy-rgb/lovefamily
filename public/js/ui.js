@@ -37,6 +37,21 @@ export function toast(msg, kind = '') {
   setTimeout(() => el.classList.add('out'), 2600);
   setTimeout(() => el.remove(), 3100);
 }
+// 설정의 [새로고침]: 새 버전이 올라와 있으면 받고(서비스 워커 갱신), 저장해 둔 그림을 비운 뒤 화면을 다시 불러온다.
+// 서비스 워커를 지우지는 않는다(지우면 알림 구독이 끊긴다).
+export async function refreshApp(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '새로고침 중…'; }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) {
+      await Promise.race([reg.update(), wait(6000)]).catch(() => {});
+      for (let i = 0; i < 40 && (reg.installing || reg.waiting); i++) await wait(250); // 새 버전을 다 받을 때까지(최대 10초)
+    }
+    for (const k of await caches.keys()) if (k.startsWith('lovefamily-img-')) await caches.delete(k);
+  } catch {}
+  location.reload();
+}
 export function errToast(e) { toast(e instanceof ApiError || e?.net ? e.message : '문제가 생겼어요. 다시 해 주세요.', 'bad'); if (!(e instanceof ApiError) && !e?.net) console.error(e); }
 
 export function toastAction(msg, label, fn) {
