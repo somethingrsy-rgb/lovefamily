@@ -41,9 +41,12 @@ export async function mount(el, { id }) {
   }
   function alertHtml() {
     if (!myAlert || !alert) return '';
+    const st = alert.status;
+    const hm = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
+    const statusTxt = st ? `서버 시각 ${st.serverTime}(${st.weekday ? '평일' : '주말'}) · 오늘 식단 ${st.mealKids ? `${st.mealKids}명 있음` : '없음'} · 이 폰 알림 ${st.devices ? '허용됨' : '허용 안 됨'} · 마지막 급식 알림 ${st.lastSentAt ? hm(st.lastSentAt) : '아직 없음'}` : '';
     return `<section class="card page-card meal-alert"><h3>🔔 아침 급식 알림</h3><p class="muted small">평일 정한 시각에 오늘 급식을 이 폰으로 알려 줘요. 식단이 없는 날은 알리지 않아요. 알림은 어른마다 따로 정해요.</p>
       <div class="row gap wrap"><label class="check"><input type="checkbox" id="malert" ${alert.enabled ? 'checked' : ''}> <span>알림 받기</span></label><label class="field inline">시각 <input type="time" id="mtime" value="${esc(alert.time)}" ${alert.enabled ? '' : 'disabled'}></label></div>
-      <div class="row gap wrap"><button class="btn ghost small" id="mtest">지금 알림 보내 보기</button></div><p class="muted small">알림이 안 오면 이 버튼으로 점검해 보세요. 알림이 오지 않으면 설정 탭 → 화면·알림 설정에서 이 폰의 알림을 허용했는지 확인해 주세요.</p></section>`;
+      <div class="row gap wrap"><button class="btn ghost small" id="mtest">지금 알림 보내 보기</button></div><p class="muted small">${statusTxt}</p><p class="muted small">알림이 안 오면 이 버튼으로 점검해 보세요. 알림이 오지 않으면 설정 탭 → 화면·알림 설정에서 이 폰의 알림을 허용했는지 확인해 주세요.</p></section>`;
   }
 
   function draw() {

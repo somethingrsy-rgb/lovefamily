@@ -57,9 +57,10 @@ test('급식 알림: 평일 정한 시각에 정한 어른에게만, 하루 한 
     await f.mom.ok('PUT', `/api/kids/${yuha}/meals/2026-11-20`, { items: ['백미밥', '돈가스'] });
     const notes = async (c) => (await c.ok('GET', '/api/notifications')).items.filter((n) => n.kind === 'meal');
     // 기본값: 켜짐 08:00
-    assert.deepEqual(await f.mom.ok('GET', '/api/meals/alert'), { enabled: true, time: '08:00' });
+    const a0 = await f.mom.ok('GET', '/api/meals/alert');
+    assert.equal(a0.enabled, true); assert.equal(a0.time, '08:00'); assert.equal(a0.status.serverTime, '12:00'); assert.equal(a0.status.weekday, true); assert.equal(a0.status.mealKids, 2); assert.equal(a0.status.lastSentAt, null);
     // 아빠는 끄고, 할머니는 9시로
-    assert.deepEqual(await f.dad.ok('PUT', '/api/meals/alert', { enabled: false }), { enabled: false, time: '08:00' });
+    assert.equal((await f.dad.ok('PUT', '/api/meals/alert', { enabled: false })).enabled, false);
     assert.equal((await f.gma.ok('PUT', '/api/meals/alert', { time: '9:00' })).time, '09:00');
     assert.equal((await f.gma.call('PUT', '/api/meals/alert', { time: '25:00' })).status, 400);
     assert.equal((await f.device.call('GET', '/api/meals/alert')).status, 401);

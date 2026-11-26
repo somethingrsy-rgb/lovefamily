@@ -104,7 +104,12 @@ export function deleteMeal(core, ctx, kidId, date) {
 const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 export function getAlert(core, ctx) {
   const a = ctx.adult();
-  return { enabled: !!a.meal_alert, time: hhmm(a.meal_alert_min) };
+  // 점검용 현재 상태: 서버가 보는 지금 시각·오늘 식단이 있는 아이 수·마지막으로 보낸 급식 알림 시각
+  const now = core.now(); const today = kstDate(now);
+  const last = core.get("SELECT created_at FROM notifications WHERE member_id = ? AND kind = 'meal' ORDER BY id DESC LIMIT 1", a.id);
+  const sub = core.get('SELECT COUNT(*) AS n FROM push_subs WHERE member_id = ?', a.id).n;
+  const status = { serverTime: hhmm(kstMinutesOfDay(now)), weekday: dowOf(now) <= 5, mealKids: todayLines(core, ctx.familyId, today).length, lastSentAt: last ? last.created_at : null, devices: sub };
+  return { enabled: !!a.meal_alert, time: hhmm(a.meal_alert_min), status };
 }
 export function setAlert(core, ctx, b) {
   const a = ctx.adult();
