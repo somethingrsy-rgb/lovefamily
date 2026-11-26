@@ -983,3 +983,5 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .tp-big { font-size: 1.7rem; font-weight: 900; margin: 6px 0 10px; word-break: keep-all; }
 @keyframes bellshake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg); } 40% { transform: rotate(12deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(6deg); } }
 @media (prefers-reduced-motion: reduce) { .tp-bell { animation: none; } }
+/* 뒤로 버튼: 분홍 화살표 그림 */
+.back { background: none; box-shadow: none; padding: 0; width: 52px; height: 52px; } .back img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(90,50,140,.25)); }

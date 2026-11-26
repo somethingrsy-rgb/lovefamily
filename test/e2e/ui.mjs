@@ -131,7 +131,7 @@ await ipad.waitForSelector('.form-err:not([hidden])');
 await ipad.fill('input[name=pw]', 'secret1'); await ipad.click('.sheet button[type=submit]');
 await ipad.waitForSelector('.adult-panel');
 // 루틴 관리 / 도장판 / 가족 / 알림장 / 달력 화면
-for (const [href, sel, name] of [['#/routines', '.rlist', '14-ipad-routines'], ['#/stamps', '.stamp-grid', '15-ipad-stamps'], ['#/family', '.members', '16-ipad-family'], ['#/notebook', '.post', '17-ipad-notebook'], ['#/calendar', '.cal', '18-ipad-calendar']]) {
+for (const [href, sel, name] of [['#/routines', '.rlist', '14-ipad-routines'], ['#/stamps', '.stamp-grid', '15-ipad-stamps'], ['#/family', 'details[data-fold="members"]', '16-ipad-family'], ['#/notebook', '.post', '17-ipad-notebook'], ['#/calendar', '.cal', '18-ipad-calendar']]) {
   await ipad.goto(base + '/' + href); await ipad.waitForSelector(sel, { timeout: 8000 });
   await ipad.screenshot({ path: path.join(shots, `${name}.png`), fullPage: true });
 }
