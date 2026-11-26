@@ -38,7 +38,7 @@ function petBtns(k) {
 // 아이 카드 아래 바로가기 4칸: 할일 · 활동 · 시간표 · 메시지 (통장은 아래 탭에서)
 function kidLinks(k) {
   const done = `${k.day.done}/${k.day.total}`;
-  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/timetable">📝<b>시간표</b></a><a class="kl" href="${isDevice() || boundKid() || !S.info.me ? `#/kid/${k.id}/talk` : `#/messages/${k.id}/${S.info.me.id}`}">💌<b>메시지</b></a></nav>`;
+  return `<nav class="kid-links" aria-label="${esc(k.name)} 바로가기"><a class="kl" href="#/kid/${k.id}/today">✅<b>할일</b></a><a class="kl" href="#/kid/${k.id}/timer">⏱️<b>활동</b></a><a class="kl" href="#/kid/${k.id}/stamps">💮<b>도장판</b></a><a class="kl" href="${isDevice() || boundKid() || !S.info.me ? `#/kid/${k.id}/talk` : `#/messages/${k.id}/${S.info.me.id}`}">💌<b>메시지</b></a></nav>`;
 }
 // 오늘의 지금·다음 수업 한 줄(시간표가 있는 날만)
 function ttLine(k) {

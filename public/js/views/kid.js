@@ -21,10 +21,10 @@ export async function hub(el, { id }) {
         <div class="big-grid">
           <a class="big-btn" href="#/kid/${id}/today"><span class="bi">✅</span><b>오늘 할일</b><small>${day.done}/${day.total}</small></a>
           <a class="big-btn" href="#/kid/${id}/timer"><span class="bi">⏱️</span><b>활동</b><small>시작하기</small></a>
-          <a class="big-btn" href="#/kid/${id}/timetable"><span class="bi">📝</span><b>시간표</b><small>수업 보기</small></a>
+          <a class="big-btn" href="#/kid/${id}/stamps"><span class="bi">💮</span><b>도장판</b><small>도장 ${boards.count}/${boards.size}</small></a>
           <a class="big-btn" href="#/kid/${id}/talk"><span class="bi">💌</span><b>가족에게 말하기</b><small>메시지 보내기</small></a>
         </div>
-        <div class="row gap wrap center"><a class="btn ghost" href="#/kid/${id}/wishes">🛍️ 사고 싶은 것</a><a class="btn ghost" href="#/kid/${id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"> 통장</a><a class="btn ghost" href="#/kid/${id}/meals">🍽 급식</a><a class="btn ghost" href="#/kid/${id}/supplies">🎒 챙길 것</a><a class="btn ghost" href="#/kid/${id}/family">🎈 가족 활동</a><a class="btn ghost" href="#/kid/${id}/missions">🎯 미션</a><a class="btn ghost" href="#/kid/${id}/stamps">💮 도장판</a><a class="btn ghost" href="#/kid/${id}/inbox">📬 받은 편지함${unread ? ` <span class="badge">${unread}</span>` : ''}</a></div>
+        <div class="row gap wrap center"><a class="btn ghost" href="#/kid/${id}/wishes">🛍️ 사고 싶은 것</a><a class="btn ghost" href="#/kid/${id}/wallet"><img class="emo" src="/assets/money/piggy.webp" alt="" draggable="false"> 통장</a><a class="btn ghost" href="#/kid/${id}/meals">🍽 급식</a><a class="btn ghost" href="#/kid/${id}/supplies">🎒 챙길 것</a><a class="btn ghost" href="#/kid/${id}/family">🎈 가족 활동</a><a class="btn ghost" href="#/kid/${id}/missions">🎯 미션</a><a class="btn ghost" href="#/kid/${id}/timetable">📝 시간표</a><a class="btn ghost" href="#/kid/${id}/inbox">📬 받은 편지함${unread ? ` <span class="badge">${unread}</span>` : ''}</a></div>
       </section>`;
   }
   await load();
