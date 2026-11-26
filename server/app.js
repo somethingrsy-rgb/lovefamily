@@ -11,6 +11,7 @@ import { HttpError, sha256, err } from './util.js';
 import { ensureToday } from './services/routines.js';
 import { reconcileRewards } from './services/stamps.js';
 import { settleTimers, ensureDefaultActivities } from './services/timers.js';
+import { mealAlerts } from './services/meals.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -183,7 +184,8 @@ export function createApp(opts = {}) {
   }
 
   const server = http.createServer((req, res) => { handle(req, res); });
-  let timer = null; let timerTick = null;
+  let timer = null; let timerTick = null; let mealTick = null;
+  const meals = () => { try { return mealAlerts(core); } catch (e) { console.error('meals', e); return 0; } };
   const settle = () => { try { settleTimers(core); } catch (e) { console.error('timers', e); } };
   let lastDate = core.today();
   const tick = () => {
@@ -198,8 +200,8 @@ export function createApp(opts = {}) {
   };
   return {
     core, server,
-    listen: (port, host = '0.0.0.0') => new Promise((ok) => { server.listen(port, host, () => { ensureDefaultActivities(core); tick(); settle(); timer = setInterval(tick, 5 * 60 * 1000); timerTick = setInterval(settle, 1000); ok(server.address().port); }); }),
-    tick, settle,
-    close: () => new Promise((ok) => { clearInterval(timer); clearInterval(timerTick); for (const c of core.hub.conns) { try { c.res.end(); } catch {} } server.closeAllConnections?.(); server.close(() => { try { core.db.close(); } catch {} ok(); }); }),
+    listen: (port, host = '0.0.0.0') => new Promise((ok) => { server.listen(port, host, () => { ensureDefaultActivities(core); tick(); settle(); meals(); timer = setInterval(tick, 5 * 60 * 1000); timerTick = setInterval(settle, 1000); mealTick = setInterval(meals, 60 * 1000); ok(server.address().port); }); }),
+    tick, settle, meals,
+    close: () => new Promise((ok) => { clearInterval(timer); clearInterval(timerTick); clearInterval(mealTick); for (const c of core.hub.conns) { try { c.res.end(); } catch {} } server.closeAllConnections?.(); server.close(() => { try { core.db.close(); } catch {} ok(); }); }),
   };
 }

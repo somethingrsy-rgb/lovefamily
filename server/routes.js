@@ -9,6 +9,7 @@ import * as T from './services/timers.js';
 import * as SP from './services/supplies.js';
 import * as FA from './services/famact.js';
 import * as TT from './services/timetable.js';
+import * as ML from './services/meals.js';
 import { id as vid } from './util.js';
 
 // [method, path, handler(ctx, h) , opts]
@@ -158,6 +159,12 @@ export function buildRoutes(app) {
   // ---- 내일 준비물 ----
   add('GET', '/api/kids/:id/timetable', (c, h) => TT.listTimetable(h.core, c, P(h)));
   add('POST', '/api/kids/:id/timetable', (c, h) => ({ status: 201, body: TT.createTimetable(h.core, c, P(h), h.body) }));
+  add('GET', '/api/kids/:id/meals', (c, h) => ML.listMeals(h.core, c, P(h), h.query));
+  add('POST', '/api/kids/:id/meals/import', (c, h) => ML.importMeals(h.core, c, P(h), h.body));
+  add('PUT', '/api/kids/:id/meals/:date', (c, h) => ML.setMeal(h.core, c, P(h), h.params.date, h.body));
+  add('DELETE', '/api/kids/:id/meals/:date', (c, h) => ML.deleteMeal(h.core, c, P(h), h.params.date));
+  add('GET', '/api/meals/alert', (c, h) => ML.getAlert(h.core, c));
+  add('PUT', '/api/meals/alert', (c, h) => ML.setAlert(h.core, c, h.body));
   add('PATCH', '/api/timetable/:id', (c, h) => TT.updateTimetable(h.core, c, P(h), h.body));
   add('DELETE', '/api/timetable/:id', (c, h) => TT.deleteTimetable(h.core, c, P(h)));
   add('POST', '/api/supplies', (c, h) => ({ status: 201, body: SP.createSupplies(h.core, c, h.body) }));

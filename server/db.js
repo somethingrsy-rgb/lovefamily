@@ -129,6 +129,10 @@ CREATE TABLE IF NOT EXISTS timetable (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, dow INTEGER NOT NULL CHECK (dow BETWEEN 1 AND 7),
   start_min INTEGER NOT NULL, end_min INTEGER NOT NULL, title TEXT NOT NULL, place TEXT, color TEXT NOT NULL, created_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS timetable_kid ON timetable(kid_id, dow, start_min);
+-- 아이별 급식 식단: 날짜마다 메뉴 목록(JSON 배열). 아이마다 학교가 달라도 되도록 아이별로 저장
+CREATE TABLE IF NOT EXISTS meals (
+  id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, kid_id INTEGER NOT NULL, date TEXT NOT NULL, items TEXT NOT NULL, created_at INTEGER NOT NULL,
+  UNIQUE (kid_id, date));
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY, family_id INTEGER NOT NULL, member_id INTEGER NOT NULL, kind TEXT NOT NULL,
   title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', dedupe TEXT UNIQUE,
@@ -174,6 +178,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS events_plan ON events(plan_id) WHERE plan_id I
 
 // 이미 만들어진 개발/운영 DB 를 위한 컬럼 추가
 const COLUMNS = [
+  ['members', 'meal_alert INTEGER NOT NULL DEFAULT 1'], ['members', 'meal_alert_min INTEGER NOT NULL DEFAULT 480'],
   ['families', 'show_ruby INTEGER NOT NULL DEFAULT 1'], ['families', 'show_crystal INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_dog INTEGER NOT NULL DEFAULT 1'],
   ['families', 'show_cats INTEGER NOT NULL DEFAULT 1'],
