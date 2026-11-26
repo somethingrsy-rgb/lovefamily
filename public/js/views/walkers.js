@@ -226,8 +226,8 @@ function showTarget(cell, id) {
   layer.insertAdjacentHTML('afterbegin', `<i class="walk-target" style="left:${slotX(cell, id)}%;top:${FLOOR_Y[rc(cell)[0]]}%"></i>`);
 }
 
-// ===== 선택 자동 해제: 선택한 채 한 자리에서 5초 동안 이동 요청이 없으면 이동 선택을 끈다 =====
-export const IDLE_MS = 5000;
+// ===== 선택 자동 해제: 선택한 채 한 자리에서 3초 동안 이동 요청이 없으면 이동 선택을 끈다 =====
+export const IDLE_MS = 3000;
 let idleTimer = null;
 function deselect() {
   selected = null;

@@ -147,16 +147,16 @@ assert.equal(back.filter((s) => !onSkeleton(s)).length, 0, '돌아올 때도 뼈
 assert.equal((await mom.call('GET', '/api/home')).walkers[ids.dad], '22');
 console.log('✓ 내 방으로 돌아올 때도 뼈대로만');
 
-// 7) 선택한 채 5초 동안 이동 요청이 없으면 이동 선택이 꺼진다
+// 7) 선택한 채 3초 동안 이동 요청이 없으면 이동 선택이 꺼진다
 await ipad.evaluate(() => document.querySelector('.walker.sel')?.click());
 await select(ipad, ids.mom);
-await ipad.waitForTimeout(3000);
-assert.ok(await ipad.$eval(`[data-walker="${ids.mom}"]`, (e) => e.classList.contains('sel')), '3초 뒤에는 아직 선택 상태');
-await ipad.waitForTimeout(2600);
-assert.equal(await ipad.$eval(`[data-walker="${ids.mom}"]`, (e) => e.classList.contains('sel')), false, '5초 동안 요청이 없으면 선택 해제');
+await ipad.waitForTimeout(1500);
+assert.ok(await ipad.$eval(`[data-walker="${ids.mom}"]`, (e) => e.classList.contains('sel')), '1.5초 뒤에는 아직 선택 상태');
+await ipad.waitForTimeout(2000);
+assert.equal(await ipad.$eval(`[data-walker="${ids.mom}"]`, (e) => e.classList.contains('sel')), false, '3초 동안 요청이 없으면 선택 해제');
 await tapCell(ipad, 0, 1); await ipad.waitForTimeout(300);
 assert.ok(ipad.url().includes('#/notebook'), '해제된 뒤에는 방을 누르면 걷지 않고 그 화면(거실→알림장)으로 이동');
-console.log('✓ 5초 동안 이동 요청이 없으면 이동 비활성화');
+console.log('✓ 3초 동안 이동 요청이 없으면 이동 비활성화');
 
 assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false);
 await browser.close(); await app.close();
