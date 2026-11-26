@@ -3,6 +3,7 @@
 // 그림이 없는 이모지는 그대로 이모지로 남고, 그림 파일을 불러오지 못하면 원래 이모지가 보인다(alt).
 const PAIRS = [
   ['👨‍👩‍👧‍👦', 'family'],
+  ['👪', 'family-group'],
   ['💮', 'stamp-mark'],
   ['🎒', 'backpack'],
   ['⏱', 'stopwatch'],

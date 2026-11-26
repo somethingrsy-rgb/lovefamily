@@ -2,7 +2,7 @@ import { $, $$, esc, won, timeLabel, ago } from './util.js';
 import { S, put, isDevice, kidById, hooks } from './api.js';
 import { avatar, formSheet, toast, errToast } from './ui.js';
 
-export const back = (href, title, right = '') => `<header class="page-head"><a class="back" href="#${href}" aria-label="뒤로"><img src="/assets/back-arrow.webp" alt="" draggable="false"></a><h1>${title}</h1><div class="head-right">${right}</div></header>`;
+export const back = (href, title, right = '') => `<header class="page-head"><a class="back" href="#${href}" aria-label="뒤로"><img src="/assets/back-arrow2.webp" alt="" draggable="false"></a><h1>${title}</h1><div class="head-right">${right}</div></header>`;
 export const kidTitle = (kid, text) => `${avatar(kid, 'sm')} ${esc(kid.name)}의 ${text}`;
 
 // ---- 금액 입력 (500원·1,000원·5,000원 그림 버튼 + 직접 입력, 정확한 금액을 글자로도 표시) ----
