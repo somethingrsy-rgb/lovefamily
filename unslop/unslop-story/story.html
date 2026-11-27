@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>EmberAI Dashboard · unslop story</title>
+<meta name="unslop-steps" content="Spacing, Color and icons, Type and copy, Details" />
+<meta name="unslop-frame" content="0 0 1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+/* ===== Step 0: the original screen, rebuilt in plain CSS from the Tailwind markup ===== */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { position: relative; min-height: 980px; padding: 40px; background-color: #2e1872; color: #fff; font-family: "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+.bd { position: fixed; inset: 0; z-index: 0; background: linear-gradient(180deg, #5b34b8 0%, #2e1872 50%, #170d3d 100%); opacity: 1; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+p, h1 { margin: 0; }
+a { color: inherit; text-decoration: none; }
+
+.win { position: relative; z-index: 1; display: flex; width: 1000px; height: 900px; margin: 0; overflow: hidden; border-radius: 14px; box-shadow: 0 40px 110px rgba(76,29,149,.6), 0 0 0 1px rgba(167,139,250,.4); }
+
+/* sidebar */
+.side { display: flex; flex-direction: column; width: 272px; flex: none; padding: 10px 22px 0 10px; background-color: #140e33; border-right: 1px solid #2c2470; }
+.brand { display: flex; align-items: center; height: 36px; }
+.mark { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; }
+.mark .tile { position: absolute; inset: 0; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); box-shadow: 0 0 18px rgba(139,92,246,.7); }
+.mark .e { position: relative; font-size: 15px; }
+.mark svg { position: absolute; width: 18px; height: 18px; fill: #f0773a; stroke: none; opacity: 0; }
+.gt { display: inline-grid; }
+.gt > * { grid-area: 1 / 1; }
+.gt .g { color: transparent; -webkit-background-clip: text; background-clip: text; background-image: linear-gradient(135deg, #c4b5fd, #60a5fa); }
+.word { margin-left: 7px; font-size: 19px; line-height: 28px; font-weight: 800; }
+.pill { position: relative; z-index: 0; display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 12px; font-size: 10.5px; line-height: 16px; font-weight: 700; letter-spacing: .02em; color: #fff; white-space: nowrap; }
+.pill::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: linear-gradient(135deg, #a855f7, #3b82f6); box-shadow: 0 0 12px rgba(168,85,247,.55); opacity: 1; }
+.pill.rose::before { background: linear-gradient(90deg, #f43f5e, #ec4899); box-shadow: none; }
+.pill.plain { margin-left: auto; }
+.up { text-transform: uppercase; }
+.bell { position: relative; margin-left: auto; width: 16px; height: 16px; font-size: 15px; line-height: 16px; }
+.ib { position: relative; display: inline-block; width: 16px; height: 16px; flex: none; font-size: 12px; line-height: 16px; text-align: center; color: #85858b; }
+.ib svg { position: absolute; inset: 0; width: 16px; height: 16px; opacity: 0; }
+.ib .e { position: absolute; inset: 0; opacity: 1; }
+.bell svg { position: absolute; inset: 0; width: 16px; height: 16px; opacity: 0; color: #85858b; }
+
+.search { display: flex; align-items: center; height: 46px; margin-top: 26px; padding: 0 7px 0 11px; border: 1px solid #5b4bc4; border-radius: 23px; background-color: #1f1850; box-shadow: 0 0 18px rgba(139,92,246,.4); color: #968ee0; }
+.search .t { margin-left: 5px; font-size: 14px; font-weight: 600; }
+.search .pill { margin-left: auto; }
+.search kbd { margin-left: auto; font: inherit; }
+
+.rule { height: 1px; margin: 12px -22px 0 -10px; background: #2f2672; }
+.rule.r2 { margin-top: 30px; }
+.label { margin-top: 22px; font-size: 11px; font-weight: 700; color: #968ee0; letter-spacing: .14em; }
+.rows { margin-top: 4px; }
+.rows.plans { margin-top: 5px; }
+.row { position: relative; z-index: 0; display: flex; align-items: center; padding: 0 13px 0 7px; border-radius: 12px; color: #d6d2ff; font-size: 14.5px; font-weight: 600; white-space: nowrap; }
+.row::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; opacity: 0; }
+.row.active { color: #fff; box-shadow: 0 8px 24px rgba(124,58,237,.55); }
+.row.active::before { opacity: 1; background: linear-gradient(135deg, #7c3aed, #2563eb); }
+.row.active::after { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; border-radius: 2px; background: #f0773a; opacity: 0; }
+.lab { margin-left: 6px; }
+.m4 { margin-left: 4px; } .m5 { margin-left: 5px; } .m7 { margin-left: 7px; } .m8 { margin-left: 8px; } .m9 { margin-left: 9px; }
+.a1 { height: 46px; margin-top: 0; }
+.a2 { height: 30px; margin-top: 12px; }
+.a3 { height: 40px; margin-top: 0; }
+.a4 { height: 32px; margin-top: 8px; }
+.a5 { height: 44px; margin-top: 1px; }
+.a6 { height: 31px; margin-top: 14px; }
+.p1 { height: 42px; margin-top: 0; } .p2 { height: 28px; margin-top: 9px; } .p3 { height: 38px; margin-top: 2px; } .p4 { height: 44px; margin-top: 12px; } .p5 { height: 34px; margin-top: 5px; }
+.row .pill { margin-left: auto; }
+.rule[data-out], [data-out] { overflow: hidden; }
+[data-out] { max-height: 100px; max-width: 200px; }
+.emo { display: inline-block; white-space: pre; }
+
+/* main */
+.main { position: relative; flex: 1; min-width: 0; overflow: hidden; padding-left: 18px; background-color: #0d1131; }
+.main > * { position: relative; }
+.wash { position: absolute !important; inset: 0; pointer-events: none; background: radial-gradient(70% 50% at 85% 0%, rgba(139,92,246,.4), transparent 70%), radial-gradient(60% 40% at 10% 100%, rgba(59,130,246,.25), transparent 70%); opacity: 1; }
+.crumb { display: flex; align-items: center; height: 36px; margin-top: 10px; color: #fff; font-size: 14.5px; font-weight: 700; }
+.crumb .emo { margin-right: 7px; font-size: 12px; }
+h1 { margin-top: 4px; font-size: 35px; line-height: 43.75px; font-weight: 800; }
+.from.gtext { color: transparent; -webkit-background-clip: text; background-clip: text; background-image: linear-gradient(135deg, #f0abfc, #818cf8); }
+.from.gtext2 { color: transparent; -webkit-background-clip: text; background-clip: text; background-image: linear-gradient(135deg, #e9d5ff, #818cf8); }
+
+.stats { display: flex; margin-top: 44px; }
+.glass { position: relative; z-index: 0; height: 123px; padding: 12px; overflow: hidden; border: 1px solid rgba(167,139,250,.5); border-radius: 24px; background-color: #1f2269; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 14px 34px rgba(124,58,237,.42); }
+.glass::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,.12) 0%, rgba(255,255,255,0) 60%), linear-gradient(115deg, #2b1f6e 0%, #1f2269 48%, #122666 100%); opacity: 1; }
+.c1 { width: 316px; } .c2 { width: 316px; margin-left: 26px; }
+.cap { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; color: #d6d2ff; text-transform: uppercase; }
+.fig { margin-top: 4px; font-size: 32px; line-height: 40px; font-weight: 800; }
+.delta { margin-top: 10px; font-size: 13px; line-height: 16px; font-weight: 700; color: #4ade80; }
+.delta .vs { color: #85858b; font-weight: 400; }
+.big-emo { position: absolute !important; right: 6px; bottom: 20px; font-size: 54px; line-height: 1; filter: drop-shadow(0 0 14px rgba(168,85,247,.8)); }
+
+.chart { position: relative; z-index: 0; width: 660px; height: 392px; margin-top: 28px; padding: 12px; overflow: hidden; border: 1px solid rgba(167,139,250,.5); border-radius: 24px; background-color: #1f2269; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 14px 34px rgba(124,58,237,.42); }
+.chart::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,.12) 0%, rgba(255,255,255,0) 60%), linear-gradient(115deg, #2b1f6e 0%, #1f2269 48%, #122666 100%); opacity: 1; }
+.chart .fig { font-size: 30px; line-height: 40px; margin-top: 4px; }
+.chart .delta { margin-top: 6px; }
+.chart-meta { position: absolute; right: 12px; top: 12px; opacity: 0; font: 400 12px/16px "Geist Mono", ui-monospace, monospace; color: #85858b; }
+.plot { position: absolute; left: 12px; right: 0; top: 128px; bottom: 30px; }
+.gl { position: absolute; left: 0; right: 0; height: 1px; background: rgba(139,92,246,.3); }
+.gl:nth-of-type(1) { top: 0; } .gl:nth-of-type(2) { top: 25%; } .gl:nth-of-type(3) { top: 50%; } .gl:nth-of-type(4) { top: 75%; }
+.yl { position: absolute; left: 0; opacity: 0; font: 400 12px/16px "Geist Mono", ui-monospace, monospace; color: #85858b; transform: translateY(-50%); }
+.yl:nth-of-type(1) { top: 0; } .yl:nth-of-type(2) { top: 33.333%; } .yl:nth-of-type(3) { top: 66.666%; } .yl:nth-of-type(4) { top: 100%; }
+.bars { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 16px; padding-left: 0; }
+.bar { display: flex; flex-direction: column; align-items: center; width: 40px; flex: none; }
+.fill { position: relative; width: 40px; border-radius: 20px; background-color: #7c6cf0; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 22px rgba(139,92,246,.55); }
+.fill.hi { background-color: #c084fc; }
+.val { position: absolute; left: 50%; bottom: 100%; margin-bottom: 8px; transform: translateX(-50%); white-space: nowrap; font: 500 12px/16px "Geist Mono", ui-monospace, monospace; color: #ff9a63; }
+.days { position: absolute; left: 0; right: 0; top: 100%; margin-top: 8px; display: flex; gap: 16px; padding-left: 0; font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: .08em; color: rgba(196,181,253,.75); text-transform: uppercase; }
+.days span { width: 40px; flex: none; text-align: center; }
+.h1 { height: 120px; } .h2 { height: 172px; } .h3 { height: 133px; } .h4 { height: 225px; } .h5 { height: 161px; } .h6 { height: 97px; } .h7 { height: 143px; }
+
+/* redline-free helper: keep swaps tight */
+.swap .to { white-space: nowrap; }
+
+/* ===== Step 1: Spacing (4px grid, equal things equal, one column) ===== */
+.s1 .win { width: 1200px; height: 800px; }
+.s1 .side { width: 264px; padding: 16px 16px 0 16px; }
+.s1 .brand { height: 36px; }
+.s1 .search { height: 36px; margin-top: 16px; padding: 0 8px 0 12px; }
+.s1 .search .t { margin-left: 8px; }
+.s1 .rule { margin-top: 0; }
+.s1 .label { margin-top: 24px; }
+.s1 .rows { margin-top: 8px; }
+.s1 .rows.plans { margin-top: 8px; }
+.s1 .row { height: 36px; margin-top: 2px; padding: 0 8px; }
+.s1 .rows .row:first-child { margin-top: 0; }
+.s1 .lab { margin-left: 8px; }
+.s1 .main { padding-left: 32px; padding-right: 32px; padding-top: 32px; }
+.s1 .crumb { height: 20px; margin-top: 0; }
+.s1 h1 { margin-top: 8px; line-height: 40px; }
+.s1 .stats { margin-top: 24px; }
+.s1 .glass { height: 128px; padding: 20px; }
+.s1 .c1 { width: 499px; } .s1 .c2 { width: 357px; margin-left: 16px; }
+.s1 .fig { margin-top: 4px; }
+.s1 .delta { margin-top: 4px; }
+.s1 .chart { width: 872px; height: 500px; margin-top: 16px; padding: 24px; }
+.s1 .chart .delta { margin-top: 4px; }
+.s1 .plot { left: 24px; right: 24px; top: 136px; bottom: 52px; }
+.s1 .bars { padding-left: 40px; gap: 16px; }
+.s1 .bar { width: 98px; }
+.s1 .days { padding-left: 40px; }
+.s1 .days span { width: 98px; }
+
+/* ===== Step 2: Color and icons ===== */
+.s2 body { background-color: #0a0a0b; }
+.s2 .bd { opacity: 0; }
+.s2 .win { box-shadow: 0 0 0 1px rgba(237,237,237,.08), 0 24px 80px rgba(0,0,0,.5); }
+.s2 .side { background-color: #0f0f10; border-right-color: rgba(237,237,237,.08); }
+.s2 .main { background-color: #141415; }
+.s2 .wash { opacity: 0; }
+.s2 .mark .tile { opacity: 0; }
+.s2 .mark .e, .s2 .ib .e, .s2 .bell .e { opacity: 0; }
+.s2 .mark svg, .s2 .ib svg, .s2 .bell svg { opacity: 1; }
+.s2 .gt .g { opacity: 0; }
+.s2 .pill::before { opacity: 0; }
+.s2 .search { border-color: rgba(237,237,237,.08); background-color: #19191b; box-shadow: none; color: #85858b; }
+.s2 .label { color: #85858b; }
+.s2 .row { color: #a1a1a6; }
+.s2 .row.active { color: #ededed; background-color: #232325; box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.s2 .row.active::before { opacity: 0; }
+.s2 .row.active::after { opacity: 1; }
+.s2 .row .ib { color: #85858b; }
+.s2 .row.active .ib { color: #a1a1a6; }
+.s2 .crumb { color: #85858b; }
+.s2 .glass, .s2 .chart { border-color: rgba(237,237,237,.08); background-color: #19191b; box-shadow: none; }
+.s2 .glass::before, .s2 .chart::before { opacity: 0; }
+.s2 .cap { color: #85858b; }
+.s2 .delta { color: #4cc38a; }
+.s2 .fill { background-color: #2d2d30; box-shadow: none; }
+.s2 .fill.hi { background-color: #f0773a; }
+.s2 .gl { background: rgba(237,237,237,.08); }
+.s2 .days { color: #85858b; }
+
+/* ===== Step 3: Type and copy ===== */
+.s3 body { font-family: "Geist", "Inter", system-ui, sans-serif; }
+.s3 .word { margin-left: 8px; font-size: 17px; font-weight: 500; }
+.s3 .row { font-size: 14px; font-weight: 400; }
+.s3 .search .t { font-size: 14px; font-weight: 400; }
+.s3 .pill { font-family: "Geist Mono", ui-monospace, monospace; font-size: 12px; font-weight: 400; letter-spacing: 0; color: #85858b; padding: 0; }
+.s3 .search .pill { color: #a1a1a6; padding: 0 6px; }
+.s3 .up { text-transform: none; }
+.s3 .label { font-size: 12px; font-weight: 400; letter-spacing: 0; padding: 0 8px; }
+.s3 .crumb { font-size: 14px; font-weight: 400; }
+.s3 h1 { font-size: 32px; font-weight: 500; }
+.s3 .cap { font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 20px; }
+.s3 .fig { font-size: 28px; font-weight: 500; line-height: 36px; }
+.s3 .chart .fig { font-size: 32px; font-weight: 500; line-height: 40px; }
+.s3 .delta { font-size: 14px; font-weight: 400; line-height: 20px; }
+.s3 .days { font-family: "Geist Mono", ui-monospace, monospace; font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+/* ===== Step 4: Details (radii, keycap, the chart) ===== */
+.s4 .win { border-radius: 16px; }
+.s4 .search { border-radius: 8px; }
+.s4 .row { border-radius: 8px; }
+.s4 .pill { border-radius: 4px; }
+.s4 .search .pill { border: 1px solid rgba(237,237,237,.08); background-color: #232325; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); line-height: 18px; }
+.s4 .glass, .s4 .chart { border-radius: 16px; }
+.s4 .fill { width: 56px; border-radius: 8px 8px 0 0; }
+.s4 .h1 { height: 151px; } .s4 .h2 { height: 209px; } .s4 .h3 { height: 163px; } .s4 .h4 { height: 275px; } .s4 .h5 { height: 197px; } .s4 .h6 { height: 119px; } .s4 .h7 { height: 185px; }
+.s4 .chart-meta { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="bd"></div>
+<div class="win">
+  <aside class="side">
+    <div class="brand" data-gap="sidebar">
+      <span class="mark"><i class="tile"></i><span class="e">✨</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1c.6 2.6 4 3.9 4 7.6a4 4 0 0 1-8 0c0-1.5.7-2.6 1.5-3.5C6.3 4.4 7.5 3.4 8 1z" /></svg></span>
+      <span class="word gt"><span class="g">EmberAI</span><span class="f">EmberAI</span></span>
+      <span class="pill up">Pro</span>
+      <span class="bell"><span class="e" style="position:absolute;inset:0">🔔</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg></span>
+    </div>
+
+    <div class="search" data-gap="sidebar" data-radius>
+      <span class="ib"><span class="e">🔍</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg></span>
+      <span class="t"><span class="swap" data-at="3"><span class="from">Search anything...</span><span class="to">Search</span></span></span>
+      <span class="pill">⌘K</span>
+    </div>
+
+    <div class="rule" data-out="2"></div>
+
+    <p class="label up" data-gap="sidebar">Navigation</p>
+    <nav class="rows" data-gap="sidebar">
+      <a class="row active a1" href="#" data-radius><span class="ib"><span class="e">🏠</span><svg viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg></span><span class="lab">Overview</span></a>
+      <a class="row a2" href="#"><span class="ib"><span class="e">📥</span><svg viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg></span><span class="lab">Inbox</span><span class="pill rose">12</span></a>
+      <a class="row a3" href="#"><span class="ib"><span class="e">🚀</span><svg viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" /></svg></span><span class="lab m8">Projects</span><span class="pill" data-out="2">New ✨</span></a>
+      <a class="row a4" href="#"><span class="ib"><span class="e">👥</span><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg></span><span class="lab m5">Customers</span></a>
+      <a class="row a5" href="#"><span class="ib"><span class="e">💸</span><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" /><path d="M12 17.5v-11" /></svg></span><span class="lab m9">Invoices</span></a>
+      <a class="row a6" href="#"><span class="ib"><span class="e">📊</span><svg viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg></span><span class="lab">Reports</span></a>
+    </nav>
+
+    <div class="rule r2" data-out="2"></div>
+
+    <p class="label up" data-gap="sidebar"><span class="emo" data-out="2">💳 </span>Plans</p>
+    <div class="rows plans" data-gap="sidebar">
+      <div class="row p1"><span class="ib"><span class="e">🏢</span><svg viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></svg></span><span class="lab">Enterprise</span><span class="pill">18<span class="emo" data-out="2"> 👤</span></span></div>
+      <div class="row p2"><span class="ib"><span class="e">💼</span><svg viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /><rect width="20" height="14" x="2" y="6" rx="2" /></svg></span><span class="lab m8">Business</span><span class="pill">64<span class="emo" data-out="2"> 👤</span></span></div>
+      <div class="row p3"><span class="ib"><span class="e">⚡</span><svg viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" /></svg></span><span class="lab m4">Pro</span><span class="pill">210<span class="emo" data-out="2"> 👤</span></span></div>
+      <div class="row p4"><span class="ib"><span class="e">🌱</span><svg viewBox="0 0 24 24"><path d="M7 20h10" /><path d="M10 20c5.5-2.5.8-6.4 3-10" /><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" /><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z" /></svg></span><span class="lab m7">Starter</span><span class="pill">480<span class="emo" data-out="2"> 👤</span></span></div>
+      <div class="row p5"><span class="ib"><span class="e">🎁</span><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13" /><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" /></svg></span><span class="lab">Free</span><span class="pill">1.2k<span class="emo" data-out="2"> 👤</span></span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="wash"></div>
+    <div class="crumb" data-gap="main"><span class="emo" data-out="2">📊</span>Overview</div>
+    <h1 data-gap="main"><span class="swap" data-at="3"><span class="from gtext">Welcome back, Damir! 👋</span><span class="to">October 2026</span></span></h1>
+
+    <div class="stats" data-gap="main">
+      <section class="glass c1" data-radius>
+        <p class="cap"><span class="emo" data-out="2">💰 </span>Paid this month</p>
+        <p class="fig"><span class="gt"><span class="g" style="background-image:linear-gradient(135deg,#e9d5ff,#818cf8)">$48,210</span><span class="f">$48,210</span></span></p>
+        <p class="delta"><span class="swap" data-at="3"><span class="from">🔥 +12%!!</span><span class="to">+12% <span class="vs">vs last month</span></span></span></p>
+        <span class="big-emo" data-out="2">💳</span>
+      </section>
+      <section class="glass c2">
+        <p class="cap"><span class="emo" data-out="2">⚠️ </span>Overdue</p>
+        <p class="fig"><span class="swap" data-at="3"><span class="from gtext2">07</span><span class="to">7</span></span></p>
+        <p class="delta"><span class="swap" data-at="3"><span class="from">😬 3 less!!</span><span class="to">3 fewer <span class="vs">vs last month</span></span></span></p>
+      </section>
+    </div>
+
+    <section class="chart" data-gap="main" data-radius>
+      <p class="cap"><span class="emo" data-out="2">📈 </span>Revenue</p>
+      <p class="fig"><span class="swap" data-at="3"><span class="from gtext2">$124,860.40</span><span class="to">$124,860</span></span></p>
+      <p class="delta"><span class="swap" data-at="3"><span class="from">🚀 +4.2% this month!!</span><span class="to">+4.2% <span class="vs">vs last month</span></span></span></p>
+      <p class="chart-meta">By weekday, October</p>
+      <div class="plot">
+        <i class="gl"></i><i class="gl"></i><i class="gl"></i><i class="gl"></i>
+        <b class="yl" data-in="4">$30k</b><b class="yl" data-in="4">$20k</b><b class="yl" data-in="4">$10k</b><b class="yl" data-in="4">$0</b>
+        <div class="bars">
+          <div class="bar"><div class="fill h1"></div></div>
+          <div class="bar"><div class="fill h2"></div></div>
+          <div class="bar"><div class="fill h3"></div></div>
+          <div class="bar"><div class="fill h4 hi"><span class="val" data-in="4">$26,410</span></div></div>
+          <div class="bar"><div class="fill h5"></div></div>
+          <div class="bar"><div class="fill h6"></div></div>
+          <div class="bar"><div class="fill h7"></div></div>
+        </div>
+        <div class="days"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
