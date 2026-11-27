@@ -62,6 +62,17 @@ const TABS = [['today', '/', '🏠', '우리집'], ['meals', '/meals', '🍽', '
 
 let current = null;       // 현재 화면 컨트롤러
 let navToken = 0;
+// 화면 사진(스냅샷): 한 번 본 화면은 다음에 열 때 저장해 둔 모습을 먼저 보여 주고(불러오는 중 없이) 서버에서 새로 받으면 바뀐다.
+// 공용 기기의 아이·어른 전용 화면(통장 비밀번호 등)과 우리집 화면(캐릭터가 움직여서)은 쓰지 않는다.
+const snaps = new Map(); let shownPath = null;
+const snapOk = (match, path) => path !== '/' && !(isDevice() && (match.kid || match.adult)) && !match.pub;
+function saveSnap() {
+  const main = $('#main');
+  if (!shownPath || !main || main.classList.contains('stale') || $('.loading, #retry', main) || document.querySelector('.layout-bar')) return;
+  if (main.innerHTML.length > 300000) return;
+  snaps.delete(shownPath); snaps.set(shownPath, main.innerHTML);
+  if (snaps.size > 30) snaps.delete(snaps.keys().next().value);
+}
 let pendingRefresh = false;
 const here = () => (location.hash.replace(/^#/, '') || '/').split('?')[0];
 
@@ -131,8 +142,11 @@ async function render() {
   const tabKey = boundKid() && match.view === home ? 'home' : (match.view === wallet ? 'bank' : match.tab); // 아이 통장 화면에서는 통장 탭이 켜진다(아이 폰·어른·거실 기기 모두)
   $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === tabKey));
   const main = $('#main');
+  saveSnap(); // 방금까지 보던 화면 모습을 저장
   main.onclick = null; // 이전 화면의 눌림 처리가 새 화면에 남지 않게
-  main.innerHTML = '<div class="loading">불러오는 중…</div>';
+  const snap = snapOk(match, path) ? snaps.get(path) : null;
+  shownPath = snapOk(match, path) ? path : null;
+  if (snap) { main.innerHTML = snap; main.classList.add('stale'); main.scrollTop = 0; } else { main.classList.remove('stale'); main.innerHTML = '<div class="loading">불러오는 중…</div>'; }
   setTimeout(() => { const l = $('.loading', main); if (l && token === navToken) l.innerHTML = '불러오는 중…<br><small>오래 걸리고 있어요. 인터넷을 확인하고 다시 시도해 주세요.</small><br><button class="btn small" id="retryLoad">다시 시도</button>', $('#retryLoad', l).onclick = () => location.reload(); }, 12000);
   if (match.adult && !(await needAdult())) { if (token === navToken) go('/'); return; }
   if (token !== navToken) return;
@@ -143,6 +157,7 @@ async function render() {
   try {
     const view = match.view.mount || match.view;
     const ctl = await view(main, params);
+    if (token === navToken) main.classList.remove('stale');
     decoratePage(main, path.replace(/\/\d+/g, '/:id'));
     applyLayout();
     if (token !== navToken) { ctl?.destroy?.(); return; }
@@ -150,7 +165,7 @@ async function render() {
     main.focus({ preventScroll: true });
   } catch (e) {
     if (e instanceof ApiError && e.status === 401 && e.code === 'login_required') return;
-    console.error(e);
+    console.error(e); main.classList.remove('stale');
     main.innerHTML = `<div class="empty"><p>${esc(e.message || '불러오지 못했어요.')}</p><button class="btn primary" id="retry">다시 시도</button></div>`;
     $('#retry')?.addEventListener('click', render);
   }

@@ -1004,3 +1004,5 @@ details.fold > summary:focus-visible { outline: 3px solid var(--accent2); outlin
 .meal-day.on { border-color: var(--accent2); background: color-mix(in srgb, var(--accent2) 18%, var(--card)); } .meal-day.is-today b { color: var(--accent); }
 .field.inline { display: flex; align-items: center; gap: 8px; margin: 0; } .field.inline input { width: auto; }
 .meal-week { grid-template-columns: minmax(0, 1fr); } .meal-week li { min-width: 0; } .meal-day { min-width: 0; overflow: hidden; box-sizing: border-box; }
+/* 저장해 둔 화면 모습을 먼저 보여 주는 동안에는 누를 수 없게 */
+#main.stale { pointer-events: none; }

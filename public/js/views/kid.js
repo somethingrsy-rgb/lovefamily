@@ -11,9 +11,8 @@ const kidOf = (id) => kidById(id) || { id: Number(id), name: '아이', avatar: '
 export async function hub(el, { id }) {
   const kid = kidOf(id);
   async function load() {
-    const [day, boards] = await Promise.all([get(`/api/kids/${id}/day`), get(`/api/kids/${id}/stamps`)]);
-    let unread = 0;
-    try { const n = await get(`/api/notifications?kidId=${id}`); unread = n.unread; } catch {}
+    const [day, boards, n] = await Promise.all([get(`/api/kids/${id}/day`), get(`/api/kids/${id}/stamps`), get(`/api/notifications?kidId=${id}`).catch(() => null)]);
+    const unread = n ? n.unread : 0;
     const status = { ready: '🎉 다 했어요 · 도장 요청하기', requested: '✋ 다 했어요 · 어른 확인 중', approved: `💮 도장 받았어요${day.stamp ? ` (${esc(day.stamp.providerName)})` : ''}`, recheck: '🔎 다시 확인해 보래요', none: '😴 오늘은 쉬는 날', open: `${day.total - day.done}개 남았어요` }[day.status];
     el.innerHTML = `${back('/', '', '')}
       <section class="kid-hub" style="--kc:${esc(kid.color)}">

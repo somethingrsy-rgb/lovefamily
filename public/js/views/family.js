@@ -71,11 +71,11 @@ export async function mount(el) {
   const opened = new Set(); // 펼쳐 둔 설정 칸 (다시 그려도 유지)
   const fo = (k) => (opened.has(k) ? ' open' : '');
   async function load() {
-    S.info = await get('/api/me');
-    const info = S.info; const dev = isDevice(); const adult = !dev || isAdultNow();
-    const ps = adult ? await pushState().catch(() => ({ s: 'unsupported', msg: '' })) : null;
+    const dev = isDevice(); const adult = !dev || isAdultNow();
+    // 서로 기다릴 필요 없는 조회는 한꺼번에(세 번 차례로 기다리던 것을 한 번에)
+    const [me, ps, acts] = await Promise.all([get('/api/me'), adult ? pushState().catch(() => ({ s: 'unsupported', msg: '' })) : null, adult ? get('/api/activities').catch(() => []) : []]);
+    S.info = me; const info = S.info;
     const theme = (lsGet('theme', 'light') === 'dark' ? 'dark' : 'light');
-    const acts = adult ? await get('/api/activities').catch(() => []) : [];
     const code = info.family.code;
     const myId = info.me?.id || S.elev?.memberId || null;
     el.innerHTML = `<header class="page-head"><h1>⚙️ 설정</h1></header>
