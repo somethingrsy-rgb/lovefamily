@@ -25,7 +25,11 @@ export async function mount(el, params) {
   const isNow = (it) => { const n = kstNow(); return it.dow === n.dow && mins(it.start) <= n.min && n.min < mins(it.end); };
 
   async function load() {
+    // 지난번에 받아 둔 시간표가 있으면 먼저 바로 보여 주고(불러오는 중 없이), 서버에서 새로 받으면 다시 그린다
+    const c = lsGet('ttCache', {})[id];
+    if (c && !data.items.length) { data = { ...c, today: kstNow().dow }; if (day == null) day = shownDays().includes(data.today) ? data.today : 1; draw(); }
     data = await get(`/api/kids/${id}/timetable`);
+    lsSet('ttCache', { ...lsGet('ttCache', {}), [id]: data });
     if (day == null) day = shownDays().includes(data.today) ? data.today : 1;
     draw();
   }

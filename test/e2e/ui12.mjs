@@ -89,6 +89,15 @@ await mp.click(`.kid-tab[data-kid="${yuel}"]`); await mp.waitForTimeout(400); as
 await mp.click('.tab[data-tab=timetable]'); await mp.waitForSelector('.tt-seg'); assert.ok((await mp.$('#add')) !== null, '시간표 + 수업 추가'); assert.equal(await mp.$$eval('.kid-tab', (e) => e.length), 2);
 await mp.screenshot({ path: path.join(shots, '92-tabs-timetable.png') });
 console.log('✓ 하단 탭 급식·시간표(아이 고르기)');
+// 10) 서버가 느려도(3초) 한 번 본 급식·시간표는 바로 보인다(불러오는 중 없이)
+await mp.route('**/api/kids/*/meals*', async (r) => { await new Promise((x) => setTimeout(x, 3000)); r.continue(); });
+await mp.route('**/api/kids/*/timetable', async (r) => { await new Promise((x) => setTimeout(x, 3000)); r.continue(); });
+await mp.click('.tab[data-tab=meals]'); await mp.waitForSelector('.meal-card', { timeout: 1000 });
+assert.equal(await mp.$('.loading'), null, '급식: 불러오는 중 없이 바로');
+await mp.click('.tab[data-tab=timetable]'); await mp.waitForSelector('.tt-seg', { timeout: 1000 });
+assert.equal(await mp.$('.loading'), null, '시간표: 불러오는 중 없이 바로');
+await mp.unroute('**/api/kids/*/meals*'); await mp.unroute('**/api/kids/*/timetable');
+console.log('✓ 느린 서버에서도 급식·시간표 바로 보임');
 
 await browser.close(); await app.close();
 assert.deepEqual(errors, [], '브라우저 오류: ' + errors.join(' | '));

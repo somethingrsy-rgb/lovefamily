@@ -1,4 +1,4 @@
-import { $, $$, esc, dateLabel, addDays } from '../util.js';
+import { $, $$, esc, dateLabel, addDays, lsGet, lsSet } from '../util.js';
 import { S, get, post, put, boundKid, isDevice, kidById } from '../api.js';
 import { avatar, errToast, toast, formSheet, needAdult } from '../ui.js';
 import { back, topKidId, kidTabsHtml, kidTabsBind } from '../common.js';
@@ -22,8 +22,12 @@ export async function mount(el, params) {
   async function load(keepDate = true) {
     const base = date || S.info.today;
     const from = addDays(mondayOf(base), -7); const to = addDays(from, 41);
+    // 지난번에 받아 둔 식단이 있으면 먼저 바로 보여 주고(불러오는 중 없이), 서버에서 새로 받으면 다시 그린다
+    const c = lsGet('mealsCache', {})[id];
+    if (c && !data.days.length && c.from <= base && base <= c.to) { data = { ...c, today: S.info.today }; if (!date) date = [0, 6].includes(dowOf(data.today)) ? weekdayStep(data.today, 1) : data.today; draw(); }
     const [d, a] = await Promise.all([get(`/api/kids/${id}/meals?from=${from}&to=${to}`), myAlert && !alert ? get('/api/meals/alert').catch(() => null) : Promise.resolve(alert)]);
     data = d; alert = a;
+    lsSet('mealsCache', { ...lsGet('mealsCache', {}), [id]: d });
     if (!keepDate || !date) date = [0, 6].includes(dowOf(d.today)) ? weekdayStep(d.today, 1) : d.today; // 주말에는 다음 월요일을 먼저 보여 준다
     draw();
   }
